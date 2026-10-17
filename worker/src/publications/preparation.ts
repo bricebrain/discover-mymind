@@ -16,7 +16,11 @@ export async function assertPrepared(env: Env,p: Publication,m: Manifest) {
     throw new HttpError(422,'prepared_variant_missing','La version demandée et son audio Kokoro sont requis.');
   }
   const e = adapted.evaluation as Record<string,unknown> | undefined;
-  if (!e || (e.verdict!=='ok' && !(e.verdict==='review' && e.acceptedByUser===true && typeof e.reviewedAt==='string' && Number.isFinite(Date.parse(e.reviewedAt))))) {
+  // Publication automatique (choix du 2026-10-18) : une version signalée par le contrôle passe si l'Atelier
+  // la déclare explicitement « autoPublished » ; elle est alors affichée « non relue » dans Discover.
+  const accepted = e?.verdict==='review' && e.acceptedByUser===true && typeof e.reviewedAt==='string' && Number.isFinite(Date.parse(e.reviewedAt));
+  const auto = (e?.verdict==='review' || e?.verdict==='rejected') && e.autoPublished===true;
+  if (!e || (e.verdict!=='ok' && !accepted && !auto)) {
     throw new HttpError(422,'review_required','Cette version doit être relue et acceptée dans l’Atelier.');
   }
   if (options.faithful && !m.variants.some((v) => v.kind==='faithful_translation' && v.language==='en' && v.audio?.source==='r2')) {

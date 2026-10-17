@@ -7,7 +7,6 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import { Alert, Avatar, Box, Button, CircularProgress, IconButton, Stack, Tab, Tabs, Tooltip, Typography, useTheme } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { CATEGORY_LABELS, formatDuration, formatWhen, useEpisode, useSetEpisodeState } from '../api/episodes';
 import { categoryColor, fonts } from '../app/theme';
@@ -17,6 +16,7 @@ import { useNewNote } from '../pages/MindPage';
 import { TranscriptView } from '../transcript/TranscriptView';
 import { PlayingBars, trackOf } from './EpisodeCard';
 import { PreparationPanel } from '../queue/PreparationPanel';
+import { PreparedEpisode } from './PreparedEpisode';
 
 /** Détail d'un épisode : en-tête sur la pochette floutée, écoute, transcription ou présentation. */
 export function EpisodeDetail({ id, onBack }: { id: string; onBack?: () => void }) {
@@ -78,16 +78,16 @@ export function EpisodeDetail({ id, onBack }: { id: string; onBack?: () => void 
             {episode.title}
           </Typography>
 
-          {episode.contentId && <Button component={Link} to={`/library/${episode.contentId}`} variant="outlined" sx={{ mb: 2 }}>Versions préparées</Button>}
           <PreparationPanel key={episode.id} episode={episode} />
           <Stack direction="row" spacing={1} alignItems="center">
-            <Button variant="contained" size="large" onClick={listen}
+            {/* Épisode préparé : l'écoute se choisit par version, plus bas (l'original y figure aussi). */}
+            {!episode.contentId && <Button variant="contained" size="large" onClick={listen}
               startIcon={isCurrent && player.playing ? <PauseIcon /> : <PlayArrowIcon />}
               sx={{ px: 3, position: 'relative', overflow: 'hidden' }}>
               {isCurrent ? (player.playing ? 'Pause' : 'Reprendre') : resumeAt ? `Reprendre à ${formatClock(resumeAt)}` : 'Écouter'}
               {pct > 0 && <Box aria-hidden sx={{ position: 'absolute', left: 0, bottom: 0, height: 3, width: `${pct}%`, bgcolor: 'secondary.main' }} />}
-            </Button>
-            {isCurrent && player.playing && <PlayingBars active />}
+            </Button>}
+            {!episode.contentId && isCurrent && player.playing && <PlayingBars active />}
             <Box sx={{ flex: 1 }} />
             <Tooltip title="Réfléchir : écrire une note liée à cet épisode">
               <IconButton aria-label="Réfléchir : écrire une note liée à cet épisode" sx={{ border: 1, borderColor: 'divider' }}
@@ -115,6 +115,13 @@ export function EpisodeDetail({ id, onBack }: { id: string; onBack?: () => void 
       </Box>
 
       <Box sx={{ px: 2, maxWidth: 720, mx: 'auto' }}>
+        {episode.contentId ? (
+          <PreparedEpisode contentId={episode.contentId} about={episode.description ? (
+            <Typography sx={{ fontFamily: fonts.reading, fontSize: '1.02rem', lineHeight: 1.7, whiteSpace: 'pre-line', color: 'text.secondary' }}>
+              {episode.description}
+            </Typography>
+          ) : null} />
+        ) : <>
         {episode.transcriptType && (
           <Tabs value={tab} onChange={(_e, v: 'transcript' | 'about') => setTab(v)} sx={{ mb: 2.5, borderBottom: 1, borderColor: 'divider' }}>
             <Tab value="transcript" label="Transcription" />
@@ -130,6 +137,7 @@ export function EpisodeDetail({ id, onBack }: { id: string; onBack?: () => void 
         ) : (
           <Typography color="text.secondary">Pas de présentation pour cet épisode.</Typography>
         )}
+        </>}
       </Box>
     </Box>
   );

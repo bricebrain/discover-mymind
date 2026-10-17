@@ -52,5 +52,11 @@ it('bloque la publication automatique review/rejected et exige les options réel
  await expect(assertPrepared(env,p,m)).resolves.toBeUndefined();
  m.variants[0]!.evaluation={verdict:'rejected',acceptedByUser:true,reviewedAt:'2026-10-17T12:00:00Z'};
  await expect(assertPrepared(env,p,m)).rejects.toMatchObject({code:'review_required'});
+ m.variants[0]!.evaluation={verdict:'review',autoPublished:true};
+ await expect(assertPrepared(env,p,m)).resolves.toBeUndefined();
+ m.variants[0]!.evaluation={verdict:'rejected',autoPublished:true};
+ await expect(assertPrepared(env,p,m)).resolves.toBeUndefined();
+ m.variants[0]!.evaluation={verdict:'rejected',autoPublished:'oui'};
+ await expect(assertPrepared(env,p,m)).rejects.toMatchObject({code:'review_required'});
  m.variants=[];await expect(assertPrepared(env,p,m)).rejects.toMatchObject({code:'prepared_variant_missing'});
 });

@@ -5,7 +5,9 @@ import { upload } from '../publications/upload';
 import { commit } from '../publications/commit';
 import { secretsEqual } from '../security/crypto';
 import * as leases from '../queue/leases';
-import { list } from './queue';
+import { cancel, enqueue, list, retry } from './queue';
+import * as episodes from './episodes';
+import * as shows from './shows';
 import { manifest } from '../publications/store';
 import type { Publication } from '../publications/types';
 
@@ -29,6 +31,13 @@ export async function handleAtelier(req: Request, env: Env, path: string): Promi
     if (!p) return apiError(404,'not_found','Contenu introuvable.');
     return json({manifest:await manifest(env,p)});
   }
+  // L'Atelier parcourt les podcasts et lance lui-même les préparations, sans passer par le téléphone.
+  if (path === '/atelier/shows' && req.method === 'GET') return shows.list(env);
+  if (path === '/atelier/episodes' && req.method === 'GET') return episodes.explorer(req,env);
+  const prep = path.match(/^\/atelier\/episodes\/([0-9a-f]{20})\/prepare$/);
+  if (prep?.[1] && req.method === 'POST') return enqueue(req,env,prep[1]);
+  const manage = path.match(/^\/atelier\/queue\/([0-9a-f-]{36})\/(retry|cancel)$/);
+  if (manage?.[1] && req.method === 'POST') return manage[2]==='retry' ? retry(env,manage[1]) : cancel(env,manage[1]);
   if (path === '/atelier/queue' && req.method === 'GET') return list(req,env);
   if (path === '/atelier/queue/lease' && req.method === 'POST') return leases.lease(req,env);
   const q = path.match(/^\/atelier\/queue\/([0-9a-f-]{36})\/(heartbeat|fail|release)$/);

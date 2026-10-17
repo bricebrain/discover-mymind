@@ -72,6 +72,7 @@ export function EpisodeBrowser({ filters, header, empty, showResume = false }: {
     const next = new URLSearchParams(params);
     if (id) next.set('e', id);
     else next.delete('e');
+    next.delete('v'); // la version choisie appartient à l'épisode précédent
     setParams(next, { replace: wide });
   };
 

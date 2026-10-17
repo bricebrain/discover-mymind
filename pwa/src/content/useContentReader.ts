@@ -11,7 +11,9 @@ export function useContentReader(detail: ContentDetail | undefined) {
   const requested = params.get('v');
   const playingKey = detail?.variants.find((v) => player.track?.targetType === 'variant'
     && player.track.targetId === `${detail.content.id}:${v.key}`)?.key;
+  // Par défaut, la version préparée (ce qu'on vient chercher), puis la traduction fidèle, puis l'original.
   const variant = detail?.variants.find((v) => v.key === (requested ?? playingKey))
+    ?? detail?.variants.find((v) => v.kind === 'adaptation') ?? detail?.variants.find((v) => v.kind === 'faithful_translation')
     ?? detail?.variants.find((v) => v.kind === 'source') ?? detail?.variants[0];
   const track = detail && variant ? variantTrack(detail, variant) : null;
   const current = !!track && sameAudio(player.track, track);
