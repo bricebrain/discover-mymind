@@ -311,20 +311,6 @@
       "addedBy": "claude"
     },
     {
-      "id": "code-source",
-      "title": "Code source",
-      "publisher": "Le Parisien",
-      "appleId": 1460276302,
-      "feedUrl": "https://feeds.acast.com/public/shows/9f905938-baf3-4214-bd26-65999b4899d7",
-      "language": "fr",
-      "category": "news",
-      "transcriptSource": "none",
-      "medianMinutes": 23,
-      "titleFilter": null,
-      "autoPrepareLatest": false,
-      "addedBy": "claude"
-    },
-    {
       "id": "tas-qui-en-histoire",
       "title": "T'as qui en Histoire ?",
       "publisher": "Stéphane Genêt",
