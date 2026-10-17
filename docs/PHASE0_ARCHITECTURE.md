@@ -8,7 +8,7 @@
 **Changements de la v2** :
 - collecte mesurée sur Workers (§ 7.1) ;
 - évaluation B1 par simplicité et fidélité, sans seuil strict (§ 7.6) ;
-- adaptation par blocs (§ 7.7) ;
+- versions préparées : couverture × niveau × durée, synthèse en deux passes (§ 7.4, § 7.7) ;
 - sécurité renforcée (§ 8) ;
 - bail sur la file (§ 6.6) ;
 - publication robuste (§ 6.5) ;
@@ -105,8 +105,8 @@ Ajouts côté Atelier (`convert/`), sans modifier le pipeline existant :
 | `discover_cible.py` | Manifeste et protocole de publication § 6.5 |
 | `discover_file.py` | Bail sur la file (§ 6.6), signal de vie, reprise |
 | `podcast_episode.py` | Téléchargement validé de l'audio d'un épisode, normalisation (mono, 64 kbit/s) |
-| `adaptation.py` | Version à mon niveau, par blocs (§ 7.7) |
-| `adaptation_evaluation.py` | Indicateurs de simplicité et de fidélité (§ 7.6) |
+| `adaptation.py` | Versions préparées : intégral, condensé, essentiel ; deux passes (§ 7.4, § 7.7) |
+| `adaptation_evaluation.py` | Fidélité du fond, puis accessibilité de la langue (§ 7.6) |
 | `manifeste_validation.py` | Validation Python, testée contre `contracts/fixtures/` |
 
 ---
@@ -231,6 +231,8 @@ CREATE TABLE variants (
   language         TEXT NOT NULL,
   cefr_level       TEXT,
   style            TEXT CHECK (style IN ('narration','dialogue')),
+  coverage         TEXT NOT NULL DEFAULT 'full' CHECK (coverage IN ('full','condensed','essentials')), -- migration 0003 (lot 6)
+  condensation_json TEXT,                         -- { targetMinutes, sourceMinutes, excludeAds } ; migration 0003
   derived_from     TEXT,                          -- variant_key d'une variante de la même publication
   segments_path    TEXT NOT NULL,
   audio_source     TEXT CHECK (audio_source IN ('r2','publisher_stream')),  -- NULL = sans audio
@@ -241,8 +243,7 @@ CREATE TABLE variants (
   duration_ms      INTEGER,
   timing_source    TEXT NOT NULL CHECK (timing_source IN ('rss_srt','rss_vtt','macwhisper_srt','kokoro','none')),
   timing_status    TEXT NOT NULL DEFAULT 'exact' CHECK (timing_status IN ('exact','unverified','none')),
-  excerpt_start_ms INTEGER, excerpt_end_ms INTEGER,
-  part_index       INTEGER, part_total INTEGER,
+  excerpt_start_ms INTEGER, excerpt_end_ms INTEGER, -- réservé (mode extrait, hors V1)
   evaluation_json  TEXT NOT NULL DEFAULT '{}',    -- indicateurs § 7.6 (adaptations)
   generation_json  TEXT NOT NULL DEFAULT '{}',
   sort_order       INTEGER NOT NULL DEFAULT 0,
@@ -422,6 +423,7 @@ Exemple : épisode français de 8 minutes avec ses trois variantes. L'original e
     {
       "key": "en-b1", "kind": "adaptation", "language": "en-GB",
       "cefrLevel": "B1", "style": "narration", "derivedFrom": "fr-source",
+      "coverage": "full",
       "segmentsFile": "segments/en-b1.json",
       "audio": { "source": "r2", "file": "audio/en-b1.mp3", "origin": "kokoro",
                  "durationMs": 301000, "timingSource": "kokoro" },
@@ -452,7 +454,8 @@ Règles de validation du manifeste. **Une seule erreur fait refuser tout le mani
 | Identifiants | `content.id` correspond à `^[a-z0-9][a-z0-9-]{2,95}$` ; `key` correspond à `^[a-z0-9][a-z0-9-]{1,31}$` et est unique |
 | Variante source | **Exactement une** `kind = source`, dans `originalLanguage`, sans `cefrLevel` et sans `derivedFrom` |
 | Traduction fidèle | `faithful_translation` : `derivedFrom` = la source, langue différente de la source, sans `cefrLevel` |
-| Adaptation | `adaptation` : `cefrLevel` ∈ A2/B1/B2/C1, `style` obligatoire, `derivedFrom` = une variante de ce manifeste, langue anglaise |
+| Adaptation | `adaptation` : `cefrLevel` ∈ A2/B1/B2/C1 ou `null` (anglais non simplifié), `style` obligatoire, `derivedFrom` = une variante de ce manifeste, langue anglaise |
+| Couverture | `coverage` ∈ `full` / `condensed` / `essentials` (défaut `full`) ; `condensed` et `essentials` ⇒ `kind = adaptation` et objet `condensation: { targetMinutes, sourceMinutes, excludeAds }` obligatoire ; `source` et `faithful_translation` sont toujours `full` |
 | Fichiers | Tout `segmentsFile` et tout `audio.file` existe dans `files` ; chaque entrée de `files` est utilisée ; chemins conformes au § 8.5 |
 | Audio | `source = r2` ⇒ `file` ; `source = publisher_stream` ⇒ `url` validée par safeUrl et égale à l'enclosure de l'épisode `sourceRef` |
 | Tailles | 95 Mo maximum par fichier, 300 Mo par publication, 20 variantes au maximum |
@@ -485,6 +488,7 @@ Règles de validation du manifeste. **Une seule erreur fait refuser tout le mani
 - `startMs` et `endMs` sont **relatifs à l'audio de cette variante**. Ils sont strictement croissants et compris dans `durationMs`. Ils valent `null` si `timingSource = none`.
 - `fr` n'est permis **que s'il traduit exactement `text`**. C'est le cas pour la paire source / traduction fidèle (mêmes `id`) et pour l'adaptation, dont chaque phrase est traduite elle-même. Une adaptation ne porte jamais le français de la source.
 - `speaker` est facultatif. Il vient de MacWhisper (`--speakers`), du SRT du flux, ou du style choisi pour l'adaptation.
+- `sourceSegments` (facultatif, obligatoire pour `condensed` et `essentials`) : identifiants des segments de la variante source dont le segment est tiré, ex. `["s041","s042"]`.
 
 ### 6.5 Protocole de publication
 
@@ -587,27 +591,39 @@ Ce que ça représente pour l'offre gratuite : 1 440 exécutions de cron par jou
 - **Copie privée de l'original dans R2**, en option seulement, contenu par contenu : case « garder une copie synchronisée » dans l'Atelier, pour un épisode dont la synchronisation compte vraiment. Elle n'est jamais faite par défaut.
 - **Hors ligne** : seuls les audios stockés dans R2 sont téléchargeables. L'original officiel reste en streaming.
 
-### 7.4 Options de préparation
+### 7.4 Options de préparation : couverture × niveau × durée
 
-Seuil réglable de **25 minutes**. Style par défaut de l'adaptation : **narration**.
+Trois réglages **indépendants** (décision du 2026-10-17, suite à la note « version condensée ») :
 
-| Épisode | Proposé par défaut | Autres choix |
+| Réglage | Valeurs | Défaut |
 |---|---|---|
-| Français ≤ 25 min | Anglais fidèle + B1 narration | B1 seule, texte seulement |
-| Français > 25 min | **B1 seule**, par blocs (§ 7.7) | Extrait (début/fin), parties de 10 à 15 min, texte seulement |
-| Anglais | Transcription (flux, sinon MacWhisper) | + B1, + traduction française en texte |
-| Réflexion My Mind | Anglais fidèle + B1 | Texte seulement |
+| **Couverture** (`coverage`) | `full` = intégral · `condensed` = condensé (10 à 15 min, explications et nuances gardées) · `essentials` = l'essentiel (3 à 5 min) | selon la durée, ci-dessous |
+| **Niveau** (`level`) | A2, B1, B2, C1, ou `original` (anglais non simplifié) | **B1** |
+| **Durée cible** (`targetMinutes`) | condensé : 8 à 20 min · essentiel : 3 à 6 min | condensé **12 min**, essentiel **4 min** |
+
+Style d'écriture : **narration** par défaut, dialogue en option.
+
+**Une seule version préparée par défaut** pour un épisode, choisie selon sa durée ; les autres se demandent à la carte :
+
+| Épisode | Préparé par défaut | À la demande |
+|---|---|---|
+| ≤ 25 min (seuil réglable) | **Intégral · B1** | Anglais fidèle (sources FR), L'essentiel |
+| > 25 min | **Condensé · B1 · ~12 min** | L'essentiel, Intégral |
+| Émission marquée « journal » (ex. Daybreak) | **L'essentiel · B1 · ~4 min** | Condensé |
+| Réflexion My Mind | Intégral · B1 | Anglais fidèle |
+
+Pour un épisode anglais, l'original reste écoutable avec sa transcription ; la version préparée s'y ajoute. Le mode « en plusieurs parties » est **abandonné** (le condensé le rend inutile) ; le mode « extrait » passe hors V1.
 
 `options_json` :
 
 ```json
-{ "mode": "full|b1_only|excerpt|parts|text_only", "level": "B1", "style": "narration|dialogue",
-  "excerpt": { "startMs": 0, "endMs": 600000 }, "keepOriginalCopy": false }
+{ "coverage": "full|condensed|essentials", "level": "B1", "style": "narration|dialogue",
+  "targetMinutes": 12, "faithful": false, "keepOriginalCopy": false }
 ```
 
-Ce JSON est validé par le Worker : `excerpt` doit être dans la durée de l'épisode, et faire 30 minutes au maximum.
+Validé par le Worker : `targetMinutes` dans les bornes de la couverture, `faithful` réservé aux sources françaises.
 
-**Préparation automatique** : seulement pour les émissions `auto_prepare` (au départ, L'édito éco).
+**Préparation automatique** : seulement pour les émissions `auto_prepare` (au départ, L'édito éco), avec leur réglage par défaut.
 
 ### 7.5 Chaîne dans l'Atelier
 
@@ -615,55 +631,64 @@ Ce JSON est validé par le Worker : `excerpt` doit être dans la durée de l'ép
 bail sur la file ─▶ téléchargement validé de l'enclosure (§ 8.4) ─▶ normalisation mono 64 kbit/s
    ─▶ transcription : SRT/VTT du flux > sous-titres YouTube > MacWhisper --speakers
    ─▶ segments source (horodatage.py)
-   ─▶ anglais fidèle (traduction segmentée existante)               [selon le mode]
-   ─▶ adaptation par blocs (§ 7.7) + évaluation (§ 7.6)            [selon le mode]
-   ─▶ Kokoro segment par segment, une voix par intervenant           → timings exacts
+   ─▶ anglais fidèle (traduction segmentée existante)                    [si demandé]
+   ─▶ passe 1 : extraction par blocs, avec renvois aux segments (§ 7.7)  [intégral long, condensé, essentiel]
+   ─▶ passe 2 : script à la couverture, au niveau et à la durée cibles
+   ─▶ évaluation : fidélité puis langue (§ 7.6)
+   ─▶ Kokoro segment par segment, une voix par intervenant                → timings exacts
    ─▶ manifeste ─▶ publication (§ 6.5) ─▶ (option) POST /content vers EnglishFluency
    (un signal de vie à chaque étape et au moins toutes les 2 minutes)
 ```
 
-### 7.6 Évaluation de la version adaptée : simplicité et fidélité
+**Bénéfice induit** : l'audio préparé est généré segment par segment, ses timestamps sont **exacts par construction**. Les publicités en sont absentes (consigne d'ignorer les messages promotionnels) : le texte est toujours surligné en rythme. L'original reste disponible tel quel, avec « Caler le texte » (§ 7.2).
 
-Il n'y a plus de seuil strict de longueur de phrase. **On évalue, et on refuse seulement ce qui est cassé.**
+### 7.6 Évaluation : fidélité du fond, puis accessibilité de la langue
 
-**Contrôles bloquants** (relance automatique du bloc concerné) :
+Le fond et la langue sont évalués **séparément**. B1 signifie « information sérieuse expliquée dans une langue plus accessible », pas « information simpliste ». **On évalue, et on refuse seulement ce qui est cassé.**
+
+**Cinq règles données au générateur** (et vérifiées par le juge) :
+1. Conserver les faits importants, les chiffres et les relations de cause à effet.
+2. Préserver les explications indispensables pour comprendre le sujet.
+3. Conserver les principaux points de vue quand les intervenants ne sont pas d'accord.
+4. Ne rien inventer, et ne pas présenter comme certain ce qui est hypothétique.
+5. Respecter la durée cible sans sacrifier l'essentiel ; si c'est impossible, le **signaler** (`tooShortForSubject`) et recommander une version plus longue.
+
+Consignes complémentaires : narration fluide plutôt qu'une liste de faits ; **ignorer les messages promotionnels** (publicités, parrainages, appels à s'abonner), sans écarter une information journalistique qui leur ressemblerait (une annonce d'entreprise est un fait, pas une publicité).
+
+**Contrôles bloquants** (relance automatique de la partie concernée) :
 - schéma JSON invalide ;
 - segment sans `text` ou sans `fr` ;
 - intervenant incompatible avec le style ;
-- longueur totale aberrante : moins de 10 % ou plus de 80 % des mots de la source pour un bloc.
+- longueur hors de **±20 %** de la cible en mots (cible = `targetMinutes` × débit mesuré de la voix Kokoro, environ 130 mots/min au départ) ;
+- paragraphe du script sans renvoi à au moins un segment source (couverture condensée ou essentielle).
 
-**Indicateurs de simplicité** (avertissements, jamais un refus à eux seuls) :
+**Fidélité** :
+- **Contrôles déterministes, gratuits** : chaque nombre, date, pourcentage et nom propre doit apparaître dans les segments sources cités (`numbersMissingFromSource`, `entitiesMissingFromSource`).
+- **LLM juge** (OpenAI, ou un second appel Gemini) : compare chaque paragraphe à ses passages sources ; liste les affirmations absentes (`unsupportedClaims`), les idées principales omises (`omittedKeyPoints`), les nuances perdues (hypothèse présentée comme certaine, désaccord effacé). Activé par défaut pour les couvertures condensée et essentielle.
+
+**Accessibilité de la langue** (avertissements, jamais un refus à eux seuls) :
 
 | Indicateur | Cible indicative en B1 |
 |---|---|
 | Longueur moyenne des phrases | 8 à 18 mots |
 | Phrases de plus de 25 mots | moins de 10 % |
 | Mots hors du vocabulaire fréquent | ≤ 10 %, hors noms propres et `keyVocab` |
-| Temps et tournures complexes repérés (passif long, subordonnées en cascade) | signalés |
+| Temps et tournures complexes repérés | signalés |
 
 Le vocabulaire fréquent vient du référentiel d'EnglishFluency (`GET /words`, environ 4 000 mots, mis en cache par l'Atelier).
 
-**Indicateurs de fidélité** :
-- **Contrôles déterministes, gratuits** : chaque nombre, date, pourcentage et nom propre de la version adaptée doit apparaître dans la source (ou dans sa traduction). Ce qui manque est listé dans `numbersMissingFromSource` et `entitiesMissingFromSource`.
-- **Contrôle par un LLM juge** (OpenAI, ou un second appel Gemini), activé par défaut pour les blocs signalés par les contrôles déterministes, facultatif sinon. Il liste les **affirmations absentes de la source** (`unsupportedClaims`) et les **idées principales omises**.
+**Verdict** : `ok` (publiable, y compris en auto-préparation) · `review` (à relire dans l'Atelier : accepter, regénérer, corriger) · `rejected` (regénéré). Une version `review` n'est **jamais publiée automatiquement**. La durée réelle est mesurée après Kokoro et publiée.
 
-**Verdict** :
-- `ok` : publiable directement, y compris en auto-préparation ;
-- `review` : à relire dans l'Atelier, puis accepter, regénérer le bloc ou corriger ;
-- `rejected` : le bloc est regénéré.
+### 7.7 Synthèse en deux passes, avec renvois à la source
 
-Une version `review` n'est **jamais publiée automatiquement**. Les indicateurs sont publiés dans `evaluation`, et la PWA affiche « version adaptée et résumée ».
-
-### 7.7 Adaptation des longs épisodes par blocs cohérents
-
-- **Quand** : dès que la source dépasse environ 6 000 mots, ou que la sortie estimée dépasse 50 % de la limite de sortie du modèle (`maxOutputTokens`). Et toujours pour le mode `parts`.
-- **Découpage** : blocs d'environ 1 200 à 1 800 mots (8 à 12 min), **toujours aux limites des segments**. On coupe de préférence à un changement d'intervenant ou à une pause de plus de 1,5 s dans le SRT, jamais au milieu d'une phrase.
-- **Cohérence entre les blocs** :
-  - un premier appel léger produit un **plan** de l'épisode : thèmes, intervenants, noms propres et leur orthographe, glossaire de termes ;
-  - chaque bloc reçoit ce plan, plus les deux dernières phrases adaptées du bloc précédent, pour garder le fil.
-- **Assemblage** : les segments sont renumérotés `s001…` sur l'ensemble. L'évaluation est faite par bloc, puis globalement. **Seul le bloc fautif est relancé.**
-- **Mode `parts`** : chaque bloc (ou groupe de blocs d'environ 10 à 15 min) devient une variante distincte (`part: { index, total }`). La partie 1 peut être publiée avant les suivantes.
-- **Budget** : nombre de blocs et tokens consommés notés dans `generation`. En cas de quota Gemini épuisé, le travail s'arrête à la fin du bloc en cours et rend la demande à la file, qui reprendra plus tard.
+- **Passe 1, extraction bloc par bloc** (toujours pour condensé et essentiel ; pour l'intégral, dès que la source dépasse ~6 000 mots ou 50 % de la limite de sortie du modèle) :
+  - blocs d'environ 1 200 à 1 800 mots, **toujours aux limites des segments**, de préférence à un changement d'intervenant ou à une pause de plus de 1,5 s ;
+  - pour chaque bloc : thèmes, faits, chiffres, explications, arguments, exemples, points de désaccord, passages promotionnels à ignorer, **chacun avec les identifiants des segments d'origine** ;
+  - un premier appel léger fixe le **plan** de l'épisode (intervenants, noms propres et leur orthographe, glossaire) que reçoivent tous les blocs.
+- **Passe 2, écriture** : un appel construit le script global à partir des extractions (pas de la transcription brute), à la couverture, au niveau et au nombre de mots visés. Chaque paragraphe garde ses renvois `sourceSegments`. Cela évite d'oublier le milieu d'un long épisode.
+- **Intégral** : écriture bloc par bloc (le plan et les deux dernières phrases du bloc précédent assurent la continuité), segments renumérotés `s001…` sur l'ensemble ; seul le bloc fautif est relancé.
+- **Budget** : nombre de blocs et tokens dans `generation`. Quota Gemini épuisé : arrêt à la fin de l'étape en cours, la demande retourne à la file.
+- **Plus tard (hors V1)** : la PWA pourra proposer « écouter ce passage dans l'original » grâce aux renvois.
 
 ### 7.8 Fournisseurs
 
@@ -773,7 +798,7 @@ Chrome Android gère bien l'installation, l'audio en arrière-plan et la Media S
    - le mode est proposé selon la langue et la durée (§ 7.4), avec une estimation du temps ;
    - l'épisode passe par les statuts « En file », puis « En préparation · étape », puis « Prêt » ou « Échec · réessayer ».
 4. **Écouter une version préparée** :
-   - un sélecteur de version : Original · Anglais fidèle · Mon niveau B1 · Parties ;
+   - un sélecteur de version : Original · Anglais fidèle · Intégral B1 · Condensé B1 · 12 min · L'essentiel ;
    - la transcription, synchronisée quand c'est vérifié ;
    - le français à la demande ;
    - les vitesses de 0,75× à 1,25× ;
@@ -823,9 +848,9 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 | **4 — My Mind minimal** | Notes Markdown (création, modification, liste, corbeille), sauvegarde locale, synchronisation 409, « Réfléchir » depuis un épisode, export JSON | Écrire ses réflexions au fil des écoutes |
 | **5 — Transcriptions des flux** ✅ | SRT/VTT → segments, cache R2, contrôle de synchronisation par la durée | Lire en écoutant (Bloomberg) |
 | **6 — Contrat de publication** | Schémas, fixtures, validateurs TS et Python, protocole § 6.5, nettoyage, routes média, cible « discover » dans l'Atelier (bundles YouTube existants) | Les contenus déjà préparés dans l'Atelier, visibles sur le téléphone |
-| **7 — Lecture des versions** | Sélecteur de version, transcription, français à la demande, navigation par segment, progression par version | Écouter Original, Fidèle et B1 |
+| **7 — Lecture des versions** | Sélecteur de version (avec sa nature : intégral, condensé, essentiel ; niveau ; durée), transcription, français à la demande, navigation par segment, progression par version | Écouter Original, Fidèle, Intégral B1 ou Condensé B1 |
 | **8 — File avec bail** | Bouton et options dans la PWA ; onglet « À préparer » dans l'Atelier ; bail, signal de vie, reprise ; téléchargement et normalisation de l'épisode | Marquer sur le téléphone, retrouver prêt après l'Atelier |
-| **9 — Version à mon niveau** | `adaptation.py` par blocs, évaluation (§ 7.6), narration par défaut, modes extrait et parties, préparation auto de L'édito éco | L'actu à son niveau chaque jour |
+| **9 — Versions préparées** | `adaptation.py` : couverture × niveau × durée (§ 7.4), synthèse en deux passes avec renvois (§ 7.7), évaluation fond puis langue (§ 7.6), exclusion des publicités, narration par défaut, calibrage du débit Kokoro, préparation auto de L'édito éco | Un épisode de 50 min écouté en 12 min à son niveau |
 | **10 — My Mind complet** | Tags, types, questions, liens vers les passages, recherche FTS5, « Préparer en anglais » pour une note | Relire ses idées en anglais |
 | **11 — Bibliothèque et hors ligne** | Filtres, téléchargements explicites, espace utilisé, suppression | Écouter en mode avion |
 | **12 — Export et pont EnglishFluency** | Export complet (JSON + Markdown) ; case « aussi vers EnglishFluency » | Données récupérables ; les contenus nourrissent EnglishFluency |
@@ -877,11 +902,14 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 - [ ] Une instance dont le bail a expiré ne peut ni clore la demande, ni la faire échouer, ni la publier (`409 lease_lost`).
 - [ ] Après 3 tentatives, la demande passe `failed` avec la dernière erreur, et elle est visible dans la PWA.
 
-### Version à mon niveau (lot 9)
-- [ ] Les variantes source, traduction fidèle (si elle a été produite) et adaptation sont toutes publiées et sélectionnables.
-- [ ] Un épisode de plus de 45 minutes est adapté par blocs, sans erreur de limite de contexte ou de sortie, avec des noms propres cohérents entre les blocs.
-- [ ] Tout nombre ou nom propre absent de la source est signalé. Une version `review` n'est jamais publiée automatiquement.
-- [ ] Sur un échantillon relu de 5 épisodes : la version est jugée « plus simple que l'original » et « sans contresens » pour chacun.
+### Versions préparées (lot 9)
+- [ ] Les variantes source, traduction fidèle (si demandée) et préparée sont toutes publiées et sélectionnables, avec leur nature affichée (intégral, condensé, essentiel ; niveau ; durée).
+- [ ] Un épisode de 50 min donne un condensé B1 dont la durée réelle est à ±20 % de la cible (12 min par défaut).
+- [ ] Chaque paragraphe d'un condensé renvoie à au moins un segment source ; tout nombre ou nom propre absent des segments cités est signalé.
+- [ ] Les publicités de l'original sont absentes de la version préparée ; une annonce d'entreprise journalistique, elle, est conservée (vérifié sur 2 épisodes).
+- [ ] Le texte de la version préparée est surligné en rythme sans calage (timestamps Kokoro).
+- [ ] Une version `review` n'est jamais publiée automatiquement ; une cible trop courte pour le sujet est signalée.
+- [ ] Sur 5 épisodes relus : « plus court et plus simple que l'original », « sans contresens », et « les explications principales sont là ».
 
 ### My Mind (lots 4 et 10)
 - [ ] Une note se crée sans source.
@@ -921,8 +949,8 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 | Transcription du flux | `episodes.transcript_*` | `/api/episodes/:id/transcript` | `timingSource: rss_srt\|rss_vtt` | 5 |
 | Contenu | `contents` | `/api/library`, `/api/contents/:id` | `content.*` (sauf `rights`, gardé dans le manifeste R2) | 6 |
 | Révision | `publications`, `publication_files` | `/atelier/publications*` | `files{}`, `revision` calculée, `removeVariants` | 6 |
-| Variante | `variants` (clé `publication_id`, `variant_key`) | `/api/contents/:id/variants/:key/*` | `variants[]` : `key`, `kind`, `language`, `cefrLevel`, `style`, `derivedFrom`, `segmentsFile`, `audio{source,file\|url,origin,durationMs,timingSource}`, `excerpt`, `part`, `generation`, `evaluation` | 6, 7, 9 |
-| Segments | (R2) | `…/segments` | `segments.schema.json` : `id`, `speaker`, `text`, `fr`, `startMs`, `endMs`, `keyVocab` | 5, 6, 7 |
+| Variante | `variants` (clé `publication_id`, `variant_key`) | `/api/contents/:id/variants/:key/*` | `variants[]` : `key`, `kind`, `language`, `cefrLevel`, `style`, `coverage`, `condensation`, `derivedFrom`, `segmentsFile`, `audio{source,file\|url,origin,durationMs,timingSource}`, `generation`, `evaluation` | 6, 7, 9 |
+| Segments | (R2) | `…/segments` | `segments.schema.json` : `id`, `speaker`, `text`, `fr`, `startMs`, `endMs`, `sourceSegments`, `keyVocab` | 5, 6, 7 |
 | Demande | `prepare_queue` | `/api/episodes/:id/prepare`, `/api/reflections/:id/prepare`, `/api/queue*`, `/atelier/queue/*` | `queueItemId` et `leaseToken` à la déclaration | 8 |
 | Progression | `listening_progress` | `/api/progress` | `audio_ref` = `audio_sha256` ou `audio.url` | 3, 7 |
 | Réflexion | `reflections`, `reflection_links` | `/api/reflections*` | `content.sourceType = reflection`, `sourceRef = reflection:<id>` ; commit → `english_content_id` | 4, 10 |
