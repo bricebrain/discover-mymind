@@ -507,20 +507,6 @@
       "addedBy": "user"
     },
     {
-      "id": "ca-dit-quoi",
-      "title": "Ça dit quoi ?",
-      "publisher": "franceinfo",
-      "appleId": 1705413493,
-      "feedUrl": "https://radiofrance-podcast.net/podcast09/podcast_8149e0c1-1d27-4a7a-b3da-13307d91a8a2.xml",
-      "language": "fr",
-      "category": "news",
-      "transcriptSource": "none",
-      "medianMinutes": null,
-      "titleFilter": null,
-      "autoPrepareLatest": false,
-      "addedBy": "user"
-    },
-    {
       "id": "lheure-du-monde",
       "title": "L'Heure du Monde",
       "publisher": "Le Monde",
