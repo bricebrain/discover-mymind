@@ -10,4 +10,5 @@ export const queueApi = {
     api<{ item: QueueItem }>(`/api/${target.kind==='episode' ? 'episodes' : 'reflections'}/${target.id}/prepare`,{method:'POST',body:options}),
   cancel: (id: string) => api<void>(`/api/queue/${id}`,{method:'DELETE'}),
   retry: (id: string) => api<void>(`/api/queue/${id}/retry`,{method:'POST'}),
+  remove: (id: string) => api<void>(`/api/queue/${id}/remove`,{method:'POST'}),
 };

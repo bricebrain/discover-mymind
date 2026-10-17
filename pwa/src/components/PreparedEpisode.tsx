@@ -2,6 +2,7 @@ import { Alert, Box, Button, ButtonBase, CircularProgress, Stack, Typography } f
 import { alpha } from '@mui/material/styles';
 import type { ReactNode } from 'react';
 import { useContent, type ContentVariant } from '../api/contents';
+import { DeleteContentButton } from '../content/DeleteContentButton';
 import { PlaybackControls } from '../content/VariantControls';
 import { VariantTranscript } from '../content/VariantTranscript';
 import { useContentReader } from '../content/useContentReader';
@@ -20,7 +21,7 @@ function unreviewed(v: ContentVariant): boolean {
  * Versions préparées d'un épisode, directement dans son détail (Explorer ou Bibliothèque) :
  * pastilles de version, écoute de la version choisie, transcription synchronisée. Rien ne change de page.
  */
-export function PreparedEpisode({ contentId, about }: { contentId: string; about: ReactNode }) {
+export function PreparedEpisode({ contentId, about, onDeleted }: { contentId: string; about: ReactNode; onDeleted?: () => void }) {
   const query = useContent(contentId);
   const reader = useContentReader(query.data);
   const variant = reader.variant;
@@ -60,6 +61,7 @@ export function PreparedEpisode({ contentId, about }: { contentId: string; about
       <PlaybackControls reader={reader} />
       <VariantTranscript key={`${query.data.publicationId}:${variant.key}`} detail={query.data} variant={variant}
         activePositionMs={reader.activePositionMs} verified={reader.verified} playing={reader.playing} onSeek={reader.play} />
+      <Box sx={{ mt: 2 }}><DeleteContentButton id={contentId} title={query.data.content.title} onDeleted={onDeleted} /></Box>
       {about && (
         <Stack sx={{ mt: 4 }}>
           <Typography variant="overline" color="text.secondary">À propos de l’épisode</Typography>

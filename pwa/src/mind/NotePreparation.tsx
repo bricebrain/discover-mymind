@@ -17,10 +17,12 @@ export function NotePreparation({ id, title, body, synced, englishContentId }: {
 }) {
   const { query, cancel, retry } = usePreparation({ kind: 'reflection', id });
   const [open, setOpen] = useState(false);
+  const [deleted, setDeleted] = useState<string | null>(null);
   const items = query.data?.items ?? [];
   const current = items.find((i) => i.status === 'pending' || i.status === 'leased');
   const failed = !current && items[0]?.status === 'failed' ? items[0] : undefined;
-  const contentId = items.find((i) => i.status === 'done' && i.contentId)?.contentId ?? englishContentId;
+  const found = items.find((i) => i.status === 'done' && i.contentId)?.contentId ?? englishContentId;
+  const contentId = found === deleted ? null : found;
   const tooShort = body.trim().length < MIN_CHARS;
 
   return (
@@ -49,7 +51,7 @@ export function NotePreparation({ id, title, body, synced, englishContentId }: {
           </Stack>
         </Box>
       )}
-      {contentId && <PreparedEpisode contentId={contentId} about={null} />}
+      {contentId && <PreparedEpisode contentId={contentId} about={null} onDeleted={() => setDeleted(contentId)} />}
       {open && (
         <PrepareDialog target={{ kind: 'reflection', id }} title={title || 'Note sans titre'} faithfulAllowed
           initial={{ coverage: 'full', level: 'B1', style: 'narration', targetMinutes: null, faithful: false, keepOriginalCopy: false }}

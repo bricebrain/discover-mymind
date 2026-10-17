@@ -8,7 +8,7 @@ import { PrepareDialog } from './PrepareDialog';
 import { usePreparation } from './usePreparation';
 
 export function PreparationPanel({episode}: {episode?: Episode}) {
-  const {query,cancel,retry} = usePreparation(episode ? {kind:'episode',id:episode.id} : undefined);
+  const {query,cancel,retry,remove} = usePreparation(episode ? {kind:'episode',id:episode.id} : undefined);
   const [open,setOpen] = useState(false);
   const items = query.data?.items ?? [];
   const active = items.some((i) => i.status==='pending' || i.status==='leased');
@@ -31,10 +31,11 @@ export function PreparationPanel({episode}: {episode?: Episode}) {
         {!episode && item.kind==='episode' && <Button size="small" component={Link} to={`/?e=${item.ref}`}>Voir l’épisode</Button>}
         {['pending','leased'].includes(item.status) && <Button size="small" disabled={cancel.isPending} onClick={() => cancel.mutate(item.id)}>Annuler</Button>}
         {item.status==='failed' && <Button size="small" disabled={retry.isPending || items.some((i) => i.ref===item.ref && (i.status==='pending' || i.status==='leased'))} onClick={() => retry.mutate(item.id)}>Réessayer</Button>}
+        {!episode && ['done','failed','cancelled'].includes(item.status) && <Button size="small" color="inherit" sx={{color:'text.secondary'}} disabled={remove.isPending} onClick={() => remove.mutate(item.id)}>Retirer de la liste</Button>}
         {item.status==='done' && item.contentId && <Button size="small" component={Link} to={item.kind==='episode' ? `/?e=${item.ref}` : `/library/${item.contentId}`}>Écouter les versions</Button>}
       </Stack>
     </Box>)}</Stack>
-    {(cancel.isError || retry.isError) && <Alert severity="error">{cancel.error?.message ?? retry.error?.message}</Alert>}
+    {(cancel.isError || retry.isError || remove.isError) && <Alert severity="error">{cancel.error?.message ?? retry.error?.message ?? remove.error?.message}</Alert>}
     {open && episode && <PrepareDialog key={episode.id} target={{kind:'episode',id:episode.id}} title={episode.title}
       initial={defaultOptions(episode.durationSec,episode.showId)} faithfulAllowed={episode.language==='fr'} onClose={() => setOpen(false)} />}
   </Box>;

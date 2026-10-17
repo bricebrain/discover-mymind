@@ -1,5 +1,5 @@
 import type { Env } from '../env';
-import { HttpError, json } from '../http';
+import { HttpError, json, noContent } from '../http';
 import { manifest } from '../publications/store';
 import type { Publication } from '../publications/types';
 
@@ -58,3 +58,26 @@ export async function media(req: Request, env: Env, id: string, key: string, typ
   return new Response(obj.body,{ status: range ? 206 : 200, headers });
 }
 function unsatisfiable(size: number) { return new Response(null,{ status:416,headers:{ 'Content-Range':`bytes */${size}` } }); }
+
+/**
+ * DELETE /api/contents/:id — supprime un contenu préparé : invisible tout de suite, épisode / note détachés,
+ * positions d'écoute effacées. Ses publications deviennent « remplacées » sans délai de grâce : le nettoyage
+ * (cron) libère les fichiers R2 qui ne servent à rien d'autre. Les révisions sont renommées pour qu'une
+ * nouvelle préparation identique puisse être republiée.
+ */
+export async function remove(env: Env, id: string) {
+  const now = new Date().toISOString();
+  const r = await env.DB.batch([
+    env.DB.prepare('UPDATE contents SET deleted_at=?,current_publication_id=NULL,updated_at=? WHERE id=? AND deleted_at IS NULL').bind(now,now,id),
+    env.DB.prepare(`UPDATE publications SET status=CASE WHEN status IN ('uploading','committing') THEN 'abandoned' WHEN status='ready' THEN 'superseded' ELSE status END,
+      superseded_at=CASE WHEN status IN ('ready','superseded') THEN '1970-01-01T00:00:00.000Z' ELSE superseded_at END,
+      revision=revision||':deleted:'||?,commit_token=NULL,updated_at=? WHERE content_id=? AND revision NOT LIKE '%:deleted:%'`).bind(now,now,id),
+    env.DB.prepare('UPDATE episodes SET content_id=NULL WHERE content_id=?').bind(id),
+    env.DB.prepare('UPDATE reflections SET english_content_id=NULL WHERE english_content_id=?').bind(id),
+    env.DB.prepare("DELETE FROM listening_progress WHERE target_type='variant' AND substr(target_id,1,?)=?").bind(id.length+1,id+':'),
+    env.DB.prepare("DELETE FROM reflection_links WHERE target_type='content' AND target_id=?").bind(id),
+    env.DB.prepare("DELETE FROM prepare_queue WHERE content_id=? AND status='done'").bind(id),
+  ]);
+  if (!r[0]!.meta.changes) throw new HttpError(404,'not_found','Contenu introuvable ou déjà supprimé.');
+  return noContent();
+}

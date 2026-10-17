@@ -63,13 +63,15 @@ async function handleData(req: Request, env: Env, path: string, m: string): Prom
     return env.EVENTS.getByName('personal-library').fetch(new Request(req,{headers}));
   }
   if (path === '/api/queue' && m === 'GET') return queue.list(req,env);
-  const queued = path.match(/^\/api\/queue\/([0-9a-f-]{36})(\/retry)?$/);
+  const queued = path.match(/^\/api\/queue\/([0-9a-f-]{36})(?:\/(retry|remove))?$/);
   if (queued?.[1] && !queued[2] && m === 'DELETE') return queue.cancel(env,queued[1]);
-  if (queued?.[1] && queued[2] && m === 'POST') return queue.retry(env,queued[1]);
+  if (queued?.[1] && queued[2]==='retry' && m === 'POST') return queue.retry(env,queued[1]);
+  if (queued?.[1] && queued[2]==='remove' && m === 'POST') return queue.removeEntry(env,queued[1]);
   const prepare = path.match(/^\/api\/episodes\/([0-9a-f]{20})\/prepare$/);
   if (prepare?.[1] && m === 'POST') return queue.enqueue(req,env,prepare[1]);
   if (path === '/api/library' && m === 'GET') return contents.library(req,env);
   const content = path.match(/^\/api\/contents\/([a-z0-9-]{3,96})(?:\/variants\/([a-z0-9-]{2,32})\/(segments|audio))?$/);
+  if (content?.[1] && !content[2] && m === 'DELETE') return contents.remove(env,content[1]);
   if (content?.[1] && m === 'GET') {
     if (!content[2]) return contents.detail(env,content[1]);
     return contents.media(req,env,content[1],content[2],content[3]!);

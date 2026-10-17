@@ -16,5 +16,6 @@ export function usePreparation(target?: PrepTarget) {
   const prepare = useMutation({mutationFn:(options: PrepareOptions) => queueApi.prepare(target!,options),onSuccess:refresh});
   const cancel = useMutation({mutationFn:queueApi.cancel,onSuccess:refresh});
   const retry = useMutation({mutationFn:queueApi.retry,onSuccess:refresh});
-  return {query,prepare,cancel,retry};
+  const remove = useMutation({mutationFn:queueApi.remove,onSuccess:refresh});
+  return {query,prepare,cancel,retry,remove};
 }

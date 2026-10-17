@@ -1,5 +1,6 @@
 import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { DeleteContentButton } from '../content/DeleteContentButton';
 import { useContent } from '../api/contents';
 import { useContentReader } from '../content/useContentReader';
 import { PlaybackControls, VariantSelector } from '../content/VariantControls';
@@ -7,6 +8,7 @@ import { VariantTranscript } from '../content/VariantTranscript';
 
 export function ContentPage() {
   const { id = '' } = useParams();
+  const navigate = useNavigate();
   const query = useContent(id);
   const reader = useContentReader(query.data);
   const variant = reader.variant;
@@ -22,6 +24,7 @@ export function ContentPage() {
       <PlaybackControls reader={reader} />
       <VariantTranscript key={`${query.data.publicationId}:${variant.key}`} detail={query.data} variant={variant}
         activePositionMs={reader.activePositionMs} verified={reader.verified} playing={reader.playing} onSeek={reader.play} />
+      <Box sx={{ mt: 3 }}><DeleteContentButton id={id} title={query.data.content.title} onDeleted={() => navigate('/library', { replace: true })} /></Box>
     </>}
   </Box>;
 }

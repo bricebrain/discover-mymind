@@ -84,6 +84,13 @@ export async function cancel(env: Env,id: string) {
   if (!r.meta.changes) throw new HttpError(409,'queue_closed','Cette demande est déjà terminée ou annulée.');
   return noContent();
 }
+/** POST /api/queue/:id/remove — retire de l'historique une demande terminée, en échec ou annulée. */
+export async function removeEntry(env: Env,id: string) {
+  const r = await env.DB.prepare("DELETE FROM prepare_queue WHERE id=? AND status IN ('done','failed','cancelled')").bind(id).run();
+  if (!r.meta.changes) throw new HttpError(409,'queue_active','Annule d’abord la préparation en cours.');
+  await env.DB.prepare('DELETE FROM queue_events WHERE queue_id=?').bind(id).run();
+  return noContent();
+}
 export async function retry(env: Env,id: string) {
   const r = await env.DB.prepare(`UPDATE prepare_queue SET status='pending',attempts=0,error=NULL,stage=NULL,
     lease_token=NULL,lease_owner=NULL,lease_expires_at=NULL,updated_at=? WHERE id=? AND status IN ('failed','cancelled')

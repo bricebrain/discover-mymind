@@ -190,3 +190,42 @@ describe('Fichiers et nettoyage', () => {
     await env.DB.prepare('DELETE FROM publication_gc WHERE r2_key=?').bind(key).run();
   });
 });
+
+describe('Suppression', () => {
+  it('supprime un contenu : invisible, épisode détaché, blobs libérés, republication possible', async () => {
+    const b = await bundle('podcast','en'); await publish(b);
+    const id = b.m.content.id, episode = b.m.content.sourceRef!.slice(8);
+    await env.DB.prepare("INSERT INTO listening_progress (target_type,target_id,audio_ref,position_ms,duration_ms,completed,updated_at) VALUES ('variant',?,?,1000,2000,0,?)")
+      .bind(`${id}:en-source`,'x',new Date().toISOString()).run();
+    const r = await call(`/api/contents/${id}`,{ method:'DELETE',cookie });
+    expect(r.status,await r.text()).toBe(204);
+    expect((await call(`/api/contents/${id}`,{ cookie })).status).toBe(404);
+    const library = await (await call('/api/library',{ cookie })).json<{ contents:{ id:string }[] }>();
+    expect(library.contents.some((c) => c.id===id)).toBe(false);
+    expect((await env.DB.prepare('SELECT content_id FROM episodes WHERE id=?').bind(episode).first<{ content_id:string|null }>())?.content_id).toBeNull();
+    expect(await env.DB.prepare("SELECT 1 FROM listening_progress WHERE target_id=?").bind(`${id}:en-source`).first()).toBeNull();
+    const key = `blobs/${Object.values(b.m.files)[0]!.sha256}`;
+    await cleanupPublications(workerEnv); expect(await env.FILES.head(key)).toBeNull();
+    expect((await call(`/api/contents/${id}`,{ method:'DELETE',cookie })).status).toBe(404);
+    // Une nouvelle préparation identique se republie et redevient visible.
+    await publish(b);
+    expect((await call(`/api/contents/${id}`,{ cookie })).status).toBe(200);
+    expect((await env.DB.prepare('SELECT content_id FROM episodes WHERE id=?').bind(episode).first<{ content_id:string|null }>())?.content_id).toBe(id);
+  });
+  it('l’Atelier peut supprimer un contenu avec son jeton, pas sans', async () => {
+    const b = await bundle(); await publish(b);
+    expect((await call(`/atelier/contents/${b.m.content.id}`,{ method:'DELETE',pwa:false })).status).toBe(401);
+    expect((await call(`/atelier/contents/${b.m.content.id}`,{ method:'DELETE',headers:bearer,pwa:false })).status).toBe(204);
+    expect((await call(`/api/contents/${b.m.content.id}`,{ cookie })).status).toBe(404);
+  });
+  it('retire de l’historique une demande terminée, jamais une demande active', async () => {
+    const now = new Date().toISOString(), done = crypto.randomUUID(), active = crypto.randomUUID();
+    for (const [id,status,ref] of [[done,'failed','aaaaaaaaaaaaaaaaaaaa'],[active,'pending','bbbbbbbbbbbbbbbbbbbb']]) {
+      await env.DB.prepare("INSERT INTO prepare_queue (id,kind,ref,options_json,status,created_at,updated_at) VALUES (?,'episode',?,'{}',?,?,?)").bind(id,ref,status,now,now).run();
+    }
+    expect((await call(`/api/queue/${active}/remove`,{ method:'POST',cookie,body:{} })).status).toBe(409);
+    expect((await call(`/api/queue/${done}/remove`,{ method:'POST',cookie,body:{} })).status).toBe(204);
+    expect(await env.DB.prepare('SELECT 1 FROM prepare_queue WHERE id=?').bind(done).first()).toBeNull();
+    expect((await call(`/atelier/queue/${active}/remove`,{ method:'POST',headers:bearer,pwa:false,body:{} })).status).toBe(409);
+  });
+});

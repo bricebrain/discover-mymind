@@ -74,7 +74,7 @@ export async function commit(env: Env, id: string, requestToken?: string | null)
         AND (? IS NULL OR EXISTS (SELECT 1 FROM prepare_queue WHERE id=? AND status='leased' AND lease_token=? AND lease_expires_at>?))
         THEN 1 ELSE 0 END`).bind(token,id,token,c.id,oldId,p.queue_item_id,p.queue_item_id,p.lease_token,new Date().toISOString()),
       ...m.variants.map((v,i) => insertVariant(env,p,m,v,i)),
-      env.DB.prepare(`UPDATE contents SET current_publication_id=?,title=?,original_language=?,source_type=?,source_ref=?,source_url=?,category=?,editorial=?,updated_at=?
+      env.DB.prepare(`UPDATE contents SET deleted_at=NULL,current_publication_id=?,title=?,original_language=?,source_type=?,source_ref=?,source_url=?,category=?,editorial=?,updated_at=?
         WHERE id=? AND (current_publication_id IS NULL OR (SELECT seq FROM publications WHERE id=current_publication_id) < ?)`)
         .bind(id,c.title,c.originalLanguage,c.sourceType,c.sourceRef ?? null,c.sourceUrl ?? null,c.category ?? null,c.editorial ?? 'news',now,c.id,p.seq),
       env.DB.prepare(`UPDATE publications SET status='superseded',superseded_at=?,updated_at=? WHERE content_id=? AND status='ready'
