@@ -811,6 +811,7 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 | **1 — Socle sécurisé** ✅ (local) | Dépôt, Worker et static assets, migration 0001, R2, sessions, limitation, CSRF, en-têtes, PWA installable à 3 onglets | Connexion sur le Fold7 ; Réglages → Appareils |
 | **2 — Émissions et collecte** | `resolve`, import de la liste de départ, cron (§ 7.1), filtres, rétention, Explorer | Les vrais épisodes du jour sur le téléphone |
 | **3 — Lecteur** | Mini-lecteur persistant, streaming officiel, vitesses, sauts, Media Session, progression par audio | Écouter ses podcasts dans l'app |
+| **3 bis — Passe design** | Identité visuelle et ergonomie, une fois qu'il y a du vrai contenu (épisodes, lecteur) : cartes d'épisodes, typographie de lecture, mini-lecteur, mise en page pliée et dépliée (Fold7), mouvements discrets | Une app agréable au quotidien, jugée sur de vrais épisodes |
 | **4 — My Mind minimal** | Notes Markdown (création, modification, liste, corbeille), sauvegarde locale, synchronisation 409, « Réfléchir » depuis un épisode, export JSON | Écrire ses réflexions au fil des écoutes |
 | **5 — Transcriptions des flux** | SRT/VTT → segments, cache R2, contrôle de synchronisation par la durée | Lire en écoutant (Bloomberg) |
 | **6 — Contrat de publication** | Schémas, fixtures, validateurs TS et Python, protocole § 6.5, nettoyage, routes média, cible « discover » dans l'Atelier (bundles YouTube existants) | Les contenus déjà préparés dans l'Atelier, visibles sur le téléphone |

@@ -47,6 +47,19 @@ describe('connexion et sessions', () => {
     expect(row?.n).toBe(0);
   });
 
+  it('tolère les espaces autour de la phrase et les accents composés autrement (NFC)', async () => {
+    const padded = await call('/api/auth/login', { method: 'POST', body: { passphrase: `  ${PASSPHRASE} ` } });
+    expect(padded.status).toBe(200);
+    const original = env.APP_PASSPHRASE;
+    (env as { APP_PASSPHRASE: string }).APP_PASSPHRASE = 'phrase de café pour le téléphone';
+    try {
+      const nfd = 'phrase de café pour le téléphone'.normalize('NFD');
+      expect((await call('/api/auth/login', { method: 'POST', body: { passphrase: nfd }, ip: '198.51.100.9' })).status).toBe(200);
+    } finally {
+      (env as { APP_PASSPHRASE: string }).APP_PASSPHRASE = original;
+    }
+  });
+
   it('une mauvaise phrase répond 401 sans cookie', async () => {
     const res = await call('/api/auth/login', { method: 'POST', body: { passphrase: 'mauvaise-phrase' } });
     expect(res.status).toBe(401);

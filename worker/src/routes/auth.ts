@@ -11,6 +11,13 @@ const delay = (env: Env) => {
   return ms > 0 ? new Promise((r) => setTimeout(r, ms)) : Promise.resolve();
 };
 
+/**
+ * Forme canonique d'une phrase : Unicode NFC et espaces de début et de fin retirés.
+ * Le clavier du téléphone et le terminal du Mac peuvent produire des accents
+ * composés différemment, ou ajouter une espace finale.
+ */
+export const normalizePassphrase = (value: string) => value.normalize('NFC').trim();
+
 const publicSession = (s: Session, currentId?: string) => ({
   id: s.id, label: s.label, createdAt: s.created_at, lastSeenAt: s.last_seen_at,
   expiresAt: s.expires_at, current: s.id === currentId,
@@ -34,7 +41,9 @@ export async function login(req: Request, env: Env): Promise<Response> {
     return apiError(429, 'too_many_attempts', 'Trop de tentatives. Réessaie plus tard.', { 'Retry-After': String(retry) });
   }
 
-  const ok = await secretsEqual(env.SESSION_EPOCH, `pass:${body.passphrase}`, `pass:${env.APP_PASSPHRASE}`);
+  const submitted = normalizePassphrase(body.passphrase);
+  const expected = normalizePassphrase(env.APP_PASSPHRASE);
+  const ok = await secretsEqual(env.SESSION_EPOCH, `pass:${submitted}`, `pass:${expected}`);
   await delay(env);
   if (!ok) {
     await recordFailure(env, ip);

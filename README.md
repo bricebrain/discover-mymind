@@ -35,11 +35,14 @@ npm run typecheck
 
 ## Déploiement
 
+Les commandes `wrangler` se lancent **depuis `worker/`** (c'est là qu'est `wrangler.jsonc`) :
+
 ```bash
-npx --prefix worker wrangler secret put APP_PASSPHRASE   # 24 caractères minimum
-npx --prefix worker wrangler secret put SESSION_EPOCH
-npx --prefix worker wrangler secret put ATELIER_TOKEN    # 32 caractères minimum
-npm run deploy                                           # crée D1 et R2 au premier déploiement
+cd worker
+npx wrangler secret put APP_PASSPHRASE   # 24 caractères minimum
+npx wrangler secret put SESSION_EPOCH
+npx wrangler secret put ATELIER_TOKEN    # 32 caractères minimum
+cd .. && npm run deploy                  # crée D1 et R2 au premier déploiement
 npm --prefix worker run migrate:remote
 ```
 
