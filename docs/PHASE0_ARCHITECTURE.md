@@ -962,5 +962,6 @@ Limite d'abonnements : **30**, ce qui donne un cycle de collecte d'environ 30 mi
 ## 17. Points à vérifier en début de lot
 
 1. **Avant le lot 2** : l'offre réelle du compte Cloudflare. **Constat du lot 1** : `techpulse-worker` déclare 4 crons et `englishfluency-worker` 1, soit 5, ce qui est exactement la limite de l'offre gratuite (5 par compte). Si le compte est en offre gratuite, il faut libérer un cron de TechPulse (projet remplacé par discover) avant de déployer la collecte.
-2. **Lot 5** : l'écart de durée entre le fichier officiel et celui transcrit par l'Atelier, sur 3 épisodes avec publicités dynamiques. On ajustera le seuil de 1,5 s si besoin.
-3. **Lot 9** : les seuils indicatifs de simplicité (§ 7.6), à calibrer sur 5 épisodes relus.
+2. **Début du lot 3** : relire 24 h de journaux du cron. **Mesures du 2026-10-17** en production : le cron ne s'est activé que 6 à 10 minutes après le déploiement ; les premières collectes (10 épisodes, insertion D1 comprise) coûtent **8 à 11 ms** de CPU, sans interruption (`outcome: ok`). Les passages suivants s'arrêtent au premier GUID connu et devraient coûter moins. Si des `exceededCpu` apparaissent, limiter la première collecte d'une émission à 5 épisodes.
+3. **Lot 5** : l'écart de durée entre le fichier officiel et celui transcrit par l'Atelier, sur 3 épisodes avec publicités dynamiques. On ajustera le seuil de 1,5 s si besoin.
+4. **Lot 9** : les seuils indicatifs de simplicité (§ 7.6), à calibrer sur 5 épisodes relus.
