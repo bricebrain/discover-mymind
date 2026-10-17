@@ -23,5 +23,8 @@
   // Secrets (wrangler secret put) : APP_PASSPHRASE, SESSION_EPOCH, ATELIER_TOKEN.
   // En local : .dev.vars (voir .dev.vars.example).
 
+  // Collecte : une émission par minute (§ 7.1). Le seul cron de discover.
+  "triggers": { "crons": ["* * * * *"] },
+
   "observability": { "enabled": true }
 }

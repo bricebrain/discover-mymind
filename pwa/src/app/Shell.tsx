@@ -31,7 +31,7 @@ export function Shell() {
         </Toolbar>
       </AppBar>
 
-      <Box component="main" sx={{ flex: 1, pb: 'calc(64px + env(safe-area-inset-bottom))' }}>
+      <Box component="main" sx={{ flex: 1, pb: 'calc(56px + env(safe-area-inset-bottom))' }}>
         <Outlet />
       </Box>
 

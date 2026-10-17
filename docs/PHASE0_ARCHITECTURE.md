@@ -158,7 +158,7 @@ CREATE TABLE shows (
 );
 
 CREATE TABLE episodes (
-  id               TEXT PRIMARY KEY,              -- base32(sha256(show_id|guid))[0..20]
+  id               TEXT PRIMARY KEY,              -- hex(sha256(show_id|guid))[0..20]
   show_id          TEXT NOT NULL REFERENCES shows(id) ON DELETE CASCADE,
   guid             TEXT NOT NULL,
   title            TEXT NOT NULL,                 -- texte brut (balises retirées)
@@ -344,7 +344,8 @@ Une session est requise, sauf pour la connexion. Tout appel qui modifie quelque 
 | POST | `/api/episodes/:id/state` | `seen` · `saved` · `dismissed` | episodes |
 | POST | `/api/episodes/:id/prepare` | Demande de préparation (§ 7.4) | prepare_queue |
 | GET · POST | `/api/shows` | Liste · abonnement | shows |
-| POST | `/api/shows/resolve` | Nom, lien Apple ou URL RSS → aperçu (sans enregistrer) | — |
+| POST | `/api/shows/resolve` | Nom, lien Apple ou URL RSS → candidats ou aperçu (sans enregistrer) | — |
+| POST | `/api/shows/preview` | Aperçu d'un candidat choisi (8 derniers épisodes, durée médiane, rythme) | — |
 | PATCH · DELETE | `/api/shows/:id` | Réglages · désabonnement (les épisodes sauvegardés sont gardés) | shows, episodes |
 | GET · DELETE | `/api/queue` · `/api/queue/:id` | Suivi · annulation | prepare_queue |
 | GET | `/api/library?type=&category=&status=&q=` | Contenus préparés et épisodes sauvegardés | contents, episodes |
@@ -809,7 +810,7 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 |---|---|---|
 | **0** | v2 de ce document ; mesure de la collecte (fait) ; commit de la suppression « Idées » dans l'Atelier | Contrats figés |
 | **1 — Socle sécurisé** ✅ (local) | Dépôt, Worker et static assets, migration 0001, R2, sessions, limitation, CSRF, en-têtes, PWA installable à 3 onglets | Connexion sur le Fold7 ; Réglages → Appareils |
-| **2 — Émissions et collecte** | `resolve`, import de la liste de départ, cron (§ 7.1), filtres, rétention, Explorer | Les vrais épisodes du jour sur le téléphone |
+| **2 — Émissions et collecte** ✅ | `resolve`, import de la liste de départ, cron (§ 7.1), filtres, rétention, Explorer | Les vrais épisodes du jour sur le téléphone |
 | **3 — Lecteur** | Mini-lecteur persistant, streaming officiel, vitesses, sauts, Media Session, progression par audio | Écouter ses podcasts dans l'app |
 | **3 bis — Passe design** | Identité visuelle et ergonomie, une fois qu'il y a du vrai contenu (épisodes, lecteur) : cartes d'épisodes, typographie de lecture, mini-lecteur, mise en page pliée et dépliée (Fold7), mouvements discrets | Une app agréable au quotidien, jugée sur de vrais épisodes |
 | **4 — My Mind minimal** | Notes Markdown (création, modification, liste, corbeille), sauvegarde locale, synchronisation 409, « Réfléchir » depuis un épisode, export JSON | Écrire ses réflexions au fil des écoutes |

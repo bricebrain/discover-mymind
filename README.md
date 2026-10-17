@@ -23,6 +23,9 @@ npm --prefix worker run migrate:local
 npm run dev                                    # build de la PWA puis wrangler dev sur http://localhost:8787
 ```
 
+Déclencher la collecte à la main (une émission par appel) pendant `wrangler dev --test-scheduled` :
+`curl "http://localhost:8787/cdn-cgi/handler/scheduled?cron=*+*+*+*+*"`.
+
 Pour travailler sur l'interface avec rechargement à chaud : `wrangler dev` d'un côté,
 `npm --prefix pwa run dev` de l'autre (http://localhost:5173, `/api` redirigé vers 8787).
 

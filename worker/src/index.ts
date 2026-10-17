@@ -1,6 +1,9 @@
 import type { Env } from './env';
 import { apiError, HttpError, withSecurityHeaders } from './http';
+import { collectNext } from './collector';
 import * as auth from './routes/auth';
+import * as episodes from './routes/episodes';
+import * as shows from './routes/shows';
 import { handleAtelier } from './routes/atelier';
 import { assertSameOriginWrite } from './security/csrf';
 import { getSession } from './security/session';
@@ -23,6 +26,19 @@ async function handleApi(req: Request, env: Env, path: string): Promise<Response
   const one = path.match(/^\/api\/auth\/sessions\/([^/]+)$/);
   if (one?.[1] && m === 'DELETE') return auth.revokeOne(env, session, one[1]);
 
+  if (path === '/api/shows' && m === 'GET') return shows.list(env);
+  if (path === '/api/shows' && m === 'POST') return shows.create(req, env);
+  if (path === '/api/shows/resolve' && m === 'POST') return shows.resolve(req);
+  if (path === '/api/shows/preview' && m === 'POST') return shows.preview(req);
+  const show = path.match(/^\/api\/shows\/([a-z0-9-]{1,64})$/);
+  if (show?.[1] && m === 'PATCH') return shows.update(req, env, show[1]);
+  if (show?.[1] && m === 'DELETE') return shows.remove(env, show[1]);
+
+  if (path === '/api/explorer' && m === 'GET') return episodes.explorer(req, env);
+  const ep = path.match(/^\/api\/episodes\/([0-9a-f]{20})(\/state)?$/);
+  if (ep?.[1] && !ep[2] && m === 'GET') return episodes.detail(env, ep[1]);
+  if (ep?.[1] && ep[2] && m === 'POST') return episodes.setState(req, env, ep[1]);
+
   return apiError(404, 'not_found', 'Route inconnue.');
 }
 
@@ -38,5 +54,11 @@ export default {
       console.error(JSON.stringify({ event: 'unhandled_error', path, message: e instanceof Error ? e.message : String(e) }));
       return withSecurityHeaders(apiError(500, 'internal_error', 'Erreur interne.'));
     }
+  },
+
+  /** Cron toutes les minutes : une émission vérifiée par exécution (§ 7.1). */
+  async scheduled(_controller: ScheduledController, env: Env): Promise<void> {
+    const r = await collectNext(env);
+    if (r.status !== 'idle') console.log(JSON.stringify({ event: 'collect', ...r }));
   },
 } satisfies ExportedHandler<Env>;
