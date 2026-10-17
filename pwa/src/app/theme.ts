@@ -48,6 +48,7 @@ export const CATEGORY_COLORS: Record<Category, { light: string; dark: string }> 
   news: { light: '#B4442F', dark: '#F29A86' },
   football: { light: '#1F6E8C', dark: '#7CC9E6' },
   stories: { light: '#A8611A', dark: '#EDB878' },
+  humour: { light: '#846344', dark: '#D8B492' },
 };
 
 export const categoryColor = (c: Category, mode: PaletteMode) => CATEGORY_COLORS[c][mode];

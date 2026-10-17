@@ -142,7 +142,7 @@ CREATE TABLE shows (
   apple_id          INTEGER,
   feed_url          TEXT NOT NULL UNIQUE,         -- validée par safeUrl (§ 8.4)
   language          TEXT NOT NULL CHECK (language IN ('fr','en')),
-  category          TEXT NOT NULL,                -- tech | science | economy | news | football | stories
+  category          TEXT NOT NULL,                -- tech | science | economy | news | football | stories | humour
   image_url         TEXT,
   title_filter_json TEXT,                         -- ["PSG","Paris"] ; NULL = tous les épisodes
   auto_prepare      INTEGER NOT NULL DEFAULT 0,
@@ -569,7 +569,7 @@ Le compte n'a pas interrompu les exécutions à 74–99 ms. Son offre réelle n'
 - **Extraction sans expressions régulières sur tout l'épisode** : recherche de balises par `indexOf`, description coupée à 2 000 caractères *avant* le nettoyage. C'est le principal coût du pire cas mesuré (Tech Café : des descriptions très longues).
 - **Auto-correction** : si `last_attempt_at` avance sans `last_success_at` deux fois de suite, ce qui signale un dépassement probable, `max_items` passe à 3. Après 5 échecs, la vérification se fait une fois par jour.
 - **Garde-fous réseau** : délai de 10 s, 1 Mo lu au maximum, 3 redirections au maximum (chacune revalidée par safeUrl).
-- **Filtres de titre** et **rétention** : les 10 derniers épisodes par émission, 30 jours au maximum, sauf ceux qui sont sauvegardés ou préparés. La catégorie **Histoires** conserve les 10 derniers épisodes sans limite d’âge pour permettre l’écoute des archives.
+- **Filtres de titre** et **rétention** : les 10 derniers épisodes par émission, 30 jours au maximum, sauf ceux qui sont sauvegardés ou préparés. Les catégories **Histoires** et **Humour et anecdotes** conservent les 10 derniers épisodes sans limite d’âge pour permettre l’écoute des archives.
 
 Ce que ça représente pour l'offre gratuite : 1 440 exécutions de cron par jour, et quelques centaines d'écritures D1 par jour. C'est très en dessous des quotas (100 000 requêtes par jour, 100 000 écritures D1 par jour).
 
@@ -997,7 +997,7 @@ Correspondances vérifiées :
 
 ## 16. Liste de départ
 
-`docs/seed-shows.json` : **36 émissions** (28 initiales et 8 podcasts de récits ajoutés à ta demande), vérifiées le 2026-10-17. Power On with Mark Gurman a été retiré après relecture.
+`docs/seed-shows.json` : **34 émissions actives**, liste révisée à ta demande le 2026-10-18 (huit retraits et six ajouts). Les huit émissions retirées sont désactivées et tout leur historique est conservé. La limite de 40 porte sur les émissions actives.
 
 | Catégorie | Émissions |
 |---|---|
@@ -1005,10 +1005,11 @@ Correspondances vérifiées :
 | Sciences | BBC Inside Science, BBC Discovery, The Rest Is Science |
 | Économie | Bloomberg Intelligence, Daybreak Europe, Daybreak US, Surveillance, Money Stuff (tous en SRT), FT News Briefing, L'édito éco (**auto**), Les voix de l'économie |
 | Actualité | BBC Global News, The Daily, Today in Focus, L'ordre du monde, Journal de 8h (Radio Classique), Code source |
-| Football | The Athletic FC, BBC Football Daily, L'After Foot / On refait le match / RFI (**filtre PSG**) |
-| Histoires | Paranormal, T'as qui en Histoire ? (VTT), Sherlock Holmes Short Stories, The Classic Tales Podcast, BBC Learning English Stories, BBC Radio 4 – Short Story, The Truth, LeVar Burton Reads, Selected Shorts, Nouvelles Histoires Extraordinaires |
+| Football | The Athletic FC, BBC Football Daily |
+| Histoires | T'as qui en Histoire ? (VTT), BBC Learning English Stories, BBC Radio 4 – Short Story, LeVar Burton Reads, Nouvelles Histoires Extraordinaires |
+| Humour et anecdotes | The Moth, The Mortified Podcast, No Such Thing As A Fish, You're Dead to Me (BBC), Drôles d'histoires (Ouest-France), Les Pieds sur terre (France Culture) |
 
-Limite d'abonnements : **40** (relevée le 2026-10-17 pour les huit podcasts de récits), soit un cycle d’environ 36 minutes avec les 36 émissions actuelles, jusqu’à 40 minutes au plafond sur l’offre gratuite. Les archives de la catégorie Histoires restent disponibles, dans la limite des dix derniers épisodes par émission.
+Limite d'abonnements : **40** (relevée le 2026-10-17 pour les huit podcasts de récits), soit un cycle d’environ 34 minutes avec les 34 émissions actives, jusqu’à 40 minutes au plafond sur l’offre gratuite. Les archives des catégories Histoires et Humour et anecdotes restent disponibles, dans la limite des dix derniers épisodes par émission.
 
 ---
 
@@ -1064,3 +1065,5 @@ Limite d'abonnements : **40** (relevée le 2026-10-17 pour les huit podcasts de 
 - Validation : **171 tests Worker et 37 tests PWA**, types, build et déploiement à blanc réussis. Worker final : `37baa3d8-a1ab-4f7d-b6ee-f5300588c049`. Réception sur le Fold7 confirmée par l’utilisateur le 2026-10-18 ; réception PWA fermée et clic restent à vérifier. Voir `docs/LOT9BIS_REALTIME_PUSH.md`.
 
 - Correctif Push (2026-10-18) : option `redirect:error` incompatible avec workerd remplacée par une Request native en mode `manual`, sans suivre les redirections. Test de régression et contrôle de fin de livraison ajoutés ; **172 tests Worker**. Deux essais utilisateur relancés, acceptés par Google avec **HTTP 201** en une tentative. Réception sur le Fold7 confirmée par l’utilisateur. Worker : `af9ea94e-8a30-49b0-bcc9-e712ba41be52`.
+
+- Révision du catalogue (2026-10-18) : migration `0006_podcast_selection.sql` appliquée. Huit émissions désactivées sans effacement d’historique ; six flux officiels ajoutés dans **Humour et anecdotes**. Production vérifiée : **34 actives (23 EN / 11 FR), 8 désactivées**. La limite et le compteur portent sur les émissions actives. Les dix dernières histoires et anecdotes restent accessibles sans limite d’âge. **187 tests Worker**, TypeScript et build PWA réussis. Worker : `ef4ba014-d4e3-45a9-8372-c4731054f1a0`. Première collecte des six ajouts confiée au cron.

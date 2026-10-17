@@ -223,8 +223,8 @@ describe('collecte', () => {
     expect(await count("SELECT COUNT(*) AS n FROM episodes WHERE state <> 'saved'")).toBe(10);
   });
 
-  it('garde dix histoires anciennes, mais fait expirer les autres catégories après trente jours', async () => {
-    await addShow('stories', { category: 'stories', max_items: 15 });
+  it.each(['stories', 'humour'])('garde dix épisodes anciens de %s, mais fait expirer les actualités après trente jours', async (category) => {
+    await addShow('stories', { category, max_items: 15 });
     await addShow('news', { category: 'news', max_items: 15 });
     const archived = items(12, 'archive').map((it) => ({
       ...it, date: new Date(Date.parse(it.date!) - 365 * 86_400_000).toUTCString(),

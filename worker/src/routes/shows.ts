@@ -4,7 +4,7 @@ import { parseFeedStream } from '../feedParser';
 import { apiError, HttpError, json, noContent, readJson } from '../http';
 import { parseSafeUrl, safeFetch } from '../security/safeUrl';
 
-export const CATEGORIES = ['tech', 'science', 'economy', 'news', 'football', 'stories'] as const;
+export const CATEGORIES = ['tech', 'science', 'economy', 'news', 'football', 'stories', 'humour'] as const;
 export type Category = (typeof CATEGORIES)[number];
 export const MAX_SHOWS = 40;
 
@@ -158,8 +158,8 @@ export async function create(req: Request, env: Env): Promise<Response> {
   const language = validLanguage(b.language);
   const filter = validTitleFilter(b.titleFilter);
 
-  const count = await env.DB.prepare('SELECT COUNT(*) AS n FROM shows').first<{ n: number }>();
-  if ((count?.n ?? 0) >= MAX_SHOWS) return apiError(409, 'too_many_shows', `${MAX_SHOWS} émissions au maximum.`);
+  const count = await env.DB.prepare('SELECT COUNT(*) AS n FROM shows WHERE enabled=1').first<{ n: number }>();
+  if ((count?.n ?? 0) >= MAX_SHOWS) return apiError(409, 'too_many_shows', `${MAX_SHOWS} émissions actives au maximum.`);
   if (await env.DB.prepare('SELECT 1 FROM shows WHERE feed_url = ?').bind(feedUrl).first()) {
     return apiError(409, 'already_subscribed', 'Tu suis déjà cette émission.');
   }
@@ -211,7 +211,8 @@ export async function list(env: Env): Promise<Response> {
 
 /** PATCH /api/shows/:id — enabled, category, language, titleFilter. */
 export async function update(req: Request, env: Env, id: string): Promise<Response> {
-  if (!(await env.DB.prepare('SELECT 1 FROM shows WHERE id = ?').bind(id).first())) return apiError(404, 'not_found', 'Émission inconnue.');
+  const existing = await env.DB.prepare('SELECT enabled FROM shows WHERE id = ?').bind(id).first<{ enabled: number }>();
+  if (!existing) return apiError(404, 'not_found', 'Émission inconnue.');
   const b = await readJson<Record<string, unknown>>(req, 4096);
   const sets: string[] = [];
   const values: unknown[] = [];
@@ -220,6 +221,8 @@ export async function update(req: Request, env: Env, id: string): Promise<Respon
     sets.push('enabled = ?');
     values.push(b.enabled ? 1 : 0);
     if (b.enabled) {
+      const count = await env.DB.prepare('SELECT COUNT(*) AS n FROM shows WHERE enabled=1').first<{ n: number }>();
+      if (!existing.enabled && (count?.n ?? 0) >= MAX_SHOWS) return apiError(409, 'too_many_shows', `${MAX_SHOWS} émissions actives au maximum.`);
       sets.push('next_check_at = ?', 'consecutive_failures = 0');
       values.push(new Date().toISOString());
     }

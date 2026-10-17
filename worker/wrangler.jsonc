@@ -14,7 +14,7 @@
 
   // Ressources créées au premier déploiement (provisionnement automatique de Wrangler).
   "d1_databases": [
-    { "binding": "DB", "database_name": "discover", "migrations_dir": "migrations" }
+    { "binding": "DB", "database_name": "discover", "database_id": "6a6d85aa-b128-4fc8-94b4-9ccfc4df793e", "migrations_dir": "migrations" }
   ],
   "r2_buckets": [
     { "binding": "FILES", "bucket_name": "discover-files" }
