@@ -6,7 +6,7 @@ import { parseSafeUrl, safeFetch } from '../security/safeUrl';
 
 export const CATEGORIES = ['tech', 'science', 'economy', 'news', 'football', 'stories', 'humour'] as const;
 export type Category = (typeof CATEGORIES)[number];
-export const MAX_SHOWS = 40;
+export const MAX_SHOWS = 50;
 
 interface ShowPreview {
   feedUrl: string;

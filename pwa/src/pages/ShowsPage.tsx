@@ -31,7 +31,7 @@ export function ShowsPage() {
   const [adding, setAdding] = useState(false);
   const [toDelete, setToDelete] = useState<Show | null>(null);
   const count = shows.data?.shows.filter((s) => s.enabled).length ?? 0;
-  const max = shows.data?.max ?? 40;
+  const max = shows.data?.max ?? 50;
 
   return (
     <Box sx={{ px: 2, pt: 2, pb: 4, maxWidth: 760, mx: 'auto' }}>
