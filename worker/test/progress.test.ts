@@ -57,3 +57,34 @@ describe('progression d’écoute', () => {
     expect((await call('/api/progress', { method: 'PUT', body: {} })).status).toBe(401);
   });
 });
+
+describe('transcriptions des flux', () => {
+  beforeEach(async () => {
+    await env.FILES.delete(`transcripts/${EP}.srt`);
+  });
+
+  const SRT = '1\n00:00:01,000 --> 00:00:03,000\nSpeaker 1: Hello.\n';
+  const fetcherFor = (body: string, status = 200) => {
+    let calls = 0;
+    const f = (async () => { calls++; return new Response(body, { status }); }) as unknown as typeof fetch;
+    return { f, calls: () => calls };
+  };
+
+  it('récupère le SRT une fois, le garde dans R2, puis le sert depuis le cache', async () => {
+    const { getTranscript } = await import('../src/routes/transcripts');
+    await env.DB.prepare("UPDATE episodes SET transcript_url = 'https://cdn.example.com/t.srt', transcript_type = 'srt'").run();
+    const { f, calls } = fetcherFor(SRT);
+    const first = await (await getTranscript(env, EP, f)).json<{ type: string; text: string; audioRef: string }>();
+    expect(first).toEqual({ type: 'srt', text: SRT, audioRef: AUDIO });
+    await getTranscript(env, EP, f);
+    expect(calls()).toBe(1);
+    expect(await env.FILES.get(`transcripts/${EP}.srt`)).not.toBeNull();
+  });
+
+  it('404 sans transcription, 502 si le fichier n’est pas un SRT/VTT', async () => {
+    const { getTranscript } = await import('../src/routes/transcripts');
+    expect((await getTranscript(env, EP)).status).toBe(404);
+    await env.DB.prepare("UPDATE episodes SET transcript_url = 'https://cdn.example.com/x.srt', transcript_type = 'srt'").run();
+    await expect(getTranscript(env, EP, fetcherFor('<html>nope</html>').f)).rejects.toThrow(/SRT ou un VTT/);
+  });
+});

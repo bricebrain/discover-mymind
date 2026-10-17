@@ -340,7 +340,7 @@ Une session est requise, sauf pour la connexion. Tout appel qui modifie quelque 
 | DELETE | `/api/auth/sessions/:id` · POST `/api/auth/sessions/revoke-others` | Révocation | sessions |
 | GET | `/api/explorer?category=&show=&lang=&state=&cursor=` | Épisodes récents | episodes, shows |
 | GET | `/api/episodes/:id` | Détail, avec indicateur de transcription | episodes |
-| GET | `/api/episodes/:id/transcript` | Segments du SRT/VTT du flux (récupérés une fois, puis en cache R2) | episodes |
+| GET | `/api/episodes/:id/transcript` | Texte brut du SRT/VTT du flux (`{ type, audioRef, text }`), récupéré une fois puis servi depuis R2 | episodes |
 | POST | `/api/episodes/:id/state` | `seen` · `saved` · `dismissed` | episodes |
 | POST | `/api/episodes/:id/prepare` | Demande de préparation (§ 7.4) | prepare_queue |
 | GET · POST | `/api/shows` | Liste · abonnement | shows |
@@ -573,7 +573,8 @@ Ce que ça représente pour l'offre gratuite : 1 440 exécutions de cron par jou
 ### 7.2 Ce qui est disponible sans l'Atelier
 
 - **L'audio officiel en streaming**, directement depuis l'URL de l'éditeur.
-- **La transcription du flux** (SRT/VTT, Bloomberg et T'as qui en Histoire ?) : récupérée par le Worker à la première ouverture, convertie en segments, mise en cache dans R2.
+- **La transcription du flux** (SRT/VTT : Bloomberg, Better Offline, T'as qui en Histoire ?) : récupérée par le Worker à la première ouverture et gardée **telle quelle** dans R2 (`transcripts/<episode_id>.srt|vtt`). C'est la PWA qui l'analyse et regroupe les répliques en segments (environ 220 caractères, nouveau segment à chaque changement d'intervenant ou après 1,5 s de pause) : aucun calcul côté Worker.
+- **Constat du lot 5 (2026-10-17)** : les publicités dynamiques sont la règle. Bloomberg Tech diffusé 47:18 contre 43:18 transcrits ; T'as qui en Histoire ? 18:59 contre 18:36. Le surlignage automatique ne s'active donc que si la durée réelle correspond (±1,5 s). Sinon, la transcription s'affiche avec un bouton **« Caler le texte »** : on touche la phrase entendue, le décalage s'applique à tout le texte, et on recale si une publicité au milieu le fait dériver. Le calage vaut pour l'écoute en cours (non enregistré).
 
 ### 7.3 Streaming officiel par défaut
 
@@ -820,7 +821,7 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 | **3 — Lecteur** ✅ | Mini-lecteur persistant, streaming officiel, vitesses, sauts, Media Session, progression par audio | Écouter ses podcasts dans l'app |
 | **3 bis — Passe design** | Identité visuelle et ergonomie, une fois qu'il y a du vrai contenu (épisodes, lecteur) : cartes d'épisodes, typographie de lecture, mini-lecteur, mise en page pliée et dépliée (Fold7), mouvements discrets | Une app agréable au quotidien, jugée sur de vrais épisodes |
 | **4 — My Mind minimal** | Notes Markdown (création, modification, liste, corbeille), sauvegarde locale, synchronisation 409, « Réfléchir » depuis un épisode, export JSON | Écrire ses réflexions au fil des écoutes |
-| **5 — Transcriptions des flux** | SRT/VTT → segments, cache R2, contrôle de synchronisation par la durée | Lire en écoutant (Bloomberg) |
+| **5 — Transcriptions des flux** ✅ | SRT/VTT → segments, cache R2, contrôle de synchronisation par la durée | Lire en écoutant (Bloomberg) |
 | **6 — Contrat de publication** | Schémas, fixtures, validateurs TS et Python, protocole § 6.5, nettoyage, routes média, cible « discover » dans l'Atelier (bundles YouTube existants) | Les contenus déjà préparés dans l'Atelier, visibles sur le téléphone |
 | **7 — Lecture des versions** | Sélecteur de version, transcription, français à la demande, navigation par segment, progression par version | Écouter Original, Fidèle et B1 |
 | **8 — File avec bail** | Bouton et options dans la PWA ; onglet « À préparer » dans l'Atelier ; bail, signal de vie, reprise ; téléchargement et normalisation de l'épisode | Marquer sur le téléphone, retrouver prêt après l'Atelier |

@@ -5,6 +5,7 @@ import * as auth from './routes/auth';
 import * as episodes from './routes/episodes';
 import * as progress from './routes/progress';
 import * as shows from './routes/shows';
+import { getTranscript } from './routes/transcripts';
 import { handleAtelier } from './routes/atelier';
 import { assertSameOriginWrite } from './security/csrf';
 import { getSession } from './security/session';
@@ -55,9 +56,10 @@ async function handleData(req: Request, env: Env, path: string, m: string): Prom
   if (pr?.[1] && pr[2] && m === 'GET') return progress.get(req, env, pr[1], decodeURIComponent(pr[2]));
 
   if (path === '/api/explorer' && m === 'GET') return episodes.explorer(req, env);
-  const ep = path.match(/^\/api\/episodes\/([0-9a-f]{20})(\/state)?$/);
+  const ep = path.match(/^\/api\/episodes\/([0-9a-f]{20})(\/state|\/transcript)?$/);
   if (ep?.[1] && !ep[2] && m === 'GET') return episodes.detail(env, ep[1]);
-  if (ep?.[1] && ep[2] && m === 'POST') return episodes.setState(req, env, ep[1]);
+  if (ep?.[1] && ep[2] === '/state' && m === 'POST') return episodes.setState(req, env, ep[1]);
+  if (ep?.[1] && ep[2] === '/transcript' && m === 'GET') return getTranscript(env, ep[1]);
 
   return apiError(404, 'not_found', 'Route inconnue.');
 }

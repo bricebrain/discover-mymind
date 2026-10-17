@@ -4,18 +4,20 @@ import BookmarkIcon from '@mui/icons-material/Bookmark';
 import PauseIcon from '@mui/icons-material/Pause';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
-import { Alert, Avatar, Box, Button, Chip, CircularProgress, IconButton, Stack, Typography } from '@mui/material';
-import { useEffect } from 'react';
+import { Alert, Avatar, Box, Button, Chip, CircularProgress, IconButton, Stack, Tab, Tabs, Typography } from '@mui/material';
+import { useEffect, useState } from 'react';
 import { CATEGORY_LABELS, formatDuration, formatWhen, useEpisode, useSetEpisodeState } from '../api/episodes';
 import { readingFont } from '../app/theme';
 import { formatClock } from '../player/MiniPlayer';
 import { secureSrc, usePlayer } from '../player/PlayerProvider';
+import { TranscriptView } from '../transcript/TranscriptView';
 
 /** Détail d'un épisode : écoute de l'audio officiel en streaming, sauvegarde, mise à l'écart. */
 export function EpisodeDetail({ id, onBack }: { id: string; onBack?: () => void }) {
   const { data: episode, isPending, isError } = useEpisode(id);
   const setState = useSetEpisodeState();
   const player = usePlayer();
+  const [tab, setTab] = useState<'transcript' | 'about'>('transcript');
 
   // Ouvrir un épisode le marque comme vu.
   useEffect(() => {
@@ -86,7 +88,15 @@ export function EpisodeDetail({ id, onBack }: { id: string; onBack?: () => void 
         )}
       </Stack>
 
-      {episode.description && (
+      {episode.transcriptType && (
+        <Tabs value={tab} onChange={(_e, v: 'transcript' | 'about') => setTab(v)} sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}>
+          <Tab value="transcript" label="Transcription" />
+          <Tab value="about" label="À propos" />
+        </Tabs>
+      )}
+      {episode.transcriptType && tab === 'transcript' ? (
+        <TranscriptView episode={episode} onPlay={listen} />
+      ) : episode.description && (
         <Typography sx={{ fontFamily: readingFont, fontSize: '1.05rem', lineHeight: 1.7, whiteSpace: 'pre-line' }}>
           {episode.description}
         </Typography>

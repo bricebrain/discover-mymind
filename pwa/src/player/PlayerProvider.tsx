@@ -29,6 +29,8 @@ interface PlayerState {
   duration: number;
   rate: number;
   error: string | null;
+  /** Durée réelle du fichier en cours, connue après le chargement (0 avant). */
+  mediaDuration: number;
 }
 
 interface PlayerApi extends PlayerState {
@@ -73,7 +75,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   /** Faux tant que la reprise n'est pas appliquée : on n'écrase jamais une position avec 0 au chargement. */
   const resumed = useRef(false);
   const [state, setState] = useState<PlayerState>({
-    track: null, playing: false, buffering: false, position: 0, duration: 0, rate: readRate(), error: null,
+    track: null, playing: false, buffering: false, position: 0, duration: 0, rate: readRate(), error: null, mediaDuration: 0,
   });
 
   if (!audioRef.current && typeof Audio !== 'undefined') {
@@ -108,7 +110,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const a = audioRef.current;
     if (!a) return;
     const sync = () => setState((s) => ({
-      ...s, playing: !a.paused, position: a.currentTime || 0, duration: Number.isFinite(a.duration) ? a.duration : s.duration,
+      ...s, playing: !a.paused, position: a.currentTime || 0,
+      duration: Number.isFinite(a.duration) ? a.duration : s.duration,
+      mediaDuration: Number.isFinite(a.duration) && a.duration > 0 ? a.duration : 0,
     }));
     const onTime = () => {
       sync();
@@ -173,7 +177,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (current) save();
     resumed.current = false;
     trackRef.current = track;
-    setState((s) => ({ ...s, track, playing: false, buffering: true, position: 0, duration: track.durationSec ?? 0, error: null }));
+    setState((s) => ({ ...s, track, playing: false, buffering: true, position: 0, duration: track.durationSec ?? 0, mediaDuration: 0, error: null }));
     a.src = track.src;
     a.playbackRate = readRate();
     a.defaultPlaybackRate = a.playbackRate;
@@ -247,7 +251,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     a.removeAttribute('src');
     a.load();
     trackRef.current = null;
-    setState((s) => ({ ...s, track: null, playing: false, buffering: false, position: 0, duration: 0, error: null }));
+    setState((s) => ({ ...s, track: null, playing: false, buffering: false, position: 0, duration: 0, mediaDuration: 0, error: null }));
     if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
   }, [save]);
 
