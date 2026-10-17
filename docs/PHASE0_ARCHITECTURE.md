@@ -706,7 +706,7 @@ Le Worker n'appelle **aucun** LLM en V1.
   - l'en-tête `X-Discover-Client: 1`. Un formulaire HTML d'un autre site ne peut envoyer aucun de ces éléments.
 - **`/atelier/*`** n'accepte que le jeton Bearer et ignore les cookies, donc il n'est pas exposé au CSRF.
 - **En-têtes de sécurité** sur chaque réponse :
-  - CSP stricte des fichiers statiques (`pwa/public/_headers`) : `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; media-src 'self' https:; img-src 'self' https: data:; connect-src 'self'; frame-ancestors 'none'`. `style-src 'unsafe-inline'` est nécessaire à MUI (emotion injecte ses styles) ; aucun script en ligne n'est autorisé ;
+  - CSP stricte des fichiers statiques (`pwa/public/_headers`) : `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; media-src 'self' https: http:; img-src 'self' https: http: data:; connect-src 'self'; frame-ancestors 'none'`. `style-src 'unsafe-inline'` est nécessaire à MUI (emotion injecte ses styles) ; aucun script en ligne n'est autorisé. `http:` n'est permis que pour l'audio et les images : certains éditeurs (BBC) redirigent vers des fichiers http, que Chrome convertit lui-même en https dans une page HTTPS ;
   - CSP des réponses de l'API : `default-src 'none'; frame-ancestors 'none'`, avec `Cache-Control: no-store` ;
   - `X-Content-Type-Options: nosniff` ;
   - `Referrer-Policy: no-referrer`.
@@ -811,7 +811,7 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 | **0** | v2 de ce document ; mesure de la collecte (fait) ; commit de la suppression « Idées » dans l'Atelier | Contrats figés |
 | **1 — Socle sécurisé** ✅ (local) | Dépôt, Worker et static assets, migration 0001, R2, sessions, limitation, CSRF, en-têtes, PWA installable à 3 onglets | Connexion sur le Fold7 ; Réglages → Appareils |
 | **2 — Émissions et collecte** ✅ | `resolve`, import de la liste de départ, cron (§ 7.1), filtres, rétention, Explorer | Les vrais épisodes du jour sur le téléphone |
-| **3 — Lecteur** | Mini-lecteur persistant, streaming officiel, vitesses, sauts, Media Session, progression par audio | Écouter ses podcasts dans l'app |
+| **3 — Lecteur** ✅ | Mini-lecteur persistant, streaming officiel, vitesses, sauts, Media Session, progression par audio | Écouter ses podcasts dans l'app |
 | **3 bis — Passe design** | Identité visuelle et ergonomie, une fois qu'il y a du vrai contenu (épisodes, lecteur) : cartes d'épisodes, typographie de lecture, mini-lecteur, mise en page pliée et dépliée (Fold7), mouvements discrets | Une app agréable au quotidien, jugée sur de vrais épisodes |
 | **4 — My Mind minimal** | Notes Markdown (création, modification, liste, corbeille), sauvegarde locale, synchronisation 409, « Réfléchir » depuis un épisode, export JSON | Écrire ses réflexions au fil des écoutes |
 | **5 — Transcriptions des flux** | SRT/VTT → segments, cache R2, contrôle de synchronisation par la durée | Lire en écoutant (Bloomberg) |

@@ -3,6 +3,7 @@ import { apiError, HttpError, withSecurityHeaders } from './http';
 import { collectNext } from './collector';
 import * as auth from './routes/auth';
 import * as episodes from './routes/episodes';
+import * as progress from './routes/progress';
 import * as shows from './routes/shows';
 import { handleAtelier } from './routes/atelier';
 import { assertSameOriginWrite } from './security/csrf';
@@ -33,6 +34,10 @@ async function handleApi(req: Request, env: Env, path: string): Promise<Response
   const show = path.match(/^\/api\/shows\/([a-z0-9-]{1,64})$/);
   if (show?.[1] && m === 'PATCH') return shows.update(req, env, show[1]);
   if (show?.[1] && m === 'DELETE') return shows.remove(env, show[1]);
+
+  if (path === '/api/progress' && m === 'PUT') return progress.save(req, env);
+  const pr = path.match(/^\/api\/progress\/(episode|variant)\/([^/]+)$/);
+  if (pr?.[1] && pr[2] && m === 'GET') return progress.get(req, env, pr[1], decodeURIComponent(pr[2]));
 
   if (path === '/api/explorer' && m === 'GET') return episodes.explorer(req, env);
   const ep = path.match(/^\/api\/episodes\/([0-9a-f]{20})(\/state)?$/);

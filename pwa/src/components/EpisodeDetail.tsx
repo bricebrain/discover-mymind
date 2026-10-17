@@ -1,17 +1,21 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import PauseIcon from '@mui/icons-material/Pause';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import { Alert, Avatar, Box, Button, Chip, CircularProgress, IconButton, Stack, Typography } from '@mui/material';
 import { useEffect } from 'react';
 import { CATEGORY_LABELS, formatDuration, formatWhen, useEpisode, useSetEpisodeState } from '../api/episodes';
 import { readingFont } from '../app/theme';
+import { formatClock } from '../player/MiniPlayer';
+import { secureSrc, usePlayer } from '../player/PlayerProvider';
 
-/** Détail d'un épisode. Le lecteur intégré arrive au lot 3 ; en attendant, l'audio officiel s'ouvre à part. */
+/** Détail d'un épisode : écoute de l'audio officiel en streaming, sauvegarde, mise à l'écart. */
 export function EpisodeDetail({ id, onBack }: { id: string; onBack?: () => void }) {
   const { data: episode, isPending, isError } = useEpisode(id);
   const setState = useSetEpisodeState();
+  const player = usePlayer();
 
   // Ouvrir un épisode le marque comme vu.
   useEffect(() => {
@@ -23,6 +27,15 @@ export function EpisodeDetail({ id, onBack }: { id: string; onBack?: () => void 
   if (isError || !episode) return <Alert severity="warning" sx={{ m: 2 }}>Épisode introuvable.</Alert>;
 
   const saved = episode.state === 'saved';
+  const isCurrent = player.track?.targetType === 'episode' && player.track.targetId === episode.id;
+  const resumeAt = !isCurrent && episode.progressMs && episode.progressCompleted !== 1 && episode.progressMs > 5000 ? episode.progressMs / 1000 : null;
+  const listen = () => {
+    if (isCurrent) return player.toggle();
+    player.play({
+      targetType: 'episode', targetId: episode.id, audioRef: episode.audioUrl, src: secureSrc(episode.audioUrl),
+      title: episode.title, subtitle: episode.showTitle, imageUrl: episode.imageUrl, durationSec: episode.durationSec,
+    });
+  };
   return (
     <Box sx={{ p: 2, pb: 4 }}>
       {onBack && (
@@ -48,8 +61,8 @@ export function EpisodeDetail({ id, onBack }: { id: string; onBack?: () => void 
       </Typography>
 
       <Stack direction="row" spacing={1} sx={{ mb: 3, flexWrap: 'wrap', rowGap: 1 }}>
-        <Button variant="contained" startIcon={<OpenInNewIcon />} href={episode.audioUrl} target="_blank" rel="noopener noreferrer">
-          Écouter
+        <Button variant="contained" onClick={listen} startIcon={isCurrent && player.playing ? <PauseIcon /> : <PlayArrowIcon />}>
+          {isCurrent ? (player.playing ? 'Pause' : 'Reprendre') : resumeAt ? `Reprendre à ${formatClock(resumeAt)}` : 'Écouter'}
         </Button>
         <Button
           variant="outlined"

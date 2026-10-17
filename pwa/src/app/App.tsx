@@ -9,6 +9,7 @@ import { LibraryPage } from '../pages/LibraryPage';
 import { LoginPage } from '../pages/LoginPage';
 import { ShowsPage } from '../pages/ShowsPage';
 import { SettingsPage } from '../pages/SettingsPage';
+import { PlayerProvider } from '../player/PlayerProvider';
 import { Shell } from './Shell';
 import { buildTheme } from './theme';
 
@@ -40,7 +41,7 @@ function Gate() {
       </Box>
     );
   }
-  return session.data ? <RouterProvider router={router} /> : <LoginPage />;
+  return session.data ? <PlayerProvider><RouterProvider router={router} /></PlayerProvider> : <LoginPage />;
 }
 
 export function App() {

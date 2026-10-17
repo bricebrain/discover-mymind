@@ -28,6 +28,10 @@ export interface Episode {
   showTitle: string;
   language: 'fr' | 'en';
   category: Category;
+  /** Progression de l'audio original (null si jamais écouté ou si l'audio a changé). */
+  progressMs: number | null;
+  progressDurationMs: number | null;
+  progressCompleted: 0 | 1 | null;
 }
 
 export interface ExplorerFilters {

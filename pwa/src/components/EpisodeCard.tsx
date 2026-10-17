@@ -1,6 +1,6 @@
 import BookmarkIcon from '@mui/icons-material/Bookmark';
 import SubtitlesOutlinedIcon from '@mui/icons-material/SubtitlesOutlined';
-import { Avatar, Box, ButtonBase, Stack, Typography } from '@mui/material';
+import { Avatar, Box, ButtonBase, LinearProgress, Stack, Typography } from '@mui/material';
 import { formatDuration, formatWhen, type Episode } from '../api/episodes';
 
 /** Carte d'épisode dans une liste : vignette, émission, titre, date, durée, langue. */
@@ -32,7 +32,13 @@ export function EpisodeCard({ episode, selected, onOpen }: { episode: Episode; s
           <Typography variant="caption">· {episode.language.toUpperCase()}</Typography>
           {episode.transcriptType && <SubtitlesOutlinedIcon titleAccess="Transcription disponible" sx={{ fontSize: 16 }} />}
           {episode.state === 'saved' && <BookmarkIcon titleAccess="Sauvegardé" color="primary" sx={{ fontSize: 16 }} />}
+          {episode.progressCompleted === 1 && <Typography variant="caption" color="primary">· écouté</Typography>}
         </Stack>
+        {episode.progressMs && episode.progressDurationMs && episode.progressCompleted !== 1 ? (
+          <LinearProgress variant="determinate" aria-label="Progression d’écoute"
+            value={Math.min(100, (episode.progressMs / episode.progressDurationMs) * 100)}
+            sx={{ mt: 0.75, height: 3, borderRadius: 2, maxWidth: 200 }} />
+        ) : null}
       </Box>
     </ButtonBase>
   );

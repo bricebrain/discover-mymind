@@ -4,7 +4,12 @@ import { CATEGORIES } from './shows';
 
 const EPISODE_COLUMNS = `e.id, e.title, e.description, e.published_at AS publishedAt, e.duration_sec AS durationSec,
   e.audio_url AS audioUrl, COALESCE(e.image_url, s.image_url) AS imageUrl, e.transcript_type AS transcriptType,
-  e.state, e.content_id AS contentId, s.id AS showId, s.title AS showTitle, s.language, s.category`;
+  e.state, e.content_id AS contentId, s.id AS showId, s.title AS showTitle, s.language, s.category,
+  p.position_ms AS progressMs, p.duration_ms AS progressDurationMs, p.completed AS progressCompleted`;
+
+/** Progression de l'audio original de l'épisode (la même URL : sinon elle n'a plus de sens). */
+const PROGRESS_JOIN = `LEFT JOIN listening_progress p
+  ON p.target_type = 'episode' AND p.target_id = e.id AND p.audio_ref = e.audio_url`;
 
 const PAGE_SIZE = 30;
 const STATES = ['new', 'seen', 'saved', 'dismissed'] as const;
@@ -66,7 +71,7 @@ export async function explorer(req: Request, env: Env): Promise<Response> {
 
   const { results } = await env.DB.prepare(
     `SELECT ${EPISODE_COLUMNS}, COALESCE(e.published_at, e.created_at) AS sortKey
-       FROM episodes e JOIN shows s ON s.id = e.show_id
+       FROM episodes e JOIN shows s ON s.id = e.show_id ${PROGRESS_JOIN}
       WHERE ${where.map((w) => `(${w})`).join(' AND ')}
       ORDER BY sortKey DESC, e.id DESC LIMIT ?`,
   ).bind(...values, PAGE_SIZE + 1).all<Record<string, unknown> & { sortKey: string; id: string }>();
@@ -81,7 +86,7 @@ export async function explorer(req: Request, env: Env): Promise<Response> {
 
 /** GET /api/episodes/:id */
 export async function detail(env: Env, id: string): Promise<Response> {
-  const e = await env.DB.prepare(`SELECT ${EPISODE_COLUMNS} FROM episodes e JOIN shows s ON s.id = e.show_id WHERE e.id = ?`)
+  const e = await env.DB.prepare(`SELECT ${EPISODE_COLUMNS} FROM episodes e JOIN shows s ON s.id = e.show_id ${PROGRESS_JOIN} WHERE e.id = ?`)
     .bind(id).first();
   return e ? json({ episode: e }) : apiError(404, 'not_found', 'Épisode inconnu.');
 }

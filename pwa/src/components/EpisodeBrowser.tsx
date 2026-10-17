@@ -49,10 +49,10 @@ export function EpisodeBrowser({ filters, header, empty }: { filters: ExplorerFi
   if (!wide) return selected ? <EpisodeDetail id={selected} onBack={() => window.history.length > 1 ? window.history.back() : open(null)} /> : list;
 
   return (
-    // Deux colonnes de hauteur fixe qui défilent chacune de leur côté (barre du haut 52 px, navigation 56 px).
+    // Deux colonnes de hauteur fixe qui défilent chacune de leur côté (barre du haut 52 px, navigation 56 px, mini-lecteur).
     <Box sx={{
       display: 'grid', gridTemplateColumns: 'minmax(300px, 5fr) 6fr',
-      height: 'calc(100dvh - 52px - 56px - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
+      height: 'calc(100dvh - 52px - 56px - var(--player-h, 0px) - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
     }}>
       <Box sx={{ borderRight: 1, borderColor: 'divider', overflowY: 'auto' }}>{list}</Box>
       <Box sx={{ overflowY: 'auto' }}>
