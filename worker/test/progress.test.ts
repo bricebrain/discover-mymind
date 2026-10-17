@@ -53,6 +53,17 @@ describe('progression d’écoute', () => {
     expect((await put(cookie, { targetType: 'variant', targetId: 'mon-contenu:en-b1', audioRef: 'sha', positionMs: 5 })).status).toBe(200);
   });
 
+  it('garde des positions indépendantes pour chaque version et remet seulement l’audio remplacé à zéro', async () => {
+    const cookie = await login();
+    await put(cookie,{ targetType:'variant',targetId:'mon-contenu:en-b1',audioRef:'sha-full',positionMs:61000 });
+    await put(cookie,{ targetType:'variant',targetId:'mon-contenu:en-condensed',audioRef:'sha-condensed',positionMs:12000 });
+    const read = async (key: string,ref: string) => (await call(`/api/progress/variant/mon-contenu%3A${key}?audioRef=${ref}`,{ cookie })).json();
+    expect(await read('en-b1','sha-full')).toMatchObject({ progress:{ positionMs:61000 } });
+    expect(await read('en-condensed','sha-condensed')).toMatchObject({ progress:{ positionMs:12000 } });
+    expect(await read('en-b1','sha-full-new')).toEqual({ progress:null });
+    expect(await read('en-condensed','sha-condensed')).toMatchObject({ progress:{ positionMs:12000 } });
+  });
+
   it('exige une session', async () => {
     expect((await call('/api/progress', { method: 'PUT', body: {} })).status).toBe(401);
   });

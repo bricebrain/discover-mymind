@@ -7,6 +7,7 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import { Alert, Avatar, Box, Button, CircularProgress, IconButton, Stack, Tab, Tabs, Tooltip, Typography, useTheme } from '@mui/material';
 import { alpha } from '@mui/material/styles';
+import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { CATEGORY_LABELS, formatDuration, formatWhen, useEpisode, useSetEpisodeState } from '../api/episodes';
 import { categoryColor, fonts } from '../app/theme';
@@ -76,6 +77,7 @@ export function EpisodeDetail({ id, onBack }: { id: string; onBack?: () => void 
             {episode.title}
           </Typography>
 
+          {episode.contentId && <Button component={Link} to={`/library/${episode.contentId}`} variant="outlined" sx={{ mb: 2 }}>Versions préparées</Button>}
           <Stack direction="row" spacing={1} alignItems="center">
             <Button variant="contained" size="large" onClick={listen}
               startIcon={isCurrent && player.playing ? <PauseIcon /> : <PlayArrowIcon />}

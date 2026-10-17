@@ -1,46 +1,13 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { api } from '../api/client';
+import { fetchProgress, progressKey } from '../api/progress';
+import { AudioPosition } from './AudioPosition';
+import { sameAudio, SPEEDS, SKIP_SECONDS, type Track, type PlayerApi, type PlayerState, type PlayOptions } from './types';
+export { SPEEDS, SKIP_SECONDS, type Track } from './types';
 
-/** Ce que le lecteur sait jouer : pour l'instant l'audio original d'un épisode (les variantes arrivent au lot 7). */
-export interface Track {
-  targetType: 'episode' | 'variant';
-  targetId: string;
-  /** Référence de l'audio pour la progression (URL officielle telle qu'enregistrée, ou sha256). */
-  audioRef: string;
-  src: string;
-  title: string;
-  subtitle: string;
-  imageUrl: string | null;
-  durationSec: number | null;
-}
-
-export const SPEEDS = [0.75, 0.9, 1, 1.1, 1.25] as const;
-export const SKIP_SECONDS = 10;
 const SAVE_EVERY_MS = 15_000;
-const RESUME_MIN_MS = 5_000;
 const RATE_KEY = 'discover.playbackRate';
-
-interface PlayerState {
-  track: Track | null;
-  playing: boolean;
-  buffering: boolean;
-  position: number;
-  duration: number;
-  rate: number;
-  error: string | null;
-  /** Durée réelle du fichier en cours, connue après le chargement (0 avant). */
-  mediaDuration: number;
-}
-
-interface PlayerApi extends PlayerState {
-  play: (track: Track) => void;
-  toggle: () => void;
-  seek: (seconds: number) => void;
-  skip: (delta: number) => void;
-  setRate: (rate: number) => void;
-  stop: () => void;
-}
 
 const PlayerContext = createContext<PlayerApi | null>(null);
 
@@ -72,8 +39,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const trackRef = useRef<Track | null>(null);
   const lastSave = useRef(0);
-  /** Faux tant que la reprise n'est pas appliquée : on n'écrase jamais une position avec 0 au chargement. */
-  const resumed = useRef(false);
+  /** Une version préchargée en pause n’est pas encore une écoute à sauvegarder. */
+  const saveEnabled = useRef(false);
+  /** La sauvegarde attend l’application de la reprise ou du passage demandé. */
+  const positionControl = useRef<AudioPosition | null>(null);
   const [state, setState] = useState<PlayerState>({
     track: null, playing: false, buffering: false, position: 0, duration: 0, rate: readRate(), error: null, mediaDuration: 0,
   });
@@ -81,19 +50,20 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   if (!audioRef.current && typeof Audio !== 'undefined') {
     audioRef.current = new Audio();
     audioRef.current.preload = 'metadata';
+    positionControl.current = new AudioPosition(audioRef.current);
   }
 
   /** Enregistre la position (keepalive : survit à la fermeture de l'app). */
   const save = useCallback((opts: { completed?: boolean; keepalive?: boolean } = {}) => {
     const a = audioRef.current;
     const t = trackRef.current;
-    if (!a || !t || !resumed.current || !Number.isFinite(a.currentTime)) return;
+    if (!a || !t || !saveEnabled.current || !positionControl.current?.ready || !Number.isFinite(a.currentTime)) return;
     lastSave.current = Date.now();
     const body = {
       targetType: t.targetType, targetId: t.targetId, audioRef: t.audioRef,
       positionMs: Math.round(a.currentTime * 1000),
       durationMs: Number.isFinite(a.duration) ? Math.round(a.duration * 1000) : null,
-      completed: opts.completed ?? false,
+      completed: opts.completed ?? a.ended,
     };
     if (opts.keepalive) {
       void fetch('/api/progress', {
@@ -102,8 +72,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       }).catch(() => {});
       return;
     }
-    void api('/api/progress', { method: 'PUT', body }).catch(() => {});
-  }, []);
+    void api('/api/progress', { method: 'PUT', body }).then(() => {
+      void qc.invalidateQueries({ queryKey: progressKey(t) });
+    }).catch(() => {});
+  }, [qc]);
 
   // Événements de l'élément audio → état React + Media Session.
   useEffect(() => {
@@ -146,7 +118,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
     a.addEventListener('timeupdate', onTime);
     a.addEventListener('loadedmetadata', sync);
-    a.addEventListener('play', sync);
+    const onSeeked = () => { sync(); if (a.paused) save(); };
+    a.addEventListener('seeked', onSeeked);
+    const onPlay = () => { saveEnabled.current = true; sync(); };
+    a.addEventListener('play', onPlay);
     a.addEventListener('pause', onPause);
     a.addEventListener('ended', onEnded);
     a.addEventListener('waiting', onWaiting);
@@ -156,7 +131,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     return () => {
       a.removeEventListener('timeupdate', onTime);
       a.removeEventListener('loadedmetadata', sync);
-      a.removeEventListener('play', sync);
+      a.removeEventListener('seeked', onSeeked);
+      a.removeEventListener('play', onPlay);
       a.removeEventListener('pause', onPause);
       a.removeEventListener('ended', onEnded);
       a.removeEventListener('waiting', onWaiting);
@@ -166,39 +142,33 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     };
   }, [qc, save]);
 
-  const play = useCallback((track: Track) => {
+  const play = useCallback((track: Track, options: PlayOptions = {}) => {
     const a = audioRef.current;
     if (!a) return;
     const current = trackRef.current;
-    if (current && current.targetType === track.targetType && current.targetId === track.targetId) {
-      void a.play().catch(() => {});
+    const unchanged = sameAudio(current, track);
+    if (unchanged && current?.src === track.src) {
+      if (options.positionSec !== undefined) positionControl.current?.seek(options.positionSec);
+      if (options.autoplay === false) a.pause();
+      else void a.play().catch(() => {});
       return;
     }
+    const positionSec = options.positionSec ?? (unchanged ? a.currentTime : undefined);
     if (current) save();
-    resumed.current = false;
+    positionControl.current?.reset();
+    a.pause();
     trackRef.current = track;
-    setState((s) => ({ ...s, track, playing: false, buffering: true, position: 0, duration: track.durationSec ?? 0, mediaDuration: 0, error: null }));
+    saveEnabled.current = options.autoplay !== false;
+    setState((s) => ({ ...s, track, playing: false, buffering: options.autoplay !== false, position: 0, duration: track.durationSec ?? 0, mediaDuration: 0, error: null }));
     a.src = track.src;
     a.playbackRate = readRate();
     a.defaultPlaybackRate = a.playbackRate;
 
-    // Reprise au dernier point, si la position concerne bien ce fichier.
-    const resume = api<{ progress: { positionMs: number; completed: boolean } | null }>(
-      `/api/progress/${track.targetType}/${encodeURIComponent(track.targetId)}?audioRef=${encodeURIComponent(track.audioRef)}`,
-    ).then((r) => r.progress).catch(() => null);
-    void a.play().catch(() => setState((s) => ({ ...s, buffering: false })));
-    void resume.then((p) => {
-      if (trackRef.current !== track) return;
-      if (!p || p.completed || p.positionMs < RESUME_MIN_MS) {
-        resumed.current = true;
-        return;
-      }
-      const seekTo = () => {
-        a.currentTime = p.positionMs / 1000;
-        resumed.current = true;
-      };
-      if (a.readyState >= 1) seekTo();
-      else a.addEventListener('loadedmetadata', seekTo, { once: true });
+    positionControl.current?.restore(
+      positionSec === undefined ? fetchProgress(track) : Promise.resolve(null), positionSec,
+    );
+    if (options.autoplay !== false) void a.play().catch(() => {
+      if (sameAudio(trackRef.current, track)) setState((s) => ({ ...s, buffering: false }));
     });
 
     if ('mediaSession' in navigator) {
@@ -221,8 +191,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const seek = useCallback((seconds: number) => {
     const a = audioRef.current;
     if (!a || !trackRef.current) return;
-    const max = Number.isFinite(a.duration) ? a.duration : seconds;
-    a.currentTime = Math.max(0, Math.min(seconds, max));
+    saveEnabled.current = true;
+    positionControl.current?.seek(seconds);
     setState((s) => ({ ...s, position: a.currentTime }));
   }, []);
 
@@ -247,20 +217,24 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const a = audioRef.current;
     if (!a) return;
     if (trackRef.current) save();
+    positionControl.current?.reset();
     a.pause();
     a.removeAttribute('src');
     a.load();
     trackRef.current = null;
+    saveEnabled.current = false;
     setState((s) => ({ ...s, track: null, playing: false, buffering: false, position: 0, duration: 0, mediaDuration: 0, error: null }));
     if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
   }, [save]);
 
   // Déconnexion : le fournisseur est démonté, l'audio doit s'arrêter avec lui.
   useEffect(() => () => {
+    save({ keepalive: true });
+    positionControl.current?.reset();
     audioRef.current?.pause();
     if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
     document.documentElement.style.setProperty('--player-h', '0px');
-  }, []);
+  }, [save]);
 
   // Commandes de l'écran verrouillé, des notifications et des écouteurs.
   useEffect(() => {

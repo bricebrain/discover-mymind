@@ -4,8 +4,9 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import PauseIcon from '@mui/icons-material/Pause';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import Replay10Icon from '@mui/icons-material/Replay10';
-import { Alert, Avatar, Box, ButtonBase, CircularProgress, Drawer, IconButton, Slider, Stack, Typography } from '@mui/material';
+import { Alert, Avatar, Box, Button, ButtonBase, CircularProgress, Drawer, IconButton, Slider, Stack, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
+import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { fonts } from '../app/theme';
 import { SKIP_SECONDS, SPEEDS, usePlayer } from './PlayerProvider';
@@ -103,6 +104,8 @@ function FullPlayer({ open, onClose }: { open: boolean; onClose: () => void }) {
             <Typography sx={{ fontFamily: fonts.display, fontSize: '1.35rem', fontWeight: 600, lineHeight: 1.25, mb: 0.5 }}>{track.title}</Typography>
             <Typography color="text.secondary" variant="body2">{track.subtitle}</Typography>
           </Box>
+          {track.targetType === 'variant' && <Button component={Link} onClick={onClose}
+            to={`/library/${track.targetId.split(':')[0]}?v=${track.targetId.split(':')[1]}`}>Lire la transcription</Button>}
           {error && <Alert severity="error" sx={{ width: '100%' }}>{error}</Alert>}
           <Box sx={{ width: '100%' }}>
             <Slider

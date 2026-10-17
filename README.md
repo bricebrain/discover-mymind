@@ -55,4 +55,5 @@ Révocation d'urgence de toutes les sessions : changer `SESSION_EPOCH`.
 
 Contrats, configuration de la cible Discover, reprise et tests :
 [`contracts/README.md`](contracts/README.md). La Bibliothèque affiche les contenus
-publiés ; leur source est lisible et écoutable. Le choix entre toutes les versions arrive au lot 7.
+publiés ; chaque version est sélectionnable avec sa transcription, son français à la demande
+et sa progression audio. Les versions adaptées sont générées dans l’Atelier au lot 9.

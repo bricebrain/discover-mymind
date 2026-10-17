@@ -849,7 +849,7 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 | **4 — My Mind minimal** ✅ | Notes Markdown (création, modification, liste, corbeille), sauvegarde locale, synchronisation 409, « Réfléchir » depuis un épisode, export JSON | Écrire ses réflexions au fil des écoutes |
 | **5 — Transcriptions des flux** ✅ | SRT/VTT → segments, cache R2, contrôle de synchronisation par la durée | Lire en écoutant (Bloomberg) |
 | **6 — Contrat de publication** ✅ (déployé) | Schémas, fixtures, validateurs TS et Python, protocole § 6.5, nettoyage, routes média, cible « discover » dans l'Atelier (bundles YouTube existants) | Les contenus déjà préparés dans l'Atelier, visibles sur le téléphone |
-| **7 — Lecture des versions** | Sélecteur de version (avec sa nature : intégral, condensé, essentiel ; niveau ; durée), transcription, français à la demande, navigation par segment, progression par version | Écouter Original, Fidèle, Intégral B1 ou Condensé B1 |
+| **7 — Lecture des versions** ✅ (déployé) | Sélecteur de version (avec sa nature : intégral, condensé, essentiel ; niveau ; durée), transcription, français à la demande, navigation par segment, progression par version | Écouter Original, Fidèle, Intégral B1 ou Condensé B1 |
 | **8 — File avec bail** | Bouton et options dans la PWA ; onglet « À préparer » dans l'Atelier ; bail, signal de vie, reprise ; téléchargement et normalisation de l'épisode | Marquer sur le téléphone, retrouver prêt après l'Atelier |
 | **9 — Versions préparées** | `adaptation.py` : couverture × niveau × durée (§ 7.4), synthèse en deux passes avec renvois (§ 7.7), évaluation fond puis langue (§ 7.6), exclusion des publicités, narration par défaut, calibrage du débit Kokoro, préparation auto de L'édito éco | Un épisode de 50 min écouté en 12 min à son niveau |
 | **10 — My Mind complet** | Tags, types, questions, liens vers les passages, recherche FTS5, « Préparer en anglais » pour une note | Relire ses idées en anglais |
@@ -882,9 +882,9 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 ### Lecture (lots 3, 5 et 7)
 - [ ] L'audio officiel se lit en streaming et continue quand on change d'onglet, qu'on verrouille l'écran du Fold7, ou qu'on le plie ou le déplie.
 - [ ] Vitesses 0,75 / 0,9 / 1 / 1,1 / 1,25×, sauts ±10 s, contrôles sur l'écran verrouillé.
-- [ ] La progression est gardée **par audio**, et remise à zéro si l'audio change.
-- [ ] Le surlignage n'est actif que si `timing_status = exact`, ou si la durée réelle diffère de `durationMs` de 1,5 s au plus.
-- [ ] Le français n'est affiché que s'il traduit exactement la variante active.
+- [x] La progression est gardée **par audio**, et remise à zéro si l'audio change.
+- [x] Le surlignage n'est actif que si `timing_status = exact`, ou si la durée réelle diffère de `durationMs` de 1,5 s au plus.
+- [x] Le français n'est affiché que s'il traduit exactement la variante active.
 
 ### Publication et variantes (lot 6)
 - [x] Un manifeste valide de chacun des types (épisode FR, épisode EN, YouTube, réflexion) est publié et visible.
@@ -1012,3 +1012,15 @@ Limite d'abonnements : **30**, ce qui donne un cycle de collecte d'environ 30 mi
 - Un verrou de commit interrompu depuis 15 min est récupéré au prochain nettoyage, avec un jeton qui interdit une ancienne bascule tardive.
 - Première mesure de publication en production : envoi audio de 15,7 Mo à **7 ms de CPU**, `outcome: ok`. Cela ne remplace pas une mesure complète des quotas et du cron sur 24 h. Les déploiements de Discover datent de ce jour : la fenêtre complète de 24 h n’est pas encore disponible.
 - Livraison lot 6 : **138 tests Worker + 126 tests Atelier + 9 tests PWA**, types et build validés. Commit Atelier : `8dfbd86`. Version Worker : `6bac5190-0d40-4bc0-98fa-d274e0063295`.
+
+### Compléments du lot 7 (2026-10-17)
+
+- La page d’un contenu propose les seules variantes publiées, avec nature (Original, Fidèle, Intégral, Condensé, L’essentiel), niveau, langue et durée audio réelle. Les variantes sans audio portent « Texte seul ».
+- La version choisie est conservée dans `?v=<variant_key>`. Pendant une écoute, le changement suit la nouvelle version et sa progression ; en pause, il reste en pause. Choisir un texte seul ferme l’audio précédent.
+- Le français est masqué initialement et à chaque changement de version. Il vient de `fr` dans les segments actifs ou d’une paire source / traduction fidèle française, appariée par identifiants. Le français de la source n’est jamais réutilisé pour une adaptation. La génération de nouvelles traductions reste dans l’Atelier.
+- Les passages avec timings fiables sont cliquables ; le surlignage et le suivi nécessitent `exact` ou une durée réelle à ±1,5 s. Sans timings, le texte et l’audio restent disponibles séparément. Aucun passage n’est surligné dans une pause entre segments ou après leur fin.
+- La progression distingue les versions et les références audio. Une reprise asynchrone périmée ne peut pas déplacer la version suivante ; un passage choisi prend priorité sur la reprise stockée. Le simple préchargement en pause ne remet pas à zéro une version terminée.
+- Le détail d’un épisode préparé mène à ses versions. Le lecteur complet permet de revenir à la transcription active depuis les autres onglets.
+- Validation : **27 tests PWA et 139 tests Worker**, types et build. Parcours navigateur sur cinq variantes de contrôle uniquement locales (audios silencieux) : français à la demande, B1 et condensé indépendants, sauts, texte seul et version terminée. Mise en page et lecture conservées entre 410 et 880 px. **Le Fold7 physique, écran verrouillé, reste à vérifier manuellement.**
+- Atelier Mac : la cible de publication a été ajoutée au lot 6 ; la file et sa reprise arrivent au lot 8 ; Gemini, adaptation et Kokoro au lot 9 ; le double envoi Discover / EnglishFluency au lot 12. Le lot 7 ne fabrique pas de versions absentes.
+- Déploiement lot 7 : version Worker `4adc5db5-2193-4654-a03f-ca5d288994c7`. Contrôle de production sur le bundle réel publié au lot 6 : sélecteur actif, transcription et **56 traductions françaises** à la demande. Aucun contenu de contrôle B1/condensé n’a été envoyé en production.
