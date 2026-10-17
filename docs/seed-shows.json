@@ -507,20 +507,6 @@
       "addedBy": "user"
     },
     {
-      "id": "lheure-du-monde",
-      "title": "L'Heure du Monde",
-      "publisher": "Le Monde",
-      "appleId": 1704984604,
-      "feedUrl": "https://feeds.acast.com/public/shows/68db9d2509b1c365e44318ca",
-      "language": "fr",
-      "category": "news",
-      "transcriptSource": "none",
-      "medianMinutes": null,
-      "titleFilter": null,
-      "autoPrepareLatest": false,
-      "addedBy": "user"
-    },
-    {
       "id": "les-informes-franceinfo",
       "title": "Les informés de franceinfo",
       "publisher": "franceinfo",

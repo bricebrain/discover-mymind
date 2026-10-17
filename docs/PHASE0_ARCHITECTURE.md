@@ -997,19 +997,19 @@ Correspondances vérifiées :
 
 ## 16. Liste de départ
 
-`docs/seed-shows.json` : **39 émissions actives**, liste révisée à ta demande le 2026-10-18 (dix retraits, six ajouts de récits et sept ajouts d’actualité). Les dix émissions retirées sont désactivées et tout leur historique est conservé. La limite de 50 porte sur les émissions actives.
+`docs/seed-shows.json` : **38 émissions actives**, liste révisée à ta demande le 2026-10-18 (onze retraits, six ajouts de récits et sept ajouts d’actualité). Les onze émissions retirées sont désactivées et tout leur historique est conservé. La limite de 50 porte sur les émissions actives.
 
 | Catégorie | Émissions |
 |---|---|
 | Tech | Bloomberg Tech (SRT), Better Offline (SRT), Tech&Co, Tech Café |
 | Sciences | BBC Inside Science, BBC Discovery, The Rest Is Science |
 | Économie | Bloomberg Intelligence, Daybreak Europe, Daybreak US, Surveillance, Money Stuff (tous en SRT), FT News Briefing, L'édito éco (**auto**), Les voix de l'économie |
-| Actualité | BBC Global News, The Daily, Today in Focus, L'ordre du monde, Journal de 8h (Radio Classique), Sky News Daily — This Is Why, Reuters World News, The Intelligence (The Economist), L'Heure du Monde, Les informés de franceinfo, Un Monde d'avance (Le Monde) |
+| Actualité | BBC Global News, The Daily, Today in Focus, L'ordre du monde, Journal de 8h (Radio Classique), Sky News Daily — This Is Why, Reuters World News, The Intelligence (The Economist), Les informés de franceinfo, Un Monde d'avance (Le Monde) |
 | Football | The Athletic FC, BBC Football Daily |
 | Histoires | T'as qui en Histoire ? (VTT), BBC Learning English Stories, BBC Radio 4 – Short Story, LeVar Burton Reads, Nouvelles Histoires Extraordinaires |
 | Humour et anecdotes | The Moth, The Mortified Podcast, No Such Thing As A Fish, You're Dead to Me (BBC), Drôles d'histoires (Ouest-France), Les Pieds sur terre (France Culture) |
 
-Limite d'abonnements : **50** (relevée le 2026-10-18 pour les ajouts d’actualité), soit un cycle d’environ 39 minutes avec les 39 émissions actives, jusqu’à 50 minutes au plafond sur l’offre gratuite. Les archives des catégories Histoires et Humour et anecdotes restent disponibles, dans la limite des dix derniers épisodes par émission.
+Limite d'abonnements : **50** (relevée le 2026-10-18 pour les ajouts d’actualité), soit un cycle d’environ 38 minutes avec les 38 émissions actives, jusqu’à 50 minutes au plafond sur l’offre gratuite. Les archives des catégories Histoires et Humour et anecdotes restent disponibles, dans la limite des dix derniers épisodes par émission.
 
 ---
 
