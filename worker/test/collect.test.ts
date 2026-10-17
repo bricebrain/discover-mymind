@@ -222,6 +222,20 @@ describe('collecte', () => {
     expect(await count("SELECT COUNT(*) AS n FROM episodes WHERE guid = 'old-3'")).toBe(1);
     expect(await count("SELECT COUNT(*) AS n FROM episodes WHERE state <> 'saved'")).toBe(10);
   });
+
+  it('garde dix histoires anciennes, mais fait expirer les autres catégories après trente jours', async () => {
+    await addShow('stories', { category: 'stories', max_items: 15 });
+    await addShow('news', { category: 'news', max_items: 15 });
+    const archived = items(12, 'archive').map((it) => ({
+      ...it, date: new Date(Date.parse(it.date!) - 365 * 86_400_000).toUTCString(),
+    }));
+    const fetcher = fakeFetch(() => new Response(feed(archived)));
+    expect(await collectNext(env, NOW, fetcher, 'stories')).toMatchObject({ status: 'ok' });
+    expect(await collectNext(env, NOW, fetcher, 'news')).toMatchObject({ status: 'ok' });
+    expect(await count("SELECT COUNT(*) AS n FROM episodes WHERE show_id = 'stories'")).toBe(10);
+    expect(await count("SELECT COUNT(*) AS n FROM episodes WHERE show_id = 'news'")).toBe(0);
+    expect(await count("SELECT COUNT(*) AS n FROM episodes WHERE guid = 'archive-1'")).toBe(0);
+  });
 });
 
 // ── Aperçu et API ────────────────────────────────────────────────────────────

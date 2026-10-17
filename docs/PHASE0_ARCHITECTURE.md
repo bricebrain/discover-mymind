@@ -72,7 +72,7 @@ L'Atelier est le seul pont vers EnglishFluency.
 discover-mymind/
 ├── docs/
 │   ├── PHASE0_ARCHITECTURE.md
-│   └── seed-shows.json              ← 28 émissions vérifiées le 2026-10-17
+│   └── seed-shows.json              ← 36 émissions vérifiées le 2026-10-17
 ├── spikes/feed-probe/               ← sonde de mesure CPU (supprimée de Cloudflare, gardée comme trace)
 ├── contracts/
 │   ├── manifest.schema.json         ← source de vérité du manifeste (§ 6.2)
@@ -558,14 +558,14 @@ Cycle de vie d'une demande : `pending` → `leased` → `done`, `failed` ou `can
 Le compte n'a pas interrompu les exécutions à 74–99 ms. Son offre réelle n'est donc pas confirmée, mais **la conception vise 10 ms** dans tous les cas.
 
 **Conception retenue (offre gratuite) :**
-- **Cron toutes les minutes, une seule émission par exécution** : celle dont `next_check_at` est la plus ancienne. Avec 30 émissions, chacune est vérifiée environ toutes les **30 minutes**.
+- **Cron toutes les minutes, une seule émission par exécution** : celle dont `next_check_at` est la plus ancienne. Avec 36 émissions, chacune est vérifiée environ toutes les **36 minutes** (40 minutes au plafond de 40 abonnements).
 - **Échéance avancée avant la requête** (`next_check_at = now + 30 min`, `last_attempt_at = now`), puis requête. Si une exécution est interrompue pour dépassement de CPU, la même émission ne bloque pas la file.
 - **Requête conditionnelle** avec `ETag` / `Last-Modified` : un `304` met fin à la vérification.
 - **Lecture en flux, arrêtée dès le premier GUID déjà connu**. En régime normal, on ne lit que 1 à 3 épisodes. Au premier passage, 10 épisodes au maximum (`max_items`). Le reste du fichier n'est jamais téléchargé.
 - **Extraction sans expressions régulières sur tout l'épisode** : recherche de balises par `indexOf`, description coupée à 2 000 caractères *avant* le nettoyage. C'est le principal coût du pire cas mesuré (Tech Café : des descriptions très longues).
 - **Auto-correction** : si `last_attempt_at` avance sans `last_success_at` deux fois de suite, ce qui signale un dépassement probable, `max_items` passe à 3. Après 5 échecs, la vérification se fait une fois par jour.
 - **Garde-fous réseau** : délai de 10 s, 1 Mo lu au maximum, 3 redirections au maximum (chacune revalidée par safeUrl).
-- **Filtres de titre** et **rétention** : les 10 derniers épisodes par émission, 30 jours au maximum, sauf ceux qui sont sauvegardés ou préparés.
+- **Filtres de titre** et **rétention** : les 10 derniers épisodes par émission, 30 jours au maximum, sauf ceux qui sont sauvegardés ou préparés. La catégorie **Histoires** conserve les 10 derniers épisodes sans limite d’âge pour permettre l’écoute des archives.
 
 Ce que ça représente pour l'offre gratuite : 1 440 exécutions de cron par jour, et quelques centaines d'écritures D1 par jour. C'est très en dessous des quotas (100 000 requêtes par jour, 100 000 écritures D1 par jour).
 
@@ -872,12 +872,12 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 ## 13. Critères d'acceptation V1
 
 ### Collecte (lots 2 et 5)
-- [ ] Les 28 émissions de départ sont collectées sans intervention ; chacune est vérifiée au moins toutes les 35 minutes.
+- [ ] Les 36 émissions sont collectées sans intervention ; chacune est vérifiée environ toutes les 36 minutes, et au plus toutes les 45 minutes au plafond de 40 abonnements.
 - [ ] Aucune exécution du cron ne dépasse 10 ms de CPU sur 24 h de journaux (`exceededCpu` = 0), ou le repli § 7.1 est appliqué et documenté.
 - [ ] Trois passages successifs sans nouvel épisode ne créent aucun doublon et ne lisent aucun épisode au-delà du premier GUID connu.
 - [ ] Un flux en erreur (404, XML invalide, délai dépassé, redirection vers une adresse interdite) n'empêche pas la collecte des autres, et son erreur est visible.
 - [ ] Les filtres PSG ne gardent que les épisodes dont le titre contient un mot-clé.
-- [ ] La rétention garde les épisodes sauvegardés ou préparés au-delà de 30 jours.
+- [ ] La rétention garde les épisodes sauvegardés ou préparés au-delà de 30 jours ; les dix dernières histoires restent disponibles quel que soit leur âge.
 
 ### Lecture (lots 3, 5 et 7)
 - [ ] L'audio officiel se lit en streaming et continue quand on change d'onglet, qu'on verrouille l'écran du Fold7, ou qu'on le plie ou le déplie.
@@ -982,7 +982,7 @@ Correspondances vérifiées :
 
 ## 16. Liste de départ
 
-`docs/seed-shows.json` : **28 émissions** (15 de ta liste sans le doublon, et 13 ajouts), vérifiées le 2026-10-17. Power On with Mark Gurman a été retiré après relecture.
+`docs/seed-shows.json` : **36 émissions** (28 initiales et 8 podcasts de récits ajoutés à ta demande), vérifiées le 2026-10-17. Power On with Mark Gurman a été retiré après relecture.
 
 | Catégorie | Émissions |
 |---|---|
@@ -991,9 +991,9 @@ Correspondances vérifiées :
 | Économie | Bloomberg Intelligence, Daybreak Europe, Daybreak US, Surveillance, Money Stuff (tous en SRT), FT News Briefing, L'édito éco (**auto**), Les voix de l'économie |
 | Actualité | BBC Global News, The Daily, Today in Focus, L'ordre du monde, Journal de 8h (Radio Classique), Code source |
 | Football | The Athletic FC, BBC Football Daily, L'After Foot / On refait le match / RFI (**filtre PSG**) |
-| Histoires | Paranormal, T'as qui en Histoire ? (VTT) |
+| Histoires | Paranormal, T'as qui en Histoire ? (VTT), Sherlock Holmes Short Stories, The Classic Tales Podcast, BBC Learning English Stories, BBC Radio 4 – Short Story, The Truth, LeVar Burton Reads, Selected Shorts, Nouvelles Histoires Extraordinaires |
 
-Limite d'abonnements : **30**, ce qui donne un cycle de collecte d'environ 30 minutes sur l'offre gratuite.
+Limite d'abonnements : **40** (relevée le 2026-10-17 pour les huit podcasts de récits), soit un cycle d’environ 36 minutes avec les 36 émissions actuelles, jusqu’à 40 minutes au plafond sur l’offre gratuite. Les archives de la catégorie Histoires restent disponibles, dans la limite des dix derniers épisodes par émission.
 
 ---
 
@@ -1024,3 +1024,5 @@ Limite d'abonnements : **30**, ce qui donne un cycle de collecte d'environ 30 mi
 - Validation : **27 tests PWA et 139 tests Worker**, types et build. Parcours navigateur sur cinq variantes de contrôle uniquement locales (audios silencieux) : français à la demande, B1 et condensé indépendants, sauts, texte seul et version terminée. Mise en page et lecture conservées entre 410 et 880 px. **Le Fold7 physique, écran verrouillé, reste à vérifier manuellement.**
 - Atelier Mac : la cible de publication a été ajoutée au lot 6 ; la file et sa reprise arrivent au lot 8 ; Gemini, adaptation et Kokoro au lot 9 ; le double envoi Discover / EnglishFluency au lot 12. Le lot 7 ne fabrique pas de versions absentes.
 - Déploiement lot 7 : version Worker `4adc5db5-2193-4654-a03f-ca5d288994c7`. Contrôle de production sur le bundle réel publié au lot 6 : sélecteur actif, transcription et **56 traductions françaises** à la demande. Aucun contenu de contrôle B1/condensé n’a été envoyé en production.
+
+- Ajout des huit podcasts de récits (2026-10-17) : migration `0004_story_shows.sql` appliquée en production ; **36 abonnements confirmés**, dont sept nouveaux en anglais et un en français, sans retrait des 28 précédents. Limite portée à 40 ; archives Histoires conservées parmi les dix derniers épisodes. Flux vérifiés par l’aperçu RSS de production ; 140 tests Worker, TypeScript Worker/PWA et build PWA réussis. Worker déployé : `11780e78-2faa-45a4-bd13-a4b3b3fd3589`. Première collecte des nouveaux abonnements confiée au cron.

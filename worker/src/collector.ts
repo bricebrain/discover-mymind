@@ -19,6 +19,7 @@ export const USER_AGENT = 'discover/1.0 (lecteur de podcasts personnel)';
 
 interface ShowRow {
   id: string;
+  category: string;
   feed_url: string;
   title_filter_json: string | null;
   etag: string | null;
@@ -127,12 +128,12 @@ export async function collectNext(env: Env, now = Date.now(), fetcher: typeof fe
         `UPDATE shows SET etag = ?, last_modified = ?, last_success_at = ?, last_error = NULL, consecutive_failures = 0,
            image_url = COALESCE(image_url, ?) WHERE id = ?`,
       ).bind(res.headers.get('ETag'), res.headers.get('Last-Modified'), iso(now), imageUrl(parsed.channel?.imageUrl ?? null), show.id),
-      // Rétention : 10 derniers épisodes, 30 jours au plus ; sauvegardés et préparés toujours gardés.
+      // Les histoires restent écoutables en archive ; les autres catégories expirent après 30 jours.
       env.DB.prepare(
         `DELETE FROM episodes WHERE show_id = ? AND state <> 'saved' AND content_id IS NULL
-           AND (COALESCE(published_at, created_at) < ?
+           AND ((? <> 'stories' AND COALESCE(published_at, created_at) < ?)
                 OR id NOT IN (SELECT id FROM episodes WHERE show_id = ? ORDER BY COALESCE(published_at, created_at) DESC LIMIT ?))`,
-      ).bind(show.id, iso(now - RETENTION_MS), show.id, RETENTION_PER_SHOW),
+      ).bind(show.id, show.category, iso(now - RETENTION_MS), show.id, RETENTION_PER_SHOW),
     );
     await env.DB.batch(statements);
     return { showId: show.id, status: 'ok', newItems: fresh.length, bytesRead: parsed.bytesRead, stoppedAt: parsed.stoppedAt };
