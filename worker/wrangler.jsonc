@@ -1,0 +1,27 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "discover",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+
+  // La PWA est servie en static assets ; seules /api et /atelier passent par le Worker.
+  "assets": {
+    "directory": "../pwa/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/atelier/*"]
+  },
+
+  // Ressources créées au premier déploiement (provisionnement automatique de Wrangler).
+  "d1_databases": [
+    { "binding": "DB", "database_name": "discover", "migrations_dir": "migrations" }
+  ],
+  "r2_buckets": [
+    { "binding": "FILES", "bucket_name": "discover-files" }
+  ],
+
+  // Secrets (wrangler secret put) : APP_PASSPHRASE, SESSION_EPOCH, ATELIER_TOKEN.
+  // En local : .dev.vars (voir .dev.vars.example).
+
+  "observability": { "enabled": true }
+}

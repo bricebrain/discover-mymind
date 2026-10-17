@@ -1,0 +1,28 @@
+{
+  "name": "discover-pwa",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p . && vite build",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "@mui/material": "^5.16.14",
+    "@mui/icons-material": "^5.16.14",
+    "@emotion/react": "^11.13.5",
+    "@emotion/styled": "^11.13.5",
+    "@tanstack/react-query": "^5.62.7",
+    "react-router-dom": "^7.18.4"
+  },
+  "devDependencies": {
+    "vite": "^7.3.7",
+    "@vitejs/plugin-react": "^5.2.0",
+    "vite-plugin-pwa": "^2.0.0",
+    "typescript": "~5.9.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1"
+  }
+}

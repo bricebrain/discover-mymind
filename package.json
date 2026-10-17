@@ -1,0 +1,12 @@
+{
+  "name": "discover-mymind",
+  "private": true,
+  "scripts": {
+    "install:all": "npm --prefix worker install && npm --prefix pwa install",
+    "build": "npm --prefix pwa run build",
+    "dev": "npm --prefix pwa run build && npm --prefix worker run dev",
+    "test": "npm --prefix worker test",
+    "typecheck": "npm --prefix worker run typecheck && npm --prefix pwa run typecheck",
+    "deploy": "npm --prefix pwa run build && npm --prefix worker run deploy"
+  }
+}

@@ -1,0 +1,13 @@
+# En-têtes des fichiers statiques servis par Workers Static Assets (§ 8.3).
+# style-src 'unsafe-inline' : MUI/emotion injecte ses styles dans des balises <style>.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; media-src 'self' https:; connect-src 'self'; font-src 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+
+/sw.js
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache

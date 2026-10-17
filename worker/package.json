@@ -1,0 +1,19 @@
+{
+  "name": "discover-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "typecheck": "wrangler types && tsc --noEmit",
+    "migrate:local": "wrangler d1 migrations apply discover --local",
+    "migrate:remote": "wrangler d1 migrations apply discover --remote"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.4.4",
+    "typescript": "~5.9.0",
+    "vitest": "~4.1.0",
+    "wrangler": "4.151.1"
+  }
+}

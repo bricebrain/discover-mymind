@@ -1,0 +1,8 @@
+{
+  // Sonde temporaire (Phase 0) : mesure le coût CPU de la collecte RSS. À supprimer après mesure.
+  "name": "discover-feed-probe",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "observability": { "enabled": true, "head_sampling_rate": 1 }
+}

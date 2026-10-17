@@ -1,0 +1,5 @@
+# Copier en .dev.vars (ignoré par git) pour `wrangler dev`.
+# Générer des valeurs : python3 -c "import secrets;print(secrets.token_urlsafe(32))"
+APP_PASSPHRASE=<phrase secrète locale, 24 caractères minimum>
+SESSION_EPOCH=<valeur aléatoire>
+ATELIER_TOKEN=<valeur aléatoire, 32 caractères minimum>
