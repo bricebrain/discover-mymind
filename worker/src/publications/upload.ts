@@ -8,7 +8,7 @@ export async function upload(req: Request, env: Env, id: string, rawPath: string
   try { path = decodeURIComponent(rawPath); } catch { throw new HttpError(400, 'invalid_path', 'Chemin invalide.'); }
   if (!validPath(path)) throw new HttpError(400, 'invalid_path', 'Chemin invalide.');
   const p = await publication(env, id);
-  await assertLease(env, p);
+  await assertLease(env, p, req.headers.get('X-Discover-Lease-Token'));
   if (p.status !== 'uploading') throw new HttpError(409, 'publication_closed', 'Publication fermée.');
   const f = (await files(env, id)).find((f) => f.path === path);
   if (!f) throw new HttpError(404, 'file_not_declared', 'Fichier absent du manifeste.');
@@ -26,6 +26,7 @@ export async function upload(req: Request, env: Env, id: string, rawPath: string
   } else await req.body?.cancel();
   const stored = await env.FILES.head(f.r2_key);
   if (!stored || stored.size !== f.size) throw new HttpError(422, 'size_mismatch', 'Taille R2 différente du manifeste.');
+  await assertLease(env, p, req.headers.get('X-Discover-Lease-Token'));
   await env.DB.prepare('UPDATE publication_files SET uploaded_at=? WHERE publication_id=? AND path=?').bind(now,id,path).run();
   return json({ ok: true });
 }

@@ -369,7 +369,8 @@ Il n'y a **aucune route qui accepte une clé R2 venant du client**. Les fichiers
 | Méthode | Route | Rôle |
 |---|---|---|
 | GET | `/atelier/ping` | Vérifie le jeton (lot 1) |
-| POST | `/atelier/queue/lease` | `{ owner }` → prend **une** demande disponible, avec son bail (§ 6.6) |
+| GET | `/atelier/queue` | Suivi des demandes (sans jetons de bail) |
+| POST | `/atelier/queue/lease` | `{ owner, sourceOnly? }` → prend **une** demande disponible, avec son bail (§ 6.6) |
 | POST | `/atelier/queue/:id/heartbeat` | `{ leaseToken, stage }` → prolonge le bail |
 | POST | `/atelier/queue/:id/fail` | `{ leaseToken, error, retryable }` |
 | POST | `/atelier/queue/:id/release` | `{ leaseToken }` → rend la demande sans pénalité |
@@ -538,6 +539,9 @@ Cycle de vie d'une demande : `pending` → `leased` → `done`, `failed` ou `can
 - **Récupération automatique** : un bail expiré, après un crash, un Mac en veille ou une fermeture de l'Atelier, rend la demande disponible à la prise suivante. Le cron fait aussi passer en `failed` les demandes qui ont atteint `max_attempts` (3), avec la dernière erreur.
 - **Garde contre les écritures périmées** : `fail`, `release` et la clôture au commit exigent le `leaseToken` courant. Une ancienne instance ne peut pas écraser le travail d'une nouvelle.
 - **Côté Atelier** : au démarrage, il reprend ses travaux locaux interrompus seulement si le bail lui appartient encore. Sinon, il les abandonne. Les fichiers intermédiaires déjà produits (audio téléchargé, transcription) sont réutilisés par empreinte.
+- **Point de reprise du lot 8** : le consommateur prend les demandes avec `sourceOnly: true`. Après téléchargement, normalisation et transcription, il rend le bail avec `sourceReady: true` : la demande reste `pending`, étape `source_ready`, pour la génération du lot 9. Elle n’est pas présentée comme une version anglaise achevée.
+- **Publication liée à un bail** : les envois de fichiers et le commit exigent aussi l’en-tête `X-Discover-Lease-Token`. Une publication `uploading` de la même demande est réutilisable avec le nouveau bail ; l’ancienne instance reste refusée, même après ce rattachement.
+- **Implémentation et utilisation** : [Lot 8 — File](LOT8_QUEUE.md). Les notes My Mind seront mises en file au lot 10 ; le lot 8 traite les épisodes.
 
 ---
 
@@ -850,7 +854,7 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 | **5 — Transcriptions des flux** ✅ | SRT/VTT → segments, cache R2, contrôle de synchronisation par la durée | Lire en écoutant (Bloomberg) |
 | **6 — Contrat de publication** ✅ (déployé) | Schémas, fixtures, validateurs TS et Python, protocole § 6.5, nettoyage, routes média, cible « discover » dans l'Atelier (bundles YouTube existants) | Les contenus déjà préparés dans l'Atelier, visibles sur le téléphone |
 | **7 — Lecture des versions** ✅ (déployé) | Sélecteur de version (avec sa nature : intégral, condensé, essentiel ; niveau ; durée), transcription, français à la demande, navigation par segment, progression par version | Écouter Original, Fidèle, Intégral B1 ou Condensé B1 |
-| **8 — File avec bail** | Bouton et options dans la PWA ; onglet « À préparer » dans l'Atelier ; bail, signal de vie, reprise ; téléchargement et normalisation de l'épisode | Marquer sur le téléphone, retrouver prêt après l'Atelier |
+| **8 — File avec bail** ✅ (déployé) | Bouton et options dans la PWA ; onglet « À préparer » dans l'Atelier ; bail, signal de vie, reprise ; téléchargement et normalisation de l'épisode | Marquer sur le téléphone et importer/transcrire dans l’Atelier ; versions adaptées au lot 9 |
 | **9 — Versions préparées** | `adaptation.py` : couverture × niveau × durée (§ 7.4), synthèse en deux passes avec renvois (§ 7.7), évaluation fond puis langue (§ 7.6), exclusion des publicités, narration par défaut, calibrage du débit Kokoro, préparation auto de L'édito éco | Un épisode de 50 min écouté en 12 min à son niveau |
 | **10 — My Mind complet** | Tags, types, questions, liens vers les passages, recherche FTS5, « Préparer en anglais » pour une note | Relire ses idées en anglais |
 | **11 — Bibliothèque et hors ligne** | Filtres, téléchargements explicites, espace utilisé, suppression | Écouter en mode avion |
@@ -900,10 +904,10 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 **Validation du 2026-10-17** : fixtures TS/Python et protocole complet testés dans le runtime Cloudflare local (podcast FR, podcast EN, YouTube, réflexion). Migration `0003` appliquée localement et en production. Un bundle YouTube réel de 15,8 Mo est publié sur Discover, relancé sans nouvelle révision ; ses 56 segments et son audio R2 (`206`) ont été vérifiés en production. Le jeton Atelier a été renouvelé et enregistré dans `convert/config_discover.json` (ignoré par Git, permissions 0600). Le sélecteur de versions reste au lot 7. Détails techniques : `contracts/README.md`. **La validation sur le Fold7 réel reste à faire.**
 
 ### File « à préparer » (lot 8)
-- [ ] Deux instances qui demandent un bail en même temps n'obtiennent jamais la même demande.
-- [ ] Atelier fermé en plein travail : la demande redevient disponible après l'expiration du bail (15 min) et est reprise.
-- [ ] Une instance dont le bail a expiré ne peut ni clore la demande, ni la faire échouer, ni la publier (`409 lease_lost`).
-- [ ] Après 3 tentatives, la demande passe `failed` avec la dernière erreur, et elle est visible dans la PWA.
+- [x] Deux instances qui demandent un bail en même temps n'obtiennent jamais la même demande.
+- [x] Atelier fermé en plein travail : la demande redevient disponible après l'expiration du bail (15 min) et est reprise.
+- [x] Une instance dont le bail a expiré ne peut ni clore la demande, ni la faire échouer, ni la publier (`409 lease_lost`).
+- [x] Après 3 tentatives, la demande passe `failed` avec la dernière erreur, et elle est visible dans la PWA.
 
 ### Versions préparées (lot 9)
 - [ ] Les variantes source, traduction fidèle (si demandée) et préparée sont toutes publiées et sélectionnables, avec leur nature affichée (intégral, condensé, essentiel ; niveau ; durée).
@@ -1026,3 +1030,5 @@ Limite d'abonnements : **40** (relevée le 2026-10-17 pour les huit podcasts de 
 - Déploiement lot 7 : version Worker `4adc5db5-2193-4654-a03f-ca5d288994c7`. Contrôle de production sur le bundle réel publié au lot 6 : sélecteur actif, transcription et **56 traductions françaises** à la demande. Aucun contenu de contrôle B1/condensé n’a été envoyé en production.
 
 - Ajout des huit podcasts de récits (2026-10-17) : migration `0004_story_shows.sql` appliquée en production ; **36 abonnements confirmés**, dont sept nouveaux en anglais et un en français, sans retrait des 28 précédents. Limite portée à 40 ; archives Histoires conservées parmi les dix derniers épisodes. Flux vérifiés par l’aperçu RSS de production ; 140 tests Worker, TypeScript Worker/PWA et build PWA réussis. Worker déployé : `11780e78-2faa-45a4-bd13-a4b3b3fd3589`. Première collecte des nouveaux abonnements confiée au cron.
+
+- Lot 8 (2026-10-17) : file et suivi PWA déployés, onglet « À préparer » installé dans l’Atelier Mac. Validation : **149 tests Worker, 29 tests PWA, 137 tests Atelier**, TypeScript et build réussis. Test réel en environnement isolé sur BBC Learning English Stories : audio normalisé mono 24 kHz / 64 kbit/s, 17 segments MacWhisper, bail rendu en `source_ready`. Repli vérifié avec le modèle Base (sans détection des intervenants). Versions adaptées au lot 9 ; contrôle physique Fold7 restant à faire. Worker `1a4c5643-5403-4a40-8651-a245deea610c` ; Atelier commit `3a1a511`. Voir `docs/LOT8_QUEUE.md`.

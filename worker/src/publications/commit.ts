@@ -35,9 +35,9 @@ function insertVariant(env: Env, p: Publication, m: Manifest, v: Variant, index:
   );
 }
 
-export async function commit(env: Env, id: string): Promise<Response> {
+export async function commit(env: Env, id: string, requestToken?: string | null): Promise<Response> {
   const p = await publication(env, id);
-  await assertLease(env, p);
+  await assertLease(env, p, requestToken);
   const token = crypto.randomUUID(), now = new Date().toISOString();
   const lock = await env.DB.prepare("UPDATE publications SET status='committing',commit_token=?,updated_at=? WHERE id=? AND status='uploading'").bind(token,now,id).run();
   if (!lock.meta.changes) throw new HttpError(409, 'commit_conflict', 'Un commit est déjà en cours ou terminé.');

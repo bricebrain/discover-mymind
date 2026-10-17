@@ -131,6 +131,7 @@ export async function collectNext(env: Env, now = Date.now(), fetcher: typeof fe
       // Les histoires restent écoutables en archive ; les autres catégories expirent après 30 jours.
       env.DB.prepare(
         `DELETE FROM episodes WHERE show_id = ? AND state <> 'saved' AND content_id IS NULL
+           AND NOT EXISTS (SELECT 1 FROM prepare_queue q WHERE q.kind='episode' AND q.ref=episodes.id AND q.status IN ('pending','leased'))
            AND ((? <> 'stories' AND COALESCE(published_at, created_at) < ?)
                 OR id NOT IN (SELECT id FROM episodes WHERE show_id = ? ORDER BY COALESCE(published_at, created_at) DESC LIMIT ?))`,
       ).bind(show.id, show.category, iso(now - RETENTION_MS), show.id, RETENTION_PER_SHOW),

@@ -138,7 +138,7 @@ const count = async (sql: string, ...args: unknown[]) =>
   (await env.DB.prepare(sql).bind(...args).first<{ n: number }>())?.n ?? 0;
 
 beforeEach(async () => {
-  await env.DB.batch([env.DB.prepare('DELETE FROM episodes'), env.DB.prepare('DELETE FROM shows'), env.DB.prepare('DELETE FROM sessions'), env.DB.prepare('DELETE FROM login_attempts')]);
+  await env.DB.batch([env.DB.prepare('DELETE FROM prepare_queue'), env.DB.prepare('DELETE FROM episodes'), env.DB.prepare('DELETE FROM shows'), env.DB.prepare('DELETE FROM sessions'), env.DB.prepare('DELETE FROM login_attempts')]);
 });
 
 describe('collecte', () => {
@@ -307,4 +307,16 @@ describe('émissions et Explorer (API)', () => {
     expect((await call(`/api/episodes/${target}`, { cookie })).status).toBe(200);
     expect((await call('/api/explorer?category=inconnue', { cookie })).status).toBe(400);
   });
+});
+
+it('conserve un épisode en file malgré son âge et le désabonnement', async () => {
+  await addShow('queued');
+  const id=await episodeId('queued','old-queued');
+  await env.DB.prepare("INSERT INTO episodes (id,show_id,guid,title,audio_url,published_at,created_at) VALUES (?,'queued','old-queued','Archive','https://example.com/a.mp3','2020-01-01','2020-01-01')").bind(id).run();
+  await env.DB.prepare("INSERT INTO prepare_queue (id,kind,ref,options_json,created_at,updated_at) VALUES ('queued','episode',?,'{}','2026-10-17','2026-10-17')").bind(id).run();
+  await collectNext(env,NOW,fakeFetch(() => new Response(feed([]))),'queued');
+  expect(await count('SELECT COUNT(*) AS n FROM episodes WHERE id=?',id)).toBe(1);
+  const cookie=await login();
+  expect((await call('/api/shows/queued',{method:'DELETE',cookie})).status).toBe(204);
+  expect(await count('SELECT COUNT(*) AS n FROM episodes WHERE id=?',id)).toBe(1);
 });

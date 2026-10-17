@@ -35,8 +35,9 @@ export async function assertRetained(env: Env, m: Manifest, currentId: string | 
   const old = await env.DB.prepare('SELECT variant_key FROM variants WHERE publication_id=?').bind(currentId).all<{ variant_key: string }>();
   validateContext(m,{ currentVariants: old.results.map((v) => v.variant_key) });
 }
-export async function assertLease(env: Env, p: Pick<Publication, 'queue_item_id' | 'lease_token'>) {
+export async function assertLease(env: Env, p: Pick<Publication, 'queue_item_id' | 'lease_token'>, requestToken?: string | null) {
   if (!p.queue_item_id) return;
-  if (!await env.DB.prepare("SELECT id FROM prepare_queue WHERE id=? AND lease_token=? AND status='leased' AND lease_expires_at>?")
-    .bind(p.queue_item_id, p.lease_token, new Date().toISOString()).first()) throw new HttpError(409, 'lease_lost', 'Le bail a expiré.');
+  if (!await env.DB.prepare(`SELECT id FROM prepare_queue WHERE id=? AND lease_token=? AND status='leased' AND lease_expires_at>?
+      AND (?=1 OR lease_token=?)`)
+    .bind(p.queue_item_id, p.lease_token, new Date().toISOString(),requestToken === undefined ? 1 : 0,requestToken ?? null).first()) throw new HttpError(409, 'lease_lost', 'Le bail a expiré.');
 }

@@ -16,6 +16,7 @@ import { usePlayer } from '../player/PlayerProvider';
 import { useNewNote } from '../pages/MindPage';
 import { TranscriptView } from '../transcript/TranscriptView';
 import { PlayingBars, trackOf } from './EpisodeCard';
+import { PreparationPanel } from '../queue/PreparationPanel';
 
 /** Détail d'un épisode : en-tête sur la pochette floutée, écoute, transcription ou présentation. */
 export function EpisodeDetail({ id, onBack }: { id: string; onBack?: () => void }) {
@@ -78,6 +79,7 @@ export function EpisodeDetail({ id, onBack }: { id: string; onBack?: () => void 
           </Typography>
 
           {episode.contentId && <Button component={Link} to={`/library/${episode.contentId}`} variant="outlined" sx={{ mb: 2 }}>Versions préparées</Button>}
+          <PreparationPanel key={episode.id} episode={episode} />
           <Stack direction="row" spacing={1} alignItems="center">
             <Button variant="contained" size="large" onClick={listen}
               startIcon={isCurrent && player.playing ? <PauseIcon /> : <PlayArrowIcon />}

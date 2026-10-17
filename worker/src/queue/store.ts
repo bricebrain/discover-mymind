@@ -1,0 +1,25 @@
+import type { Env } from '../env';
+import type { PrepareOptions } from './options';
+
+export interface QueueRow {
+  id: string; kind: 'episode' | 'reflection' | 'youtube'; ref: string; options_json: string;
+  status: 'pending' | 'leased' | 'done' | 'failed' | 'cancelled'; stage: string | null;
+  lease_token: string | null; lease_owner: string | null; lease_expires_at: string | null;
+  attempts: number; max_attempts: number; content_id: string | null; error: string | null;
+  created_at: string; updated_at: string; title?: string;
+}
+export function queueOut(row: QueueRow) {
+  return { id: row.id, kind: row.kind, ref: row.ref, title: row.title ?? row.ref,
+    options: JSON.parse(row.options_json) as PrepareOptions, status: row.status, stage: row.stage,
+    attempts: row.attempts, maxAttempts: row.max_attempts, contentId: row.content_id,
+    error: row.error, createdAt: row.created_at, updatedAt: row.updated_at, leaseExpiresAt: row.lease_expires_at };
+}
+export const QUEUE_SELECT = `SELECT q.*, COALESCE(e.title, r.title, q.ref) AS title FROM prepare_queue q
+  LEFT JOIN episodes e ON q.kind='episode' AND e.id=q.ref
+  LEFT JOIN reflections r ON q.kind='reflection' AND r.id=q.ref`;
+
+export async function expireExhausted(env: Env, now = new Date().toISOString()) {
+  await env.DB.prepare(`UPDATE prepare_queue SET status='failed', stage=NULL, lease_token=NULL, lease_owner=NULL,
+    lease_expires_at=NULL, error=COALESCE(error,'Préparation interrompue : trois tentatives épuisées.'), updated_at=?
+    WHERE attempts>=max_attempts AND (status='pending' OR (status='leased' AND lease_expires_at<=?))`).bind(now,now).run();
+}

@@ -20,12 +20,23 @@ export async function declare(req: Request, env: Env): Promise<Response> {
   }
   const lease = { queue_item_id: body.queueItemId ?? null, lease_token: body.leaseToken ?? null };
   await assertLease(env, lease);
+  if (lease.queue_item_id) {
+    const q = await env.DB.prepare('SELECT kind,ref FROM prepare_queue WHERE id=?').bind(lease.queue_item_id).first<{ kind: string; ref: string }>();
+    if (!q || m.content.sourceRef !== `${q.kind}:${q.ref}`) throw new HttpError(422,'queue_source_mismatch','La publication ne correspond pas à la demande.');
+  }
   const serialized = canonicalJson(m);
   const revision = await sha256Hex(serialized);
   const existing = await env.DB.prepare('SELECT * FROM publications WHERE content_id=? AND revision=?').bind(m.content.id, revision).first<Publication>();
   if (existing) {
-    if (existing.queue_item_id !== lease.queue_item_id || existing.lease_token !== lease.lease_token) throw new HttpError(409, 'lease_mismatch', 'Publication liée à une autre demande.');
+    if (existing.queue_item_id !== lease.queue_item_id) throw new HttpError(409, 'lease_mismatch', 'Publication liée à une autre demande.');
     if (!['ready', 'uploading'].includes(existing.status)) throw new HttpError(409, 'publication_closed', 'Cette révision est fermée.');
+    if (existing.lease_token !== lease.lease_token) {
+      // Le nouveau propriétaire peut reprendre les fichiers d'une publication interrompue.
+      const rebound = await env.DB.prepare(`UPDATE publications SET lease_token=?,updated_at=? WHERE id=? AND status='uploading'
+        AND EXISTS (SELECT 1 FROM prepare_queue WHERE id=? AND status='leased' AND lease_token=? AND lease_expires_at>?)`)
+        .bind(lease.lease_token,new Date().toISOString(),existing.id,lease.queue_item_id,lease.lease_token,new Date().toISOString()).run();
+      if (!rebound.meta.changes) throw new HttpError(409,'lease_lost','Impossible de reprendre cette publication.');
+    }
     if (existing.status === 'uploading') await env.DB.prepare('UPDATE publications SET updated_at=? WHERE id=?').bind(new Date().toISOString(), existing.id).run();
     await env.FILES.put(existing.manifest_r2_key, serialized, { onlyIf: { etagDoesNotMatch: '*' }, httpMetadata: { contentType: 'application/json' } });
     return state(env, existing.id);

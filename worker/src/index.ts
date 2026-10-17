@@ -6,6 +6,8 @@ import { collectNext } from './collector';
 import * as auth from './routes/auth';
 import * as episodes from './routes/episodes';
 import * as progress from './routes/progress';
+import * as queue from './routes/queue';
+import { expireExhausted } from './queue/store';
 import * as reflections from './routes/reflections';
 import * as shows from './routes/shows';
 import { getTranscript } from './routes/transcripts';
@@ -46,6 +48,12 @@ async function handleApi(req: Request, env: Env, path: string): Promise<Response
 
 /** Routes de données (émissions, épisodes, progression) : la session est vérifiée avant. */
 async function handleData(req: Request, env: Env, path: string, m: string): Promise<Response> {
+  if (path === '/api/queue' && m === 'GET') return queue.list(req,env);
+  const queued = path.match(/^\/api\/queue\/([0-9a-f-]{36})(\/retry)?$/);
+  if (queued?.[1] && !queued[2] && m === 'DELETE') return queue.cancel(env,queued[1]);
+  if (queued?.[1] && queued[2] && m === 'POST') return queue.retry(env,queued[1]);
+  const prepare = path.match(/^\/api\/episodes\/([0-9a-f]{20})\/prepare$/);
+  if (prepare?.[1] && m === 'POST') return queue.enqueue(req,env,prepare[1]);
   if (path === '/api/library' && m === 'GET') return contents.library(req,env);
   const content = path.match(/^\/api\/contents\/([a-z0-9-]{3,96})(?:\/variants\/([a-z0-9-]{2,32})\/(segments|audio))?$/);
   if (content?.[1] && m === 'GET') {
@@ -98,6 +106,7 @@ export default {
 
   /** Cron toutes les minutes : une émission vérifiée par exécution (§ 7.1). */
   async scheduled(_controller: ScheduledController, env: Env): Promise<void> {
+    await expireExhausted(env);
     const r = await collectNext(env);
     if (r.status !== 'idle') console.log(JSON.stringify({ event: 'collect', ...r }));
     // Corbeille de My Mind : une fois par heure suffit (minute 7).

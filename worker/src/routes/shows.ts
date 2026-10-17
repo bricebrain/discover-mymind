@@ -249,7 +249,8 @@ export async function update(req: Request, env: Env, id: string): Promise<Respon
 export async function remove(env: Env, id: string): Promise<Response> {
   if (!(await env.DB.prepare('SELECT 1 FROM shows WHERE id = ?').bind(id).first())) return apiError(404, 'not_found', 'Émission inconnue.');
   await env.DB.batch([
-    env.DB.prepare(`DELETE FROM episodes WHERE show_id = ? AND state <> 'saved' AND content_id IS NULL`).bind(id),
+    env.DB.prepare(`DELETE FROM episodes WHERE show_id = ? AND state <> 'saved' AND content_id IS NULL
+      AND NOT EXISTS (SELECT 1 FROM prepare_queue q WHERE q.kind='episode' AND q.ref=episodes.id AND q.status IN ('pending','leased'))`).bind(id),
     env.DB.prepare('UPDATE shows SET enabled = 0 WHERE id = ?').bind(id),
     env.DB.prepare('DELETE FROM shows WHERE id = ? AND NOT EXISTS (SELECT 1 FROM episodes WHERE show_id = ?)').bind(id, id),
   ]);
