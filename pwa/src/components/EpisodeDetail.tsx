@@ -1,6 +1,7 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
+import EditNoteIcon from '@mui/icons-material/EditNote';
 import PauseIcon from '@mui/icons-material/Pause';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
@@ -11,6 +12,7 @@ import { CATEGORY_LABELS, formatDuration, formatWhen, useEpisode, useSetEpisodeS
 import { categoryColor, fonts } from '../app/theme';
 import { formatClock } from '../player/MiniPlayer';
 import { usePlayer } from '../player/PlayerProvider';
+import { useNewNote } from '../pages/MindPage';
 import { TranscriptView } from '../transcript/TranscriptView';
 import { PlayingBars, trackOf } from './EpisodeCard';
 
@@ -21,6 +23,7 @@ export function EpisodeDetail({ id, onBack }: { id: string; onBack?: () => void 
   const setState = useSetEpisodeState();
   const player = usePlayer();
   const [tab, setTab] = useState<'transcript' | 'about'>('transcript');
+  const newNote = useNewNote();
 
   // Ouvrir un épisode le marque comme vu.
   useEffect(() => {
@@ -82,6 +85,12 @@ export function EpisodeDetail({ id, onBack }: { id: string; onBack?: () => void 
             </Button>
             {isCurrent && player.playing && <PlayingBars active />}
             <Box sx={{ flex: 1 }} />
+            <Tooltip title="Réfléchir : écrire une note liée à cet épisode">
+              <IconButton aria-label="Réfléchir : écrire une note liée à cet épisode" sx={{ border: 1, borderColor: 'divider' }}
+                onClick={() => void newNote([{ targetType: 'episode', targetId: episode.id, targetTitle: `${episode.title} — ${episode.showTitle}` }])}>
+                <EditNoteIcon />
+              </IconButton>
+            </Tooltip>
             <Tooltip title={saved ? 'Retirer de la bibliothèque' : 'Sauvegarder'}>
               <IconButton onClick={() => setState.mutate({ id: episode.id, state: saved ? 'seen' : 'saved' })} disabled={setState.isPending}
                 aria-label={saved ? 'Retirer de la bibliothèque' : 'Sauvegarder'} color={saved ? 'primary' : 'default'}

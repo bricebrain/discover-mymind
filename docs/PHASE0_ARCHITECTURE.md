@@ -359,7 +359,8 @@ Une session est requise, sauf pour la connexion. Tout appel qui modifie quelque 
 | PUT · DELETE | `/api/reflections/:id/links` | Liens vers épisodes ou contenus | reflection_links |
 | POST | `/api/reflections/:id/prepare` | Envoi explicite à l'Atelier | prepare_queue |
 | GET | `/api/search?q=` | FTS5 | search_index |
-| GET | `/api/export` | Export complet (JSON + Markdown des notes) | toutes, sauf sécurité |
+| GET | `/api/export` | Export (JSON, avec le Markdown des notes) ; lot 4 : notes, liens, émissions, épisodes sauvegardés | toutes, sauf sécurité |
+| POST | `/api/reflections/:id/restore` | Restaure une note de la corbeille (« Annuler ») | reflections |
 
 Il n'y a **aucune route qui accepte une clé R2 venant du client**. Les fichiers sont toujours désignés par des identifiants (§ 8.5).
 
@@ -845,7 +846,7 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 | **2 — Émissions et collecte** ✅ | `resolve`, import de la liste de départ, cron (§ 7.1), filtres, rétention, Explorer | Les vrais épisodes du jour sur le téléphone |
 | **3 — Lecteur** ✅ | Mini-lecteur persistant, streaming officiel, vitesses, sauts, Media Session, progression par audio | Écouter ses podcasts dans l'app |
 | **3 bis — Passe design** ✅ | Identité visuelle et ergonomie, une fois qu'il y a du vrai contenu (épisodes, lecteur) : cartes d'épisodes, typographie de lecture, mini-lecteur, mise en page pliée et dépliée (Fold7), mouvements discrets | Une app agréable au quotidien, jugée sur de vrais épisodes |
-| **4 — My Mind minimal** | Notes Markdown (création, modification, liste, corbeille), sauvegarde locale, synchronisation 409, « Réfléchir » depuis un épisode, export JSON | Écrire ses réflexions au fil des écoutes |
+| **4 — My Mind minimal** ✅ | Notes Markdown (création, modification, liste, corbeille), sauvegarde locale, synchronisation 409, « Réfléchir » depuis un épisode, export JSON | Écrire ses réflexions au fil des écoutes |
 | **5 — Transcriptions des flux** ✅ | SRT/VTT → segments, cache R2, contrôle de synchronisation par la durée | Lire en écoutant (Bloomberg) |
 | **6 — Contrat de publication** | Schémas, fixtures, validateurs TS et Python, protocole § 6.5, nettoyage, routes média, cible « discover » dans l'Atelier (bundles YouTube existants) | Les contenus déjà préparés dans l'Atelier, visibles sur le téléphone |
 | **7 — Lecture des versions** | Sélecteur de version (avec sa nature : intégral, condensé, essentiel ; niveau ; durée), transcription, français à la demande, navigation par segment, progression par version | Écouter Original, Fidèle, Intégral B1 ou Condensé B1 |

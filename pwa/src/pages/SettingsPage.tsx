@@ -1,4 +1,6 @@
+import DownloadIcon from '@mui/icons-material/Download';
 import LogoutIcon from '@mui/icons-material/Logout';
+import { useState } from 'react';
 import {
   Alert, Box, Button, Chip, CircularProgress, Divider, List, ListItem, ListItemText, Paper, Stack, Typography,
 } from '@mui/material';
@@ -7,17 +9,51 @@ import { useLogout, useRevokeOthers, useRevokeSession, useSession, useSessions }
 const dateFmt = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
 const formatDate = (iso: string) => dateFmt.format(new Date(iso));
 
+/** Export de toutes mes données (notes en JSON et Markdown, émissions, épisodes sauvegardés). */
+function ExportSection() {
+  const [state, setState] = useState<'idle' | 'busy' | 'error'>('idle');
+  const download = async () => {
+    setState('busy');
+    try {
+      const res = await fetch('/api/export', { credentials: 'same-origin' });
+      if (!res.ok) throw new Error(String(res.status));
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `discover-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      setState('idle');
+    } catch {
+      setState('error');
+    }
+  };
+  return (
+    <Box sx={{ mt: 4 }}>
+      <Typography variant="h2" component="h2" sx={{ mb: 1 }}>Mes données</Typography>
+      <Typography color="text.secondary" sx={{ mb: 2 }}>
+        Récupère toutes tes notes (avec leur version Markdown), tes émissions et tes épisodes sauvegardés dans un fichier JSON.
+      </Typography>
+      <Button variant="outlined" startIcon={<DownloadIcon />} onClick={() => void download()} disabled={state === 'busy'}>
+        {state === 'busy' ? 'Préparation…' : 'Exporter mes données'}
+      </Button>
+      {state === 'error' && <Alert severity="warning" sx={{ mt: 1.5 }}>Export impossible pour l’instant.</Alert>}
+    </Box>
+  );
+}
+
 export function SettingsPage() {
   const auth = useSession();
   if (auth.data?.authDisabled) {
     return (
-      <Box sx={{ px: 2, pt: 2, pb: 4, maxWidth: 720, mx: 'auto' }}>
+      <Box sx={{ px: 2, pt: 2.5, pb: 4, maxWidth: 720, mx: 'auto' }}>
         <Typography variant="h1" component="h1" sx={{ mb: 3 }}>Réglages</Typography>
         <Typography variant="h2" component="h2" sx={{ mb: 1 }}>Connexion</Typography>
         <Alert severity="info">
           La connexion est désactivée pour l’instant : l’app s’ouvre sans phrase secrète.
           Elle pourra être réactivée plus tard, sans rien perdre.
         </Alert>
+        <ExportSection />
       </Box>
     );
   }
@@ -78,6 +114,7 @@ function DevicesSettings() {
           Se déconnecter de cet appareil
         </Button>
       </Stack>
+      <ExportSection />
     </Box>
   );
 }

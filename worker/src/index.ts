@@ -4,6 +4,7 @@ import { collectNext } from './collector';
 import * as auth from './routes/auth';
 import * as episodes from './routes/episodes';
 import * as progress from './routes/progress';
+import * as reflections from './routes/reflections';
 import * as shows from './routes/shows';
 import { getTranscript } from './routes/transcripts';
 import { handleAtelier } from './routes/atelier';
@@ -55,6 +56,15 @@ async function handleData(req: Request, env: Env, path: string, m: string): Prom
   const pr = path.match(/^\/api\/progress\/(episode|variant)\/([^/]+)$/);
   if (pr?.[1] && pr[2] && m === 'GET') return progress.get(req, env, pr[1], decodeURIComponent(pr[2]));
 
+  if (path === '/api/reflections' && m === 'GET') return reflections.list(req, env);
+  if (path === '/api/reflections' && m === 'POST') return reflections.create(req, env);
+  const rf = path.match(/^\/api\/reflections\/([0-9a-f-]{36})(\/restore)?$/);
+  if (rf?.[1] && !rf[2] && m === 'GET') return reflections.get(env, rf[1]);
+  if (rf?.[1] && !rf[2] && m === 'PATCH') return reflections.update(req, env, rf[1]);
+  if (rf?.[1] && !rf[2] && m === 'DELETE') return reflections.trash(env, rf[1]);
+  if (rf?.[1] && rf[2] && m === 'POST') return reflections.restore(env, rf[1]);
+  if (path === '/api/export' && m === 'GET') return reflections.exportAll(env);
+
   if (path === '/api/explorer' && m === 'GET') return episodes.explorer(req, env);
   const ep = path.match(/^\/api\/episodes\/([0-9a-f]{20})(\/state|\/transcript)?$/);
   if (ep?.[1] && !ep[2] && m === 'GET') return episodes.detail(env, ep[1]);
@@ -82,5 +92,7 @@ export default {
   async scheduled(_controller: ScheduledController, env: Env): Promise<void> {
     const r = await collectNext(env);
     if (r.status !== 'idle') console.log(JSON.stringify({ event: 'collect', ...r }));
+    // Corbeille de My Mind : une fois par heure suffit (minute 7).
+    if (new Date().getUTCMinutes() === 7) await reflections.purgeTrash(env);
   },
 } satisfies ExportedHandler<Env>;

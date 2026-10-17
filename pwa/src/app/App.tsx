@@ -1,12 +1,11 @@
-import PsychologyAltOutlinedIcon from '@mui/icons-material/PsychologyAltOutlined';
 import { Alert, Box, Button, CircularProgress, CssBaseline, ThemeProvider, useMediaQuery } from '@mui/material';
 import { useMemo } from 'react';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import { useSession } from '../api/auth';
-import { EmptyTab } from '../pages/EmptyTab';
 import { ExplorerPage } from '../pages/ExplorerPage';
 import { LibraryPage } from '../pages/LibraryPage';
 import { LoginPage } from '../pages/LoginPage';
+import { MindPage } from '../pages/MindPage';
 import { ShowsPage } from '../pages/ShowsPage';
 import { SettingsPage } from '../pages/SettingsPage';
 import { PlayerProvider } from '../player/PlayerProvider';
@@ -20,7 +19,7 @@ const router = createBrowserRouter([
       { path: '/', element: <ExplorerPage /> },
       { path: '/shows', element: <ShowsPage /> },
       { path: '/library', element: <LibraryPage /> },
-      { path: '/mind', element: <EmptyTab title="My Mind" icon={<PsychologyAltOutlinedIcon />}>Tes réflexions, idées et questions vivront ici.</EmptyTab> },
+      { path: '/mind', element: <MindPage /> },
       { path: '/settings', element: <SettingsPage /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
