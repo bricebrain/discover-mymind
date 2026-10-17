@@ -539,7 +539,7 @@ Cycle de vie d'une demande : `pending` → `leased` → `done`, `failed` ou `can
 - **Récupération automatique** : un bail expiré, après un crash, un Mac en veille ou une fermeture de l'Atelier, rend la demande disponible à la prise suivante. Le cron fait aussi passer en `failed` les demandes qui ont atteint `max_attempts` (3), avec la dernière erreur.
 - **Garde contre les écritures périmées** : `fail`, `release` et la clôture au commit exigent le `leaseToken` courant. Une ancienne instance ne peut pas écraser le travail d'une nouvelle.
 - **Côté Atelier** : au démarrage, il reprend ses travaux locaux interrompus seulement si le bail lui appartient encore. Sinon, il les abandonne. Les fichiers intermédiaires déjà produits (audio téléchargé, transcription) sont réutilisés par empreinte.
-- **Point de reprise du lot 8** : le consommateur prend les demandes avec `sourceOnly: true`. Après téléchargement, normalisation et transcription, il rend le bail avec `sourceReady: true` : la demande reste `pending`, étape `source_ready`, pour la génération du lot 9. Elle n’est pas présentée comme une version anglaise achevée.
+- **Point de reprise historique du lot 8** : le consommateur prend les demandes avec `sourceOnly: true`. Après téléchargement, normalisation et transcription, il rend le bail avec `sourceReady: true` : la demande reste `pending`, étape `source_ready`, pour la génération du lot 9. Elle n’est pas présentée comme une version anglaise achevée.
 - **Publication liée à un bail** : les envois de fichiers et le commit exigent aussi l’en-tête `X-Discover-Lease-Token`. Une publication `uploading` de la même demande est réutilisable avec le nouveau bail ; l’ancienne instance reste refusée, même après ce rattachement.
 - **Implémentation et utilisation** : [Lot 8 — File](LOT8_QUEUE.md). Les notes My Mind seront mises en file au lot 10 ; le lot 8 traite les épisodes.
 
@@ -751,7 +751,7 @@ Le Worker n'appelle **aucun** LLM en V1.
 ### 8.4 Validation des URLs (`safeUrl`)
 
 Elle s'applique aux URLs de flux, d'enclosures, de transcriptions et de liens YouTube, côté Worker **et** côté Atelier :
-- schéma `https:` uniquement ; `http:` est accepté seulement pour un flux RSS qui n'existe pas en HTTPS, et jamais pour l'Atelier ;
+- schéma `https:` pour les appels de publication Atelier en production ; `http:` est accepté pour les flux RSS et leurs enclosures officielles de podcasts (BBC), avec les mêmes contrôles d’hôtes publics et de ports. Un `publisher_stream` doit toujours correspondre exactement à l’enclosure enregistrée ; aucun autre schéma n’est accepté ;
 - pas d'identifiants dans l'URL ;
 - port par défaut uniquement ;
 - refus des IP littérales, de `localhost`, des noms en `.local`, `.internal` ou `.lan`, et des adresses privées ou réservées ;
@@ -855,7 +855,7 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 | **6 — Contrat de publication** ✅ (déployé) | Schémas, fixtures, validateurs TS et Python, protocole § 6.5, nettoyage, routes média, cible « discover » dans l'Atelier (bundles YouTube existants) | Les contenus déjà préparés dans l'Atelier, visibles sur le téléphone |
 | **7 — Lecture des versions** ✅ (déployé) | Sélecteur de version (avec sa nature : intégral, condensé, essentiel ; niveau ; durée), transcription, français à la demande, navigation par segment, progression par version | Écouter Original, Fidèle, Intégral B1 ou Condensé B1 |
 | **8 — File avec bail** ✅ (déployé) | Bouton et options dans la PWA ; onglet « À préparer » dans l'Atelier ; bail, signal de vie, reprise ; téléchargement et normalisation de l'épisode | Marquer sur le téléphone et importer/transcrire dans l’Atelier ; versions adaptées au lot 9 |
-| **9 — Versions préparées** | `adaptation.py` : couverture × niveau × durée (§ 7.4), synthèse en deux passes avec renvois (§ 7.7), évaluation fond puis langue (§ 7.6), exclusion des publicités, narration par défaut, calibrage du débit Kokoro, préparation auto de L'édito éco | Un épisode de 50 min écouté en 12 min à son niveau |
+| **9 — Versions préparées** ✅ (déployé) | `adaptation.py` : couverture × niveau × durée (§ 7.4), synthèse en deux passes avec renvois (§ 7.7), évaluation fond puis langue (§ 7.6), exclusion des publicités, narration par défaut, calibrage du débit Kokoro, préparation auto de L'édito éco | Un épisode de 50 min écouté en 12 min à son niveau |
 | **10 — My Mind complet** | Tags, types, questions, liens vers les passages, recherche FTS5, « Préparer en anglais » pour une note | Relire ses idées en anglais |
 | **11 — Bibliothèque et hors ligne** | Filtres, téléchargements explicites, espace utilisé, suppression | Écouter en mode avion |
 | **12 — Export et pont EnglishFluency** | Export complet (JSON + Markdown) ; case « aussi vers EnglishFluency » | Données récupérables ; les contenus nourrissent EnglishFluency |
@@ -910,12 +910,12 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 - [x] Après 3 tentatives, la demande passe `failed` avec la dernière erreur, et elle est visible dans la PWA.
 
 ### Versions préparées (lot 9)
-- [ ] Les variantes source, traduction fidèle (si demandée) et préparée sont toutes publiées et sélectionnables, avec leur nature affichée (intégral, condensé, essentiel ; niveau ; durée).
-- [ ] Un épisode de 50 min donne un condensé B1 dont la durée réelle est à ±20 % de la cible (12 min par défaut).
-- [ ] Chaque paragraphe d'un condensé renvoie à au moins un segment source ; tout nombre ou nom propre absent des segments cités est signalé.
-- [ ] Les publicités de l'original sont absentes de la version préparée ; une annonce d'entreprise journalistique, elle, est conservée (vérifié sur 2 épisodes).
-- [ ] Le texte de la version préparée est surligné en rythme sans calage (timestamps Kokoro).
-- [ ] Une version `review` n'est jamais publiée automatiquement ; une cible trop courte pour le sujet est signalée.
+- [x] Les variantes source, traduction fidèle (si demandée) et préparée sont toutes publiées et sélectionnables, avec leur nature affichée (intégral, condensé, essentiel ; niveau ; durée).
+- [x] Un épisode long donne un condensé B1 dont la durée réelle est à ±20 % de la cible (12 min par défaut) : essai réel de 43 min 18 s → 11 min 16 s, cible 12 min ; le scénario de référence reste un épisode d’environ 50 min.
+- [x] Chaque paragraphe d'un condensé renvoie à au moins un segment source ; tout nombre ou nom propre absent des segments cités est signalé.
+- [x] Les publicités de l'original sont absentes de la version préparée ; une annonce d'entreprise journalistique, elle, est conservée (vérifié sur 2 épisodes).
+- [x] Le texte de la version préparée est surligné en rythme sans calage (timestamps Kokoro).
+- [x] Une version `review` n'est jamais publiée automatiquement ; une cible trop courte pour le sujet est signalée.
 - [ ] Sur 5 épisodes relus : « plus court et plus simple que l'original », « sans contresens », et « les explications principales sont là ».
 
 ### My Mind (lots 4 et 10)
@@ -1006,7 +1006,7 @@ Limite d'abonnements : **40** (relevée le 2026-10-17 pour les huit podcasts de 
 1. **Avant le lot 2** : l'offre réelle du compte Cloudflare. **Constat du lot 1** : `techpulse-worker` déclare 4 crons et `englishfluency-worker` 1, soit 5, ce qui est exactement la limite de l'offre gratuite (5 par compte). Si le compte est en offre gratuite, il faut libérer un cron de TechPulse (projet remplacé par discover) avant de déployer la collecte.
 2. **Début du lot 3** : relire 24 h de journaux du cron. **Mesures du 2026-10-17** en production : le cron ne s'est activé que 6 à 10 minutes après le déploiement ; les premières collectes (10 épisodes, insertion D1 comprise) coûtent **8 à 11 ms** de CPU, sans interruption (`outcome: ok`). Les passages suivants s'arrêtent au premier GUID connu et devraient coûter moins. Si des `exceededCpu` apparaissent, limiter la première collecte d'une émission à 5 épisodes.
 3. **Lot 5** : l'écart de durée entre le fichier officiel et celui transcrit par l'Atelier, sur 3 épisodes avec publicités dynamiques. On ajustera le seuil de 1,5 s si besoin.
-4. **Lot 9** : les seuils indicatifs de simplicité (§ 7.6), à calibrer sur 5 épisodes relus.
+4. **Lot 9** : cinq épisodes réels ont servi au contrôle des couvertures, des renvois, des publicités et de la simplicité. Les seuils restent indicatifs : noms traduits et nombres reformulés peuvent demander une relecture. Voir `docs/LOT9_PREPARATION.md`.
 
 ### Compléments du lot 6 (2026-10-17)
 
@@ -1032,3 +1032,15 @@ Limite d'abonnements : **40** (relevée le 2026-10-17 pour les huit podcasts de 
 - Ajout des huit podcasts de récits (2026-10-17) : migration `0004_story_shows.sql` appliquée en production ; **36 abonnements confirmés**, dont sept nouveaux en anglais et un en français, sans retrait des 28 précédents. Limite portée à 40 ; archives Histoires conservées parmi les dix derniers épisodes. Flux vérifiés par l’aperçu RSS de production ; 140 tests Worker, TypeScript Worker/PWA et build PWA réussis. Worker déployé : `11780e78-2faa-45a4-bd13-a4b3b3fd3589`. Première collecte des nouveaux abonnements confiée au cron.
 
 - Lot 8 (2026-10-17) : file et suivi PWA déployés, onglet « À préparer » installé dans l’Atelier Mac. Validation : **149 tests Worker, 29 tests PWA, 137 tests Atelier**, TypeScript et build réussis. Test réel en environnement isolé sur BBC Learning English Stories : audio normalisé mono 24 kHz / 64 kbit/s, 17 segments MacWhisper, bail rendu en `source_ready`. Repli vérifié avec le modèle Base (sans détection des intervenants). Versions adaptées au lot 9 ; contrôle physique Fold7 restant à faire. Worker `1a4c5643-5403-4a40-8651-a245deea610c` ; Atelier commit `3a1a511`. Voir `docs/LOT8_QUEUE.md`.
+
+### Compléments du lot 9 (2026-10-17)
+
+- Préparation Gemini avec extraction de tous les blocs, citations contraintes, traduction française, contrôle indépendant de fidélité, relecture et correction explicites. Traduction fidèle française→anglais facultative. Kokoro local calibré, timings exacts et contrôle de durée réelle. Voir `docs/LOT9_PREPARATION.md`.
+- Préparation automatique limitée aux émissions configurées ; seule `edito-eco` est active en production. Les sources en attente du lot 8 sont reprises. Le Mac doit exécuter la nouvelle version de l’Atelier.
+- Enclosures de podcasts HTTP (BBC) acceptées par les deux validateurs, comme par le lecteur ; correspondance obligatoire avec l’enclosure enregistrée et refus des hôtes internes/IP littérales inchangés.
+- **156 tests Worker, 29 tests PWA, 158 tests Atelier**, types et build réussis. Cinq épisodes réels traités avec Gemini ; intégral B1 BBC 322 mots, intégral Storiavoce 2 301 mots avec traduction fidèle, condensés narration/dialogue 1 484 / 1 307 mots, essentiel 496 mots. Les alertes locales restent soumises à relecture.
+- Parcours navigateur isolé : attente de relecture, validation, synthèse réelle, publication atomique, Original / Intégral B1 sélectionnables, français à la demande et saut dans l’audio à 0:43. Le BBC préparé dure 2 min 39 s ; aucun contenu de test n’a été envoyé en production. Le Fold7 physique reste à vérifier.
+- Worker déployé : `8da90262-86f7-46fa-9c88-bf410d75009e` ; Atelier : `f01ed67`, `7cbcfbf` et `a2c7503`. Lecture de production : nouveau bundle PWA servi, Bearer Atelier valide, seule émission automatique `edito-eco`.
+
+- Durée réelle du condensé : premier audio 14 min 52 s, correction automatique du débit de 0,700 à 0,868, puis **11 min 16 s** pour la cible 12 min (±20 % respectés). Treize paragraphes et leurs timings exacts validés contre les sources.
+- La relecture technique et les contrôles sur cinq épisodes ne remplacent pas l’appréciation éditoriale de l’utilisateur : le dernier critère qualitatif de § 13 reste à confirmer. Un intégral raccourci de plus de 15 % hors promotions exige une relecture, même si Gemini accepte les faits.

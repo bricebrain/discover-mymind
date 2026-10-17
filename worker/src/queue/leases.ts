@@ -1,9 +1,10 @@
 import type { Env } from '../env';
 import { HttpError, json, readJson } from '../http';
 import { expireExhausted, queueOut, type QueueRow } from './store';
+import { assertLease } from '../publications/store';
 
 export const LEASE_MS = 15 * 60_000;
-const STAGES = ['download','normalize','transcribe','source_ready','translate','adapt','tts','publish'];
+const STAGES = ['download','normalize','transcribe','source_ready','plan','extract','translate','adapt','evaluate','review','tts','publish'];
 
 export async function source(env: Env, row: QueueRow) {
   if (row.kind !== 'episode') throw new HttpError(422,'unsupported_source','Ce type de source sera disponible dans un prochain lot.');
@@ -14,11 +15,15 @@ export async function source(env: Env, row: QueueRow) {
   return episode;
 }
 export async function lease(req: Request,env: Env) {
-  const body = await readJson<{ owner?: unknown; sourceOnly?: unknown }>(req,4096);
+  const body = await readJson<{ owner?: unknown; sourceOnly?: unknown; itemId?: unknown; includeReview?: unknown }>(req,4096);
   if (!body || typeof body.owner !== 'string' || !/^[a-zA-Z0-9._-]{1,96}$/.test(body.owner)) {
     throw new HttpError(422,'invalid_owner','Identifiant d’Atelier invalide.');
   }
   if (body.sourceOnly !== undefined && typeof body.sourceOnly !== 'boolean') throw new HttpError(422,'invalid_options','Mode de préparation invalide.');
+  if ((body.itemId !== undefined && (typeof body.itemId !== 'string' || !/^[0-9a-f-]{36}$/.test(body.itemId))) ||
+      (body.includeReview !== undefined && typeof body.includeReview !== 'boolean') || (body.includeReview && !body.itemId)) {
+    throw new HttpError(422,'invalid_options','Demande de relecture invalide.');
+  }
   const now = new Date().toISOString(), expires = new Date(Date.now()+LEASE_MS).toISOString();
   await expireExhausted(env,now);
   const row = await env.DB.prepare(`UPDATE prepare_queue SET status='leased',lease_token=?,lease_owner=?,
@@ -26,8 +31,9 @@ export async function lease(req: Request,env: Env) {
     WHERE id=(SELECT id FROM prepare_queue WHERE kind='episode' AND
       (status='pending' OR (status='leased' AND lease_expires_at<=?)) AND attempts<max_attempts
       AND (?=0 OR COALESCE(stage,'')<>'source_ready')
+      AND (?=1 OR COALESCE(stage,'')<>'review') AND (? IS NULL OR id=?)
       ORDER BY created_at,id LIMIT 1) RETURNING *`)
-    .bind(crypto.randomUUID(),body.owner,expires,now,now,body.sourceOnly ? 1 : 0).first<QueueRow>();
+    .bind(crypto.randomUUID(),body.owner,expires,now,now,body.sourceOnly ? 1 : 0,body.includeReview ? 1 : 0,body.itemId ?? null,body.itemId ?? null).first<QueueRow>();
   if (!row) return json({ item: null });
   try {
     const episode = await source(env,row);
@@ -41,6 +47,7 @@ export async function lease(req: Request,env: Env) {
 export async function change(req: Request,env: Env,id: string,action: string) {
   const b = await readJson<Record<string,unknown>>(req,4096);
   if (!b || typeof b.leaseToken !== 'string' || b.leaseToken.length > 256) throw new HttpError(422,'invalid_lease','Jeton de bail requis.');
+  await assertLease(env,{queue_item_id:id,lease_token:b.leaseToken});
   const now = new Date().toISOString();
   let sql: string, args: unknown[];
   if (action === 'heartbeat') {
@@ -49,8 +56,9 @@ export async function change(req: Request,env: Env,id: string,action: string) {
     args = [new Date(Date.now()+LEASE_MS).toISOString(),b.stage,now];
   } else if (action === 'release') {
     if (b.sourceReady !== undefined && typeof b.sourceReady !== 'boolean') throw new HttpError(422,'invalid_options','État de source invalide.');
+    if (b.stage !== undefined && b.stage !== 'source_ready' && b.stage !== 'review') throw new HttpError(422,'invalid_stage','Point de reprise invalide.');
     sql = "status='pending',attempts=MAX(0,attempts-1),stage=?,lease_token=NULL,lease_owner=NULL,lease_expires_at=NULL,updated_at=?";
-    args = [b.sourceReady ? 'source_ready' : null,now];
+    args = [b.stage ?? (b.sourceReady ? 'source_ready' : null),now];
   } else {
     if (typeof b.error !== 'string' || !b.error.trim() || b.error.length>500 || typeof b.retryable !== 'boolean') {
       throw new HttpError(422,'invalid_error','Erreur et possibilité de réessayer requises.');

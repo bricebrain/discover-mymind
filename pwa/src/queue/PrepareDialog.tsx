@@ -29,7 +29,7 @@ export function PrepareDialog({episode,onClose}: {episode: Episode;onClose:() =>
       </TextField>
       {episode.language==='fr' && <FormControlLabel control={<Checkbox checked={options.faithful} onChange={(_e,v) => set('faithful',v)} />} label="Ajouter l’anglais fidèle intégral" />}
       <FormControlLabel control={<Checkbox checked={options.keepOriginalCopy} onChange={(_e,v) => set('keepOriginalCopy',v)} />} label="Garder une copie synchronisée de l’original" />
-      <Typography variant="caption" color="text.secondary">La demande sera traitée par l’Atelier sur ton Mac. L’import et la transcription sont disponibles ; les versions adaptées seront disponibles dans une prochaine mise à jour.</Typography>
+      <Typography variant="caption" color="text.secondary">L’Atelier sur ton Mac prépare le texte et l’audio, puis publie la version dans Discover. Une version signalée à relire attend ton accord dans l’Atelier.</Typography>
       {prepare.isError && <Alert severity="error">{prepare.error.message}</Alert>}
     </Stack></DialogContent>
     <DialogActions><Button onClick={onClose} disabled={prepare.isPending}>Annuler</Button><Button variant="contained" disabled={!valid || prepare.isPending}

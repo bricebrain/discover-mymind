@@ -4,6 +4,7 @@ import { sha256Hex } from '../security/crypto';
 import { assertLease, assertRetained, assertSource, current, files, publication } from './store';
 import type { Publication } from './types';
 import { canonicalJson, validateManifest } from './validation';
+import { assertPrepared } from './preparation';
 
 export async function state(env: Env, id: string) {
   const p = await publication(env, id);
@@ -28,6 +29,15 @@ export async function declare(req: Request, env: Env): Promise<Response> {
   const revision = await sha256Hex(serialized);
   const existing = await env.DB.prepare('SELECT * FROM publications WHERE content_id=? AND revision=?').bind(m.content.id, revision).first<Publication>();
   if (existing) {
+    if (existing.status==='ready' && lease.queue_item_id && existing.queue_item_id!==lease.queue_item_id) {
+      await assertPrepared(env,{...existing,...lease},m);
+      const completed = await env.DB.prepare(`UPDATE prepare_queue SET status='done',content_id=?,updated_at=?
+        WHERE id=? AND status='leased' AND lease_token=? AND lease_expires_at>?
+        AND EXISTS (SELECT 1 FROM contents WHERE id=? AND current_publication_id=?)`)
+        .bind(m.content.id,new Date().toISOString(),lease.queue_item_id,lease.lease_token,new Date().toISOString(),m.content.id,existing.id).run();
+      if (!completed.meta.changes) throw new HttpError(409,'lease_lost','Demande ou publication courante modifiée.');
+      return state(env,existing.id);
+    }
     if (existing.queue_item_id !== lease.queue_item_id) throw new HttpError(409, 'lease_mismatch', 'Publication liée à une autre demande.');
     if (!['ready', 'uploading'].includes(existing.status)) throw new HttpError(409, 'publication_closed', 'Cette révision est fermée.');
     if (existing.lease_token !== lease.lease_token) {

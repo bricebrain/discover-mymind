@@ -6,6 +6,8 @@ import { commit } from '../publications/commit';
 import { secretsEqual } from '../security/crypto';
 import * as leases from '../queue/leases';
 import { list } from './queue';
+import { manifest } from '../publications/store';
+import type { Publication } from '../publications/types';
 
 /**
  * /atelier/* : uniquement le jeton Bearer de l'Atelier ; les cookies sont ignorés (§ 5.2).
@@ -20,6 +22,13 @@ export async function handleAtelier(req: Request, env: Env, path: string): Promi
     return apiError(401, 'unauthenticated', 'Jeton Atelier invalide.', { 'WWW-Authenticate': 'Bearer' });
   }
   if (path === '/atelier/ping' && req.method === 'GET') return json({ ok: true });
+  const content = path.match(/^\/atelier\/contents\/([a-z0-9-]{3,96})\/manifest$/);
+  if (content?.[1] && req.method==='GET') {
+    const p = await env.DB.prepare(`SELECT p.* FROM contents c JOIN publications p ON p.id=c.current_publication_id
+      WHERE c.id=? AND c.deleted_at IS NULL AND p.status='ready'`).bind(content[1]).first<Publication>();
+    if (!p) return apiError(404,'not_found','Contenu introuvable.');
+    return json({manifest:await manifest(env,p)});
+  }
   if (path === '/atelier/queue' && req.method === 'GET') return list(req,env);
   if (path === '/atelier/queue/lease' && req.method === 'POST') return leases.lease(req,env);
   const q = path.match(/^\/atelier\/queue\/([0-9a-f-]{36})\/(heartbeat|fail|release)$/);

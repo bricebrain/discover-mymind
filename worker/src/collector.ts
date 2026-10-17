@@ -2,6 +2,7 @@ import type { Env } from './env';
 import { parseFeedStream, type FeedItem } from './feedParser';
 import { sha256Hex } from './security/crypto';
 import { parseSafeUrl, safeFetch } from './security/safeUrl';
+import { automaticPreparation } from './queue/automatic';
 
 /**
  * Collecte des épisodes (§ 7.1) : une émission par exécution du cron (toutes les minutes),
@@ -20,6 +21,7 @@ export const USER_AGENT = 'discover/1.0 (lecteur de podcasts personnel)';
 interface ShowRow {
   id: string;
   category: string;
+  auto_prepare: number;
   feed_url: string;
   title_filter_json: string | null;
   etag: string | null;
@@ -104,6 +106,7 @@ export async function collectNext(env: Env, now = Date.now(), fetcher: typeof fe
     if (res.status === 304) {
       await env.DB.prepare('UPDATE shows SET last_success_at = ?, last_error = NULL, consecutive_failures = 0 WHERE id = ?')
         .bind(iso(now), show.id).run();
+      if (show.auto_prepare) await automaticPreparation(env,show.id,now).run();
       return { showId: show.id, status: 'not_modified' };
     }
     if (!res.ok || !res.body) {
@@ -136,6 +139,7 @@ export async function collectNext(env: Env, now = Date.now(), fetcher: typeof fe
                 OR id NOT IN (SELECT id FROM episodes WHERE show_id = ? ORDER BY COALESCE(published_at, created_at) DESC LIMIT ?))`,
       ).bind(show.id, show.category, iso(now - RETENTION_MS), show.id, RETENTION_PER_SHOW),
     );
+    if (show.auto_prepare) statements.push(automaticPreparation(env,show.id,now));
     await env.DB.batch(statements);
     return { showId: show.id, status: 'ok', newItems: fresh.length, bytesRead: parsed.bytesRead, stoppedAt: parsed.stoppedAt };
   } catch (e) {

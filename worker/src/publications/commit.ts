@@ -3,8 +3,9 @@ import { HttpError, json } from '../http';
 import { assertLease, assertRetained, assertSource, current, files, manifest, publication } from './store';
 import type { Manifest, Publication, Variant } from './types';
 import { validateSegments } from './validation';
+import { assertPrepared } from './preparation';
 
-async function checkSegments(env: Env, m: Manifest) {
+async function checkSegments(env: Env, m: Manifest, prepared: boolean) {
   async function load(v: Variant): Promise<unknown> {
     const f = m.files[v.segmentsFile]!;
     if (f.size > 5_000_000) throw new HttpError(422, 'segments_too_large', 'Segments limités à 5 Mo.');
@@ -17,7 +18,13 @@ async function checkSegments(env: Env, m: Manifest) {
   const sourceDoc = validateSegments(await load(source), source);
   const ids = new Set(sourceDoc.segments.map((s) => s.id));
   for (const v of m.variants) {
-    if (v.key !== source.key) validateSegments(await load(v), v, ids);
+    if (v.key !== source.key) {
+      const doc = validateSegments(await load(v), v, ids);
+      if (prepared && v.kind==='adaptation' && doc.segments.some((s) => !s.fr?.trim() ||
+          (v.style==='narration' ? s.speaker!=='Narrator' : s.speaker!=='Host' && s.speaker!=='Guest'))) {
+        throw new HttpError(422,'invalid_adaptation_segments','Traduction française et intervenants conformes au style requis.');
+      }
+    }
   }
 }
 
@@ -53,10 +60,11 @@ export async function commit(env: Env, id: string, requestToken?: string | null)
       return json({ publicationId: id, status: 'uploading', missing },409);
     }
     const m = await manifest(env,p);
+    await assertPrepared(env,p,m);
     await assertSource(env,m);
     const oldId = await current(env,p.content_id);
     await assertRetained(env,m,oldId);
-    await checkSegments(env,m);
+    await checkSegments(env,m,!!p.queue_item_id);
     const c = m.content;
     const batch = [
       // Cette assertion est évaluée dans la transaction qui effectue la bascule.

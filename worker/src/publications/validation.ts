@@ -10,8 +10,8 @@ export function validPath(path: string): boolean {
     && !path.split('/').some((p) => p === '.' || p === '..');
 }
 const baseLanguage = (language: string) => language.split('-')[0];
-function safeUrl(url: string) {
-  try { parseSafeUrl(url); } catch { reject('unsafe_url'); }
+function safeUrl(url: string, allowHttp = false) {
+  try { parseSafeUrl(url,{allowHttp}); } catch { reject('unsafe_url'); }
 }
 
 export interface ValidationContext { currentVariants?: string[]; episodeAudioUrl?: string }
@@ -26,7 +26,7 @@ export function validateManifest(input: unknown, context: ValidationContext = {}
   if (sources.length !== 1 || !source || source.language !== m.content.originalLanguage || source.cefrLevel != null || source.derivedFrom != null) reject('invalid_source');
   const keys = m.variants.map((v) => v.key);
   if (new Set(keys).size !== keys.length) reject('duplicate_variant');
-  if (m.content.sourceUrl) safeUrl(m.content.sourceUrl);
+  if (m.content.sourceUrl) safeUrl(m.content.sourceUrl,m.content.sourceType==='podcast');
   if (m.content.sourceType === 'podcast' && !/^episode:[0-9a-f]{20}$/.test(m.content.sourceRef ?? '')) reject('invalid_source_ref');
   if (m.content.sourceType === 'reflection' && !/^reflection:[0-9a-f-]{36}$/.test(m.content.sourceRef ?? '')) reject('invalid_source_ref');
   if (m.content.sourceType === 'youtube' && m.content.sourceRef != null) reject('invalid_source_ref');
@@ -51,7 +51,7 @@ export function validateManifest(input: unknown, context: ValidationContext = {}
       used.add(v.audio.file);
     }
     if (v.audio?.source === 'publisher_stream') {
-      safeUrl(v.audio.url!);
+      safeUrl(v.audio.url!,m.content.sourceType==='podcast');
       if (m.content.sourceType !== 'podcast' || v.kind !== 'source' || v.audio.origin !== 'original') reject('invalid_stream');
     }
   }
