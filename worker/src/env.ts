@@ -1,5 +1,10 @@
+import type { PreparationEvents } from './events/hub';
 export interface Env {
   DB: D1Database;
+  EVENTS: DurableObjectNamespace<PreparationEvents>;
+  VAPID_PUBLIC_KEY?: string;
+  VAPID_PRIVATE_KEY?: string;
+  VAPID_SUBJECT?: string;
   FILES: R2Bucket;
   ASSETS: Fetcher;
   /** Phrase secrète de connexion (24 caractères minimum). */

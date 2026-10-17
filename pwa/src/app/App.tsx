@@ -9,6 +9,7 @@ import { LoginPage } from '../pages/LoginPage';
 import { MindPage } from '../pages/MindPage';
 import { ShowsPage } from '../pages/ShowsPage';
 import { SettingsPage } from '../pages/SettingsPage';
+import { PreparationEventsProvider } from '../notifications/PreparationEventsProvider';
 import { PlayerProvider } from '../player/PlayerProvider';
 import { Shell } from './Shell';
 import { buildTheme } from './theme';
@@ -43,7 +44,7 @@ function Gate() {
     );
   }
   const open = session.data.authDisabled || session.data.session !== null;
-  return open ? <PlayerProvider><RouterProvider router={router} /></PlayerProvider> : <LoginPage />;
+  return open ? <PlayerProvider><PreparationEventsProvider><RouterProvider router={router} /></PreparationEventsProvider></PlayerProvider> : <LoginPage />;
 }
 
 export function App() {

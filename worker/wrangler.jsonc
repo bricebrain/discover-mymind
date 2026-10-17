@@ -30,5 +30,8 @@
   // Collecte : une émission par minute (§ 7.1). Le seul cron de discover.
   "triggers": { "crons": ["* * * * *"] },
 
-  "observability": { "enabled": true }
+  "durable_objects": { "bindings": [{ "name": "EVENTS", "class_name": "PreparationEvents" }] },
+  "migrations": [{ "tag": "events-v1", "new_sqlite_classes": ["PreparationEvents"] }],
+
+  "observability": { "enabled": true, "traces": { "enabled": true } }
 }

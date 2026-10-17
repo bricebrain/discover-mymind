@@ -7,6 +7,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       includeAssets: ['icons/icon.svg', 'icons/apple-touch-icon.png'],
       manifest: {
         id: '/',
@@ -26,12 +29,7 @@ export default defineConfig({
           { src: '/icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: {
-        navigateFallback: '/index.html',
-        // L'API et l'Atelier ne passent jamais par le cache du service worker.
-        navigateFallbackDenylist: [/^\/api\//, /^\/atelier\//],
-        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,woff2}'],
-      },
+      injectManifest: { globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,woff2}'] },
     }),
   ],
   server: {

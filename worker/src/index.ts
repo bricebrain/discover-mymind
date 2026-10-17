@@ -1,3 +1,7 @@
+import { flushEvents,cleanupEvents } from './events/hub';
+import { identity } from './events/identity';
+import { notifications } from './events/subscriptions';
+export { PreparationEvents } from './events/hub';
 import { authDisabled, type Env } from './env';
 import { apiError, HttpError, json, noContent, withSecurityHeaders } from './http';
 import { cleanupPublications } from './publications/cleanup';
@@ -48,6 +52,16 @@ async function handleApi(req: Request, env: Env, path: string): Promise<Response
 
 /** Routes de données (émissions, épisodes, progression) : la session est vérifiée avant. */
 async function handleData(req: Request, env: Env, path: string, m: string): Promise<Response> {
+  if (path.startsWith('/api/notifications/')) return notifications(req,env,path);
+  if (path === '/api/events' && m==='GET') {
+    if(req.headers.get('Origin')!==new URL(req.url).origin) throw new HttpError(403,'csrf_origin','Origine refusée.');
+    if(req.headers.get('Upgrade')?.toLowerCase()!=='websocket') throw new HttpError(426,'upgrade_required','Connexion WebSocket requise.');
+    const who=await identity(env,req);
+    if(!who) throw new HttpError(401,'device_required','Appareil inconnu.');
+    const headers=new Headers(req.headers);headers.delete('Cookie');headers.delete('Authorization');
+    headers.set('X-Discover-Identity',JSON.stringify(who.attachment));
+    return env.EVENTS.getByName('personal-library').fetch(new Request(req,{headers}));
+  }
   if (path === '/api/queue' && m === 'GET') return queue.list(req,env);
   const queued = path.match(/^\/api\/queue\/([0-9a-f-]{36})(\/retry)?$/);
   if (queued?.[1] && !queued[2] && m === 'DELETE') return queue.cancel(env,queued[1]);
@@ -91,11 +105,17 @@ async function handleData(req: Request, env: Env, path: string, m: string): Prom
 }
 
 export default {
-  async fetch(req: Request, env: Env): Promise<Response> {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const path = new URL(req.url).pathname;
     try {
-      if (path.startsWith('/api/')) return withSecurityHeaders(await handleApi(req, env, path));
-      if (path.startsWith('/atelier/')) return withSecurityHeaders(await handleAtelier(req, env, path));
+      if (path.startsWith('/api/') || path.startsWith('/atelier/')) {
+        try {
+          const response=path.startsWith('/api/') ? await handleApi(req,env,path) : await handleAtelier(req,env,path);
+          return response.status===101 ? response : withSecurityHeaders(response);
+        } finally {
+          if(req.method!=='GET' && req.method!=='HEAD' || path==='/api/queue' || path==='/atelier/queue') ctx.waitUntil(flushEvents(env));
+        }
+      }
       return env.ASSETS.fetch(req);
     } catch (e) {
       if (e instanceof HttpError) return withSecurityHeaders(apiError(e.status, e.code, e.message));
@@ -109,6 +129,8 @@ export default {
     await expireExhausted(env);
     const r = await collectNext(env);
     if (r.status !== 'idle') console.log(JSON.stringify({ event: 'collect', ...r }));
+    await flushEvents(env);
+    if (new Date().getUTCMinutes()===27) await cleanupEvents(env);
     // Corbeille de My Mind : une fois par heure suffit (minute 7).
     if (new Date().getUTCMinutes() === 7) await reflections.purgeTrash(env);
     if (new Date().getUTCMinutes() === 17) await cleanupPublications(env);

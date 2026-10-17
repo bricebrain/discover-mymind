@@ -8,13 +8,13 @@ beforeEach(async () => {
 });
 
 describe('schéma', () => {
-  it('la migration 0001 crée toutes les tables du modèle', async () => {
+  it('les migrations créent toutes les tables du modèle', async () => {
     const { results } = await env.DB.prepare(
       "SELECT name FROM sqlite_master WHERE type IN ('table') AND name NOT LIKE 'search_index_%' AND name NOT LIKE '\\_%' ESCAPE '\\' AND name NOT LIKE 'sqlite_%' AND name <> 'd1_migrations'",
     ).all<{ name: string }>();
     expect(results.map((r) => r.name).sort()).toEqual([
       'contents', 'episodes', 'listening_progress', 'login_attempts', 'prepare_queue', 'publication_files', 'publication_gc', 'publication_guards',
-      'publications', 'reflection_links', 'reflections', 'search_index', 'sessions', 'shows', 'variants',
+      'publications', 'push_deliveries', 'push_subscriptions', 'queue_events', 'reflection_links', 'reflections', 'search_index', 'sessions', 'shows', 'variants',
     ]);
   });
 });

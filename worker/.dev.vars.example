@@ -3,3 +3,9 @@
 APP_PASSPHRASE=<phrase secrète locale, 24 caractères minimum>
 SESSION_EPOCH=<valeur aléatoire>
 ATELIER_TOKEN=<valeur aléatoire, 32 caractères minimum>
+
+# Notifications Web Push : paire ECDSA P-256, valeurs base64url.
+# La clé privée reste hors de Git et devient un secret Wrangler en production.
+# VAPID_PUBLIC_KEY=<clé publique non compressée de 65 octets>
+# VAPID_PRIVATE_KEY=<clé privée de 32 octets>
+# VAPID_SUBJECT=https://discover.bricebrain.workers.dev

@@ -1,3 +1,4 @@
+import { NotificationSettings } from '../notifications/NotificationSettings';
 import DownloadIcon from '@mui/icons-material/Download';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useState } from 'react';
@@ -53,7 +54,8 @@ export function SettingsPage() {
           La connexion est désactivée pour l’instant : l’app s’ouvre sans phrase secrète.
           Elle pourra être réactivée plus tard, sans rien perdre.
         </Alert>
-        <ExportSection />
+        <NotificationSettings />
+      <ExportSection />
       </Box>
     );
   }
@@ -114,6 +116,7 @@ function DevicesSettings() {
           Se déconnecter de cet appareil
         </Button>
       </Stack>
+      <NotificationSettings />
       <ExportSection />
     </Box>
   );

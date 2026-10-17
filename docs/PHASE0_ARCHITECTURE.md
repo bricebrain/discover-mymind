@@ -856,6 +856,7 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 | **7 — Lecture des versions** ✅ (déployé) | Sélecteur de version (avec sa nature : intégral, condensé, essentiel ; niveau ; durée), transcription, français à la demande, navigation par segment, progression par version | Écouter Original, Fidèle, Intégral B1 ou Condensé B1 |
 | **8 — File avec bail** ✅ (déployé) | Bouton et options dans la PWA ; onglet « À préparer » dans l'Atelier ; bail, signal de vie, reprise ; téléchargement et normalisation de l'épisode | Marquer sur le téléphone et importer/transcrire dans l’Atelier ; versions adaptées au lot 9 |
 | **9 — Versions préparées** ✅ (déployé) | `adaptation.py` : couverture × niveau × durée (§ 7.4), synthèse en deux passes avec renvois (§ 7.7), évaluation fond puis langue (§ 7.6), exclusion des publicités, narration par défaut, calibrage du débit Kokoro, préparation auto de L'édito éco | Un épisode de 50 min écouté en 12 min à son niveau |
+| **9 bis — Temps réel et notifications** ✅ (déployé) | Durable Object et WebSocket avec hibernation ; outbox D1 ; Web Push et Service Worker ; activation par appareil | Suivi instantané et notification prête / à relire / échec, même PWA fermée ; réception Fold7 à valider |
 | **10 — My Mind complet** | Tags, types, questions, liens vers les passages, recherche FTS5, « Préparer en anglais » pour une note | Relire ses idées en anglais |
 | **11 — Bibliothèque et hors ligne** | Filtres, téléchargements explicites, espace utilisé, suppression | Écouter en mode avion |
 | **12 — Export et pont EnglishFluency** | Export complet (JSON + Markdown) ; case « aussi vers EnglishFluency » | Données récupérables ; les contenus nourrissent EnglishFluency |
@@ -917,6 +918,15 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 - [x] Le texte de la version préparée est surligné en rythme sans calage (timestamps Kokoro).
 - [x] Une version `review` n'est jamais publiée automatiquement ; une cible trop courte pour le sujet est signalée.
 - [ ] Sur 5 épisodes relus : « plus court et plus simple que l'original », « sans contresens », et « les explications principales sont là ».
+
+### Temps réel et notifications (lot 9 bis)
+- [x] Les transitions de file sont enregistrées atomiquement avec leur événement ; un simple renouvellement de bail ne crée pas d'événement.
+- [x] La PWA ouverte reçoit les changements par WebSocket et relit les données D1 ; reconnexion avec récupération de l'état courant et suivi périodique en repli.
+- [x] Une origine étrangère est refusée, une session révoquée ne conserve pas son accès aux événements.
+- [x] Les abonnements sont propres à chaque appareil, avec activation explicite, désactivation et test limité.
+- [x] Les messages Push sont chiffrés, génériques, dédupliqués par événement/appareil, et les envois temporaires sont repris de façon bornée ; les abonnements expirés sont retirés.
+- [x] Un état suivant annule les anciennes notifications encore en attente de la même demande.
+- [ ] Sur le Fold7 : autoriser les notifications, fermer la PWA, recevoir le test, puis ouvrir Discover depuis la notification.
 
 ### My Mind (lots 4 et 10)
 - [ ] Une note se crée sans source.
@@ -1044,3 +1054,10 @@ Limite d'abonnements : **40** (relevée le 2026-10-17 pour les huit podcasts de 
 
 - Durée réelle du condensé : premier audio 14 min 52 s, correction automatique du débit de 0,700 à 0,868, puis **11 min 16 s** pour la cible 12 min (±20 % respectés). Treize paragraphes et leurs timings exacts validés contre les sources.
 - La relecture technique et les contrôles sur cinq épisodes ne remplacent pas l’appréciation éditoriale de l’utilisateur : le dernier critère qualitatif de § 13 reste à confirmer. Un intégral raccourci de plus de 15 % hors promotions exige une relecture, même si Gemini accepte les faits.
+
+### Compléments du lot 9 bis (2026-10-18)
+
+- Migration `0005_events_push.sql` appliquée localement et en production, Durable Object SQLite `PreparationEvents` avec hibernation, aucun nouveau cron. Les appels HTTP de l’Atelier restent compatibles.
+- Notifications Web Push avec VAPID configuré dans les secrets du Worker. Réglages : activation/désactivation sur cet appareil et notification de test. Aucun titre, extrait ou jeton dans les messages.
+- Vérification locale réelle : demande créée dans la PWA, passage Atelier à `tts` puis `review`, les deux états reçus sans rechargement. En production : réglages « Suivi en direct », bouton d’activation présent, configuration Push active et origine étrangère refusée (`403 csrf_origin`). Aucun abonnement ou épisode de contrôle créé en production.
+- Validation : **171 tests Worker et 37 tests PWA**, types, build et déploiement à blanc réussis. Worker final : `37baa3d8-a1ab-4f7d-b6ee-f5300588c049`. Réception et clic sur le Fold7 physique restent à vérifier après l’autorisation de l’utilisateur. Voir `docs/LOT9BIS_REALTIME_PUSH.md`.
