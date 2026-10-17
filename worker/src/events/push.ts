@@ -29,18 +29,23 @@ export async function deliverPush(env:Env,visible:Set<string>,transport:typeof f
     }
     await env.DB.prepare('UPDATE push_deliveries SET attempts=attempts+1,next_at=? WHERE event_id=? AND device_id=?')
       .bind(now+60_000*2**d.attempts,d.event_id,d.device_id).run();
+    let phase:'encrypt'|'send'='encrypt';
     try {
       const subscription=validateSubscription({endpoint:d.endpoint,keys:{p256dh:d.p256dh,auth:d.auth}});
       const payload=await buildPushPayload({data:JSON.stringify(notificationMessage(d.kind,d.event_id)),options:{ttl:Math.min(3600,Math.max(0,Math.floor((d.expires_at-now)/1000)))}},subscription,
         {subject:env.VAPID_SUBJECT ?? 'https://discover.bricebrain.workers.dev',publicKey:env.VAPID_PUBLIC_KEY,privateKey:env.VAPID_PRIVATE_KEY});
-      const response=await transport(d.endpoint,{...payload,redirect:'error',signal:AbortSignal.timeout(10_000)});
+      // workerd accepte manual/follow, mais pas redirect:error. Construire la Request valide les options avant le transport.
+      const request=new Request(d.endpoint,{...payload,redirect:'manual',signal:AbortSignal.timeout(10_000)});
+      phase='send';
+      const response=await transport(request);
+      console.log(JSON.stringify({event:'push_delivery_result',kind:d.kind,status:response.status}));
       await response.body?.cancel();
       if(response.status===404 || response.status===410) await env.DB.prepare('DELETE FROM push_subscriptions WHERE id=?').bind(d.device_id).run();
-      else if(response.ok || (response.status>=400 && response.status<500 && response.status!==429)) await finish();
+      else if(response.ok || (response.status>=300 && response.status<400) || (response.status>=400 && response.status<500 && response.status!==429)) await finish();
       else if(d.attempts>=2) await finish();
-    } catch {
+    } catch(error) {
       if(d.attempts>=2) await finish();
-      console.warn(JSON.stringify({event:'push_delivery_retry',attempt:d.attempts+1}));
+      console.warn(JSON.stringify({event:'push_delivery_retry',attempt:d.attempts+1,phase,errorType:error instanceof Error ? error.name : 'Error'}));
     }
   }
 }

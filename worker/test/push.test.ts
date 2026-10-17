@@ -37,12 +37,14 @@ it('un appareil ne peut ni lire ni désabonner les autres ; aucun endpoint n’e
 it('envoie un message chiffré VAPID puis ne le renvoie pas',async()=>{
  const id=await enroll();await queue(id);
  const transport=vi.fn<typeof fetch>(async(_url,init)=>{
-   const headers=new Headers(init?.headers);expect(headers.get('Content-Encoding')).toBe('aes128gcm');
-   expect(headers.get('Authorization')).toMatch(/^vapid /);expect(init?.redirect).toBe('error');
-   expect(init?.body).toBeInstanceOf(Uint8Array);expect((init?.body as Uint8Array).byteLength).toBeGreaterThan(100);return new Response(null,{status:201});
+   const native=new Request(_url,init);
+   const headers=native.headers;expect(headers.get('Content-Encoding')).toBe('aes128gcm');
+   expect(headers.get('Authorization')).toMatch(/^vapid /);expect(native.redirect).toBe('manual');
+   expect(native.headers.get('Content-Length')).toBe('4096');return new Response(null,{status:201});
  });
  await deliverPush(cfg,new Set(),transport);await deliverPush(cfg,new Set(),transport);
  expect(transport).toHaveBeenCalledTimes(1);
+ expect((await env.DB.prepare('SELECT finished_at FROM push_deliveries').first())?.finished_at).not.toBeNull();
 });
 it('ne notifie pas un appareil actuellement visible, mais permet son test explicite',async()=>{
  const id=await enroll();await queue(id);await queue(id,'test');const transport=vi.fn<typeof fetch>(async()=>new Response(null,{status:201}));
@@ -75,4 +77,15 @@ it('le test explicite est limité et le contenu de notification reste génériqu
 it('refuse une clé de chiffrement invalide avant de stocker l’abonnement',async()=>{
  await expect(notifications(req('/api/notifications/subscription','PUT',{...subscriber,keys:{p256dh:'A'.repeat(87),auth:'A'.repeat(22)}}),cfg,'/api/notifications/subscription')).rejects.toMatchObject({code:'invalid_subscription'});
  expect(await env.DB.prepare('SELECT id FROM push_subscriptions').first()).toBeNull();
+});
+
+it('ne suit jamais une redirection du service Push ni ne renvoie le jeton ailleurs',async()=>{
+ const id=await enroll();await queue(id);
+ const transport=vi.fn<typeof fetch>(async(input,init)=>{
+   const request=new Request(input,init);expect(request.redirect).toBe('manual');
+   return new Response(null,{status:302,headers:{Location:'https://evil.test'}});
+ });
+ await deliverPush(cfg,new Set(),transport);await deliverPush(cfg,new Set(),transport);
+ expect(transport).toHaveBeenCalledTimes(1);
+ expect((await env.DB.prepare('SELECT finished_at FROM push_deliveries').first())?.finished_at).not.toBeNull();
 });

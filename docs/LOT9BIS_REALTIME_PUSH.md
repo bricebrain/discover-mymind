@@ -45,3 +45,11 @@ La réception réelle sur le Fold7 application fermée, l’autorisation Android
 Validation automatisée : **171 tests Worker, 37 tests PWA**, TypeScript, build et déploiement à blanc réussis. Migration appliquée en production ; secrets VAPID configurés ; version Worker finale `37baa3d8-a1ab-4f7d-b6ee-f5300588c049`. La page de réglages en production affiche « Suivi en direct » et « Activer sur cet appareil » ; une requête WebSocket complète d’origine étrangère est refusée avec `403 csrf_origin`.
 
 Références : [WebSocket Hibernation Cloudflare](https://developers.cloudflare.com/durable-objects/best-practices/websockets/), [Push API](https://developer.mozilla.org/en-US/docs/Web/API/Push_API), [bibliothèque Web Crypto Push](https://github.com/block65/webcrypto-web-push).
+
+## Correctif d’envoi Push du 18 octobre 2026
+
+Le premier essai sur les appareils a révélé une incompatibilité réelle : `redirect: 'error'` est accepté par les types et par notre transport simulé, mais refusé par le runtime workerd avant l’appel réseau. Les envois restaient donc en reprise.
+
+L’envoi construit désormais une véritable `Request`, en mode `manual`. Aucune redirection n’est suivie ; une réponse 3xx termine l’essai. Les tests construisent également une Request native et vérifient que la livraison est effectivement terminée, ainsi que le refus de transmettre la requête à une cible de redirection. Les journaux conservent le statut HTTP et la phase/type d’erreur, sans endpoint, clé ni contenu.
+
+Validation : **172 tests Worker**, types Worker/PWA réussis ; Worker `af9ea94e-8a30-49b0-bcc9-e712ba41be52`. Deux essais demandés par l’utilisateur ont été relancés après correction : le service Push Google a accepté chacun avec **HTTP 201**, dès la première tentative. L’acceptation du service ne confirme pas à elle seule l’affichage sur Android ; confirmation de réception demandée à l’utilisateur.
