@@ -18,8 +18,8 @@ export default defineConfig({
         scope: '/',
         display: 'standalone',
         orientation: 'portrait',
-        background_color: '#F6F5F1',
-        theme_color: '#0F766E',
+        background_color: '#F6F2EA',
+        theme_color: '#0E6B61',
         icons: [
           { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
@@ -30,7 +30,7 @@ export default defineConfig({
         navigateFallback: '/index.html',
         // L'API et l'Atelier ne passent jamais par le cache du service worker.
         navigateFallbackDenylist: [/^\/api\//, /^\/atelier\//],
-        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,woff2}'],
       },
     }),
   ],

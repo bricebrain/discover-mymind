@@ -2,9 +2,11 @@ import AutoStoriesOutlinedIcon from '@mui/icons-material/AutoStoriesOutlined';
 import ExploreOutlinedIcon from '@mui/icons-material/ExploreOutlined';
 import PsychologyAltOutlinedIcon from '@mui/icons-material/PsychologyAltOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
-import { AppBar, BottomNavigation, BottomNavigationAction, Box, IconButton, Paper, Toolbar, Typography } from '@mui/material';
+import { BottomNavigation, BottomNavigationAction, Box, IconButton, Toolbar, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { MiniPlayer } from '../player/MiniPlayer';
+import { fonts } from './theme';
 
 export const TABS = [
   { path: '/', label: 'Explorer', icon: <ExploreOutlinedIcon /> },
@@ -12,7 +14,11 @@ export const TABS = [
   { path: '/mind', label: 'My Mind', icon: <PsychologyAltOutlinedIcon /> },
 ] as const;
 
-/** Cadre de l'app : barre du haut, contenu de l'onglet, navigation à 3 onglets en bas. */
+/** Hauteurs fixes du cadre, utilisées par les mises en page en deux colonnes. */
+export const APP_BAR_H = 52;
+export const NAV_H = 64;
+
+/** Cadre de l'app : barre du haut translucide, contenu, mini-lecteur flottant et navigation en bas. */
 export function Shell() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -20,29 +26,38 @@ export function Shell() {
 
   return (
     <Box sx={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
-      <AppBar position="sticky" color="inherit" elevation={0}
-        sx={{ borderBottom: 1, borderColor: 'divider', pt: 'env(safe-area-inset-top)' }}>
-        <Toolbar sx={{ minHeight: 52 }}>
-          <Box component="img" src="/icons/icon.svg" alt="" sx={{ width: 28, height: 28, mr: 1.25 }} />
-          <Typography variant="h3" component="span" sx={{ flex: 1 }}>Discover</Typography>
-          <IconButton component={Link} to="/settings" aria-label="Réglages" edge="end"
-            color={pathname === '/settings' ? 'primary' : 'default'}>
+      <Box component="header" sx={(t) => ({
+        position: 'sticky', top: 0, zIndex: t.zIndex.appBar, pt: 'env(safe-area-inset-top)',
+        bgcolor: alpha(t.palette.background.default, 0.82), backdropFilter: 'saturate(1.4) blur(14px)',
+        borderBottom: 1, borderColor: 'divider',
+      })}>
+        <Toolbar sx={{ minHeight: `${APP_BAR_H}px !important`, px: { xs: 2 } }}>
+          <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none', flex: 1 }}>
+            <Box component="img" src="/icons/icon.svg" alt="" sx={{ width: 26, height: 26, borderRadius: 1.5 }} />
+            <Typography component="span" sx={{ fontFamily: fonts.display, fontWeight: 650, fontSize: '1.2rem', letterSpacing: '-0.01em' }}>
+              Discover
+            </Typography>
+          </Box>
+          <IconButton component={Link} to="/settings" aria-label="Réglages" edge="end" color={pathname === '/settings' ? 'primary' : 'default'}>
             <SettingsOutlinedIcon />
           </IconButton>
         </Toolbar>
-      </AppBar>
+      </Box>
 
-      <Box component="main" sx={{ flex: 1, pb: 'calc(56px + var(--player-h, 0px) + env(safe-area-inset-bottom))' }}>
+      <Box component="main" sx={{ flex: 1, pb: `calc(${NAV_H}px + var(--player-h, 0px) + env(safe-area-inset-bottom))` }}>
         <Outlet />
       </Box>
 
-      <Paper component="nav" aria-label="Navigation principale" elevation={0}
-        sx={{ position: 'fixed', left: 0, right: 0, bottom: 0, borderTop: 1, borderColor: 'divider', pb: 'env(safe-area-inset-bottom)', zIndex: 'appBar' }}>
+      <Box component="nav" aria-label="Navigation principale" sx={(t) => ({
+        position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: t.zIndex.appBar, pb: 'env(safe-area-inset-bottom)',
+        bgcolor: alpha(t.palette.background.default, 0.92), backdropFilter: 'saturate(1.4) blur(14px)',
+        borderTop: 1, borderColor: 'divider',
+      })}>
         <MiniPlayer />
         <BottomNavigation showLabels value={active === -1 ? false : active} onChange={(_e, i: number) => navigate(TABS[i]!.path)}>
           {TABS.map((t) => <BottomNavigationAction key={t.path} label={t.label} icon={t.icon} />)}
         </BottomNavigation>
-      </Paper>
+      </Box>
     </Box>
   );
 }

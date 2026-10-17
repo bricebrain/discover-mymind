@@ -37,7 +37,7 @@ export function ShowsPage() {
     <Box sx={{ px: 2, pt: 2, pb: 4, maxWidth: 760, mx: 'auto' }}>
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
         <IconButton component={Link} to="/" aria-label="Retour à Explorer" edge="start"><ArrowBackIcon /></IconButton>
-        <Typography variant="h1" component="h1" sx={{ flex: 1 }}>Mes émissions</Typography>
+        <Typography variant="h1" component="h1" sx={{ flex: 1, fontSize: { xs: '1.6rem', sm: '2.1rem' } }}>Mes émissions</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAdding(true)} disabled={count >= max}>Ajouter</Button>
       </Stack>
       <Typography color="text.secondary" sx={{ mb: 2 }}>

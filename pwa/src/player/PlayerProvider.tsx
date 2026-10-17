@@ -291,7 +291,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if ('mediaSession' in navigator) navigator.mediaSession.playbackState = state.track ? (state.playing ? 'playing' : 'paused') : 'none';
     // Hauteur du mini-lecteur, pour que les mises en page en tiennent compte.
-    document.documentElement.style.setProperty('--player-h', state.track ? '64px' : '0px');
+    document.documentElement.style.setProperty('--player-h', state.track ? '72px' : '0px');
   }, [state.track, state.playing]);
 
   const value = useMemo<PlayerApi>(() => ({ ...state, play, toggle, seek, skip, setRate, stop }), [state, play, toggle, seek, skip, setRate, stop]);
