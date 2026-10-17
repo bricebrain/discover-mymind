@@ -7,12 +7,22 @@ export const LEASE_MS = 15 * 60_000;
 const STAGES = ['download','normalize','transcribe','source_ready','plan','extract','translate','adapt','evaluate','review','tts','publish'];
 
 export async function source(env: Env, row: QueueRow) {
-  if (row.kind !== 'episode') throw new HttpError(422,'unsupported_source','Ce type de source sera disponible dans un prochain lot.');
+  if (row.kind === 'youtube') {
+    // Le titre et la langue sont lus par l'Atelier lors du téléchargement.
+    return { kind: 'youtube', videoId: row.ref, url: `https://www.youtube.com/watch?v=${row.ref}`, title: `YouTube ${row.ref}`, language: null, category: null };
+  }
+  if (row.kind === 'reflection') {
+    const note = await env.DB.prepare('SELECT id,title,body_md AS text FROM reflections WHERE id=? AND deleted_at IS NULL')
+      .bind(row.ref).first<{ id: string; title: string | null; text: string }>();
+    if (!note || !note.text.trim()) throw new HttpError(409,'source_missing','La note de la demande a disparu ou est vide.');
+    return { kind: 'reflection', id: note.id, title: note.title || note.text.split('\n')[0]!.replace(/^#+\s*/,'').slice(0,120) || 'Note My Mind',
+      text: note.text, language: null, category: null };
+  }
   const episode = await env.DB.prepare(`SELECT e.id,e.title,e.audio_url AS audioUrl,e.transcript_url AS transcriptUrl,
     e.transcript_type AS transcriptType,e.duration_sec AS durationSec,s.language,s.category,s.title AS showTitle
     FROM episodes e JOIN shows s ON s.id=e.show_id WHERE e.id=?`).bind(row.ref).first();
   if (!episode) throw new HttpError(409,'source_missing','La source de la demande a disparu.');
-  return episode;
+  return { kind: 'episode', ...episode };
 }
 export async function lease(req: Request,env: Env) {
   const body = await readJson<{ owner?: unknown; sourceOnly?: unknown; itemId?: unknown; includeReview?: unknown }>(req,4096);
@@ -28,7 +38,7 @@ export async function lease(req: Request,env: Env) {
   await expireExhausted(env,now);
   const row = await env.DB.prepare(`UPDATE prepare_queue SET status='leased',lease_token=?,lease_owner=?,
     lease_expires_at=?,attempts=attempts+1,stage='download',updated_at=?
-    WHERE id=(SELECT id FROM prepare_queue WHERE kind='episode' AND
+    WHERE id=(SELECT id FROM prepare_queue WHERE
       (status='pending' OR (status='leased' AND lease_expires_at<=?)) AND attempts<max_attempts
       AND (?=0 OR COALESCE(stage,'')<>'source_ready')
       AND (?=1 OR COALESCE(stage,'')<>'review') AND (? IS NULL OR id=?)
@@ -36,8 +46,8 @@ export async function lease(req: Request,env: Env) {
     .bind(crypto.randomUUID(),body.owner,expires,now,now,body.sourceOnly ? 1 : 0,body.includeReview ? 1 : 0,body.itemId ?? null,body.itemId ?? null).first<QueueRow>();
   if (!row) return json({ item: null });
   try {
-    const episode = await source(env,row);
-    return json({ item: { ...queueOut({ ...row,title: String(episode.title) }), leaseToken: row.lease_token, source: episode } });
+    const origin = await source(env,row);
+    return json({ item: { ...queueOut({ ...row,title: String(origin.title) }), leaseToken: row.lease_token, source: origin } });
   } catch (e) {
     await env.DB.prepare("UPDATE prepare_queue SET status='failed',error='Source indisponible',lease_token=NULL,lease_expires_at=NULL WHERE id=? AND lease_token=?")
       .bind(row.id,row.lease_token).run();

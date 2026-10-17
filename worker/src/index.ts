@@ -93,6 +93,8 @@ async function handleData(req: Request, env: Env, path: string, m: string): Prom
   if (rf?.[1] && !rf[2] && m === 'PATCH') return reflections.update(req, env, rf[1]);
   if (rf?.[1] && !rf[2] && m === 'DELETE') return reflections.trash(env, rf[1]);
   if (rf?.[1] && rf[2] && m === 'POST') return reflections.restore(env, rf[1]);
+  const rfPrepare = path.match(/^\/api\/reflections\/([0-9a-f-]{36})\/prepare$/);
+  if (rfPrepare?.[1] && m === 'POST') return queue.enqueueReflection(req,env,rfPrepare[1]);
   if (path === '/api/export' && m === 'GET') return reflections.exportAll(env);
 
   if (path === '/api/explorer' && m === 'GET') return episodes.explorer(req, env);

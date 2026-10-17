@@ -26,6 +26,7 @@ export interface Note {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
+  englishContentId?: string | null;
 }
 
 export interface Draft {

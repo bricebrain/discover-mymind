@@ -3,12 +3,12 @@ import { Alert, Box, Button, CircularProgress, Stack, Typography } from '@mui/ma
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Episode } from '../api/episodes';
-import { optionsLabel, queueLabel } from './options';
+import { defaultOptions, optionsLabel, queueLabel } from './options';
 import { PrepareDialog } from './PrepareDialog';
 import { usePreparation } from './usePreparation';
 
 export function PreparationPanel({episode}: {episode?: Episode}) {
-  const {query,cancel,retry} = usePreparation(episode?.id);
+  const {query,cancel,retry} = usePreparation(episode ? {kind:'episode',id:episode.id} : undefined);
   const [open,setOpen] = useState(false);
   const items = query.data?.items ?? [];
   const active = items.some((i) => i.status==='pending' || i.status==='leased');
@@ -35,6 +35,7 @@ export function PreparationPanel({episode}: {episode?: Episode}) {
       </Stack>
     </Box>)}</Stack>
     {(cancel.isError || retry.isError) && <Alert severity="error">{cancel.error?.message ?? retry.error?.message}</Alert>}
-    {open && episode && <PrepareDialog key={episode.id} episode={episode} onClose={() => setOpen(false)} />}
+    {open && episode && <PrepareDialog key={episode.id} target={{kind:'episode',id:episode.id}} title={episode.title}
+      initial={defaultOptions(episode.durationSec,episode.showId)} faithfulAllowed={episode.language==='fr'} onClose={() => setOpen(false)} />}
   </Box>;
 }

@@ -29,7 +29,7 @@ export function validateManifest(input: unknown, context: ValidationContext = {}
   if (m.content.sourceUrl) safeUrl(m.content.sourceUrl,m.content.sourceType==='podcast');
   if (m.content.sourceType === 'podcast' && !/^episode:[0-9a-f]{20}$/.test(m.content.sourceRef ?? '')) reject('invalid_source_ref');
   if (m.content.sourceType === 'reflection' && !/^reflection:[0-9a-f-]{36}$/.test(m.content.sourceRef ?? '')) reject('invalid_source_ref');
-  if (m.content.sourceType === 'youtube' && m.content.sourceRef != null) reject('invalid_source_ref');
+  if (m.content.sourceType === 'youtube' && m.content.sourceRef != null && !/^youtube:[A-Za-z0-9_-]{11}$/.test(m.content.sourceRef)) reject('invalid_source_ref');
   if (Object.values(m.files).reduce((total, f) => total + f.size, 0) > 300_000_000) reject('publication_too_large');
   const used = new Set<string>();
   for (const v of m.variants) {

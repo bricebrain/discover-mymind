@@ -5,7 +5,7 @@ import { upload } from '../publications/upload';
 import { commit } from '../publications/commit';
 import { secretsEqual } from '../security/crypto';
 import * as leases from '../queue/leases';
-import { cancel, enqueue, list, retry } from './queue';
+import { cancel, enqueue, enqueueSource, list, retry } from './queue';
 import * as episodes from './episodes';
 import * as shows from './shows';
 import { manifest } from '../publications/store';
@@ -38,6 +38,7 @@ export async function handleAtelier(req: Request, env: Env, path: string): Promi
   if (prep?.[1] && req.method === 'POST') return enqueue(req,env,prep[1]);
   const manage = path.match(/^\/atelier\/queue\/([0-9a-f-]{36})\/(retry|cancel)$/);
   if (manage?.[1] && req.method === 'POST') return manage[2]==='retry' ? retry(env,manage[1]) : cancel(env,manage[1]);
+  if (path === '/atelier/sources' && req.method === 'POST') return enqueueSource(req,env);
   if (path === '/atelier/queue' && req.method === 'GET') return list(req,env);
   if (path === '/atelier/queue/lease' && req.method === 'POST') return leases.lease(req,env);
   const q = path.match(/^\/atelier\/queue\/([0-9a-f-]{36})\/(heartbeat|fail|release)$/);

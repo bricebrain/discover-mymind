@@ -1,20 +1,23 @@
 import { Alert, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { useState } from 'react';
-import type { Episode } from '../api/episodes';
-import { COVERAGES, defaultOptions } from './options';
+import type { PrepTarget } from '../api/queue';
+import { COVERAGES } from './options';
 import type { PrepareOptions } from './types';
 import { usePreparation } from './usePreparation';
 
-export function PrepareDialog({episode,onClose}: {episode: Episode;onClose:() => void}) {
-  const [options,setOptions] = useState(() => defaultOptions(episode.durationSec,episode.showId));
-  const {prepare} = usePreparation(episode.id);
+/** Options d'une préparation (épisode ou note). Une note n'a pas d'audio : pas de copie de l'original. */
+export function PrepareDialog({target,title,initial,faithfulAllowed,onClose}: {
+  target: PrepTarget; title: string; initial: PrepareOptions; faithfulAllowed: boolean; onClose:() => void;
+}) {
+  const [options,setOptions] = useState(initial);
+  const {prepare} = usePreparation(target);
   const set = <K extends keyof PrepareOptions>(key: K,value: PrepareOptions[K]) => setOptions((o) => ({...o,[key]:value}));
   const range = options.coverage==='condensed' ? [8,20] : [3,6];
   const valid = options.coverage==='full' || (Number.isInteger(options.targetMinutes) && options.targetMinutes!>=range[0]! && options.targetMinutes!<=range[1]!);
   return <Dialog open onClose={prepare.isPending ? undefined : onClose} fullWidth maxWidth="xs">
     <DialogTitle>Préparer en anglais</DialogTitle>
     <DialogContent><Stack spacing={2} sx={{pt:1}}>
-      <Typography variant="body2">{episode.title}</Typography>
+      <Typography variant="body2">{title}</Typography>
       <TextField select label="Version" value={options.coverage} onChange={(e) => {
         const coverage=e.target.value as PrepareOptions['coverage'];
         setOptions((o) => ({...o,coverage,targetMinutes:coverage==='full' ? null : coverage==='condensed' ? 12 : 4}));
@@ -27,9 +30,9 @@ export function PrepareDialog({episode,onClose}: {episode: Episode;onClose:() =>
       <TextField select label="Style" value={options.style} onChange={(e) => set('style',e.target.value as PrepareOptions['style'])}>
         <MenuItem value="narration">Narration</MenuItem><MenuItem value="dialogue">Dialogue</MenuItem>
       </TextField>
-      {episode.language==='fr' && <FormControlLabel control={<Checkbox checked={options.faithful} onChange={(_e,v) => set('faithful',v)} />} label="Ajouter l’anglais fidèle intégral" />}
-      <FormControlLabel control={<Checkbox checked={options.keepOriginalCopy} onChange={(_e,v) => set('keepOriginalCopy',v)} />} label="Garder une copie synchronisée de l’original" />
-      <Typography variant="caption" color="text.secondary">L’Atelier sur ton Mac prépare le texte et l’audio, puis publie la version dans Discover. Une version signalée à relire attend ton accord dans l’Atelier.</Typography>
+      {faithfulAllowed && <FormControlLabel control={<Checkbox checked={options.faithful} onChange={(_e,v) => set('faithful',v)} />} label="Ajouter l’anglais fidèle intégral" />}
+      {target.kind==='episode' && <FormControlLabel control={<Checkbox checked={options.keepOriginalCopy} onChange={(_e,v) => set('keepOriginalCopy',v)} />} label="Garder une copie synchronisée de l’original" />}
+      <Typography variant="caption" color="text.secondary">L’Atelier sur ton Mac prépare le texte et l’audio, puis publie la version dans Discover. Si le contrôle de fidélité signale des points, la version est marquée « non relue ».</Typography>
       {prepare.isError && <Alert severity="error">{prepare.error.message}</Alert>}
     </Stack></DialogContent>
     <DialogActions><Button onClick={onClose} disabled={prepare.isPending}>Annuler</Button><Button variant="contained" disabled={!valid || prepare.isPending}

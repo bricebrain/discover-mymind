@@ -15,6 +15,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { fonts } from '../app/theme';
 import { renderMarkdown } from './markdown';
+import { NotePreparation } from './NotePreparation';
 import { deleteDraft, draftFromNote, getDraft, pushDraft, putDraft, type Draft, type Note } from './store';
 
 type Status = 'loading' | 'saved' | 'saving' | 'local' | 'offline' | 'conflict' | 'error' | 'missing';
@@ -40,6 +41,7 @@ export function NoteEditor({ id, onBack, onDeleted }: { id: string; onBack?: () 
   const [draft, setDraft] = useState<Draft | null>(null);
   const [status, setStatus] = useState<Status>('loading');
   const [conflict, setConflict] = useState<Note | null>(null);
+  const [englishContentId, setEnglishContentId] = useState<string | null>(null);
   const [tab, setTab] = useState<'write' | 'preview'>('write');
   const latest = useRef<Draft | null>(null);
   const timers = useRef<{ push?: number }>({});
@@ -89,6 +91,7 @@ export function NoteEditor({ id, onBack, onDeleted }: { id: string; onBack?: () 
       const local = await getDraft(id);
       const server = await api<{ reflection: Note }>(`/api/reflections/${id}`).then((r) => r.reflection).catch(() => null);
       if (!alive) return;
+      setEnglishContentId(server?.englishContentId ?? null);
       let d: Draft | null = null;
       if (local && (local.dirty || !server)) d = local;
       else if (server) {
@@ -237,6 +240,8 @@ export function NoteEditor({ id, onBack, onDeleted }: { id: string; onBack?: () 
           dangerouslySetInnerHTML={{ __html: renderMarkdown(draft.body) || '<p style="opacity:.6">Rien à afficher.</p>' }}
         />
       )}
+
+      <NotePreparation id={draft.id} title={draft.title} body={draft.body} synced={status === 'saved'} englishContentId={englishContentId} />
 
       <Dialog open={!!conflict}>
         <DialogTitle>Cette note a été modifiée ailleurs</DialogTitle>
