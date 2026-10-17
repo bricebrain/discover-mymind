@@ -8,10 +8,14 @@
     "test": "vitest run",
     "typecheck": "wrangler types && tsc --noEmit",
     "migrate:local": "wrangler d1 migrations apply discover --local",
-    "migrate:remote": "wrangler d1 migrations apply discover --remote"
+    "migrate:remote": "wrangler d1 migrations apply discover --remote",
+    "contracts:generate": "node scripts/generate-contracts.mjs",
+    "pretest": "npm run contracts:generate",
+    "predeploy": "npm run contracts:generate"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.4.4",
+    "ajv": "^8.20.0",
     "typescript": "~5.9.0",
     "vitest": "~4.1.0",
     "wrangler": "4.151.1"

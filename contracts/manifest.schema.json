@@ -1,0 +1,329 @@
+{
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "content": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{2,95}$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "originalLanguage": {
+          "type": "string",
+          "pattern": "^[a-z]{2}(-[A-Z]{2})?$"
+        },
+        "sourceType": {
+          "enum": [
+            "podcast",
+            "youtube",
+            "reflection"
+          ]
+        },
+        "sourceRef": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sourceUrl": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 2048
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "category": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 80
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "editorial": {
+          "enum": [
+            "news",
+            "discovery"
+          ]
+        },
+        "rights": {
+          "const": "personal_use"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "originalLanguage",
+        "sourceType",
+        "rights"
+      ],
+      "additionalProperties": false
+    },
+    "variants": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{1,31}$"
+          },
+          "kind": {
+            "enum": [
+              "source",
+              "faithful_translation",
+              "adaptation"
+            ]
+          },
+          "language": {
+            "type": "string",
+            "pattern": "^[a-z]{2}(-[A-Z]{2})?$"
+          },
+          "cefrLevel": {
+            "anyOf": [
+              {
+                "enum": [
+                  "A2",
+                  "B1",
+                  "B2",
+                  "C1"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "style": {
+            "enum": [
+              "narration",
+              "dialogue"
+            ]
+          },
+          "coverage": {
+            "enum": [
+              "full",
+              "condensed",
+              "essentials"
+            ]
+          },
+          "condensation": {
+            "type": "object",
+            "properties": {
+              "targetMinutes": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 1440
+              },
+              "sourceMinutes": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 1440
+              },
+              "excludeAds": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "targetMinutes",
+              "sourceMinutes",
+              "excludeAds"
+            ],
+            "additionalProperties": false
+          },
+          "derivedFrom": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]{1,31}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "segmentsFile": {
+            "type": "string",
+            "maxLength": 180,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*(/[a-zA-Z0-9][a-zA-Z0-9._-]*)*$"
+          },
+          "audio": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "enum": [
+                      "r2",
+                      "publisher_stream"
+                    ]
+                  },
+                  "file": {
+                    "type": "string",
+                    "maxLength": 180,
+                    "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*(/[a-zA-Z0-9][a-zA-Z0-9._-]*)*$"
+                  },
+                  "url": {
+                    "type": "string",
+                    "maxLength": 2048
+                  },
+                  "origin": {
+                    "enum": [
+                      "original",
+                      "kokoro"
+                    ]
+                  },
+                  "durationMs": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 86400000
+                  },
+                  "timingSource": {
+                    "enum": [
+                      "rss_srt",
+                      "rss_vtt",
+                      "macwhisper_srt",
+                      "kokoro",
+                      "none"
+                    ]
+                  }
+                },
+                "required": [
+                  "source",
+                  "origin",
+                  "durationMs",
+                  "timingSource"
+                ],
+                "additionalProperties": false,
+                "oneOf": [
+                  {
+                    "properties": {
+                      "source": {
+                        "const": "r2"
+                      }
+                    },
+                    "required": [
+                      "file"
+                    ],
+                    "not": {
+                      "required": [
+                        "url"
+                      ]
+                    }
+                  },
+                  {
+                    "properties": {
+                      "source": {
+                        "const": "publisher_stream"
+                      }
+                    },
+                    "required": [
+                      "url"
+                    ],
+                    "not": {
+                      "required": [
+                        "file"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "generation": {
+            "type": "object"
+          },
+          "evaluation": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "key",
+          "kind",
+          "language",
+          "segmentsFile"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "files": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 40,
+      "propertyNames": {
+        "type": "string",
+        "maxLength": 180,
+        "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*(/[a-zA-Z0-9][a-zA-Z0-9._-]*)*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 95000000
+          },
+          "contentType": {
+            "enum": [
+              "application/json",
+              "audio/mpeg"
+            ]
+          }
+        },
+        "required": [
+          "sha256",
+          "size",
+          "contentType"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "removeVariants": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 20,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]{1,31}$"
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "content",
+    "variants",
+    "files"
+  ],
+  "additionalProperties": false,
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://discover.local/manifest.schema.json"
+}

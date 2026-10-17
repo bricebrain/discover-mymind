@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "variantKey": "en-source",
+  "segments": [
+    {
+      "id": "s001",
+      "text": "A clear source sentence.",
+      "startMs": null,
+      "endMs": null
+    }
+  ]
+}

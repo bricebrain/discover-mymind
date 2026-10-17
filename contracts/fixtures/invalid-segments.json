@@ -1,0 +1,268 @@
+[
+  {
+    "name": "duplicate-segment",
+    "code": "invalid_segments",
+    "document": {
+      "schemaVersion": 1,
+      "variantKey": "en-source",
+      "segments": [
+        {
+          "id": "s001",
+          "text": "A clear source sentence.",
+          "startMs": null,
+          "endMs": null
+        },
+        {
+          "id": "s001",
+          "text": "A clear source sentence.",
+          "startMs": null,
+          "endMs": null
+        }
+      ]
+    },
+    "variant": {
+      "key": "en-source",
+      "kind": "source",
+      "language": "en",
+      "segmentsFile": "segments/en-source.json"
+    }
+  },
+  {
+    "name": "wrong-variant",
+    "code": "invalid_segments",
+    "document": {
+      "schemaVersion": 1,
+      "variantKey": "other-key",
+      "segments": [
+        {
+          "id": "s001",
+          "text": "A clear source sentence.",
+          "startMs": null,
+          "endMs": null
+        }
+      ]
+    },
+    "variant": {
+      "key": "en-source",
+      "kind": "source",
+      "language": "en",
+      "segmentsFile": "segments/en-source.json"
+    }
+  },
+  {
+    "name": "timing-without-audio",
+    "code": "invalid_timing",
+    "document": {
+      "schemaVersion": 1,
+      "variantKey": "en-source",
+      "segments": [
+        {
+          "id": "s001",
+          "text": "A clear source sentence.",
+          "startMs": 0,
+          "endMs": 100
+        }
+      ]
+    },
+    "variant": {
+      "key": "en-source",
+      "kind": "source",
+      "language": "en",
+      "segmentsFile": "segments/en-source.json"
+    }
+  },
+  {
+    "name": "empty-text",
+    "code": "invalid_segments",
+    "document": {
+      "schemaVersion": 1,
+      "variantKey": "en-source",
+      "segments": [
+        {
+          "id": "s001",
+          "text": "",
+          "startMs": null,
+          "endMs": null
+        }
+      ]
+    },
+    "variant": {
+      "key": "en-source",
+      "kind": "source",
+      "language": "en",
+      "segmentsFile": "segments/en-source.json"
+    }
+  },
+  {
+    "name": "unknown-citation",
+    "code": "invalid_source_segments",
+    "document": {
+      "schemaVersion": 1,
+      "variantKey": "en-source",
+      "segments": [
+        {
+          "id": "s001",
+          "text": "A clear source sentence.",
+          "startMs": null,
+          "endMs": null,
+          "sourceSegments": [
+            "absent"
+          ]
+        }
+      ]
+    },
+    "variant": {
+      "key": "en-source",
+      "kind": "source",
+      "language": "en",
+      "segmentsFile": "segments/en-source.json"
+    }
+  },
+  {
+    "name": "condensed-missing-citation",
+    "code": "missing_source_segments",
+    "document": {
+      "schemaVersion": 1,
+      "variantKey": "en-b1",
+      "segments": [
+        {
+          "id": "s001",
+          "text": "A clear source sentence.",
+          "startMs": null,
+          "endMs": null
+        }
+      ]
+    },
+    "variant": {
+      "key": "en-b1",
+      "kind": "adaptation",
+      "language": "en-GB",
+      "cefrLevel": "B1",
+      "style": "narration",
+      "coverage": "condensed",
+      "condensation": {
+        "targetMinutes": 12,
+        "sourceMinutes": 50,
+        "excludeAds": true
+      },
+      "derivedFrom": "en-source",
+      "segmentsFile": "segments/en-b1.json"
+    }
+  },
+  {
+    "name": "missing-timing",
+    "code": "invalid_timing",
+    "document": {
+      "schemaVersion": 1,
+      "variantKey": "en-source",
+      "segments": [
+        {
+          "id": "s001",
+          "text": "A clear source sentence.",
+          "startMs": null,
+          "endMs": null
+        }
+      ]
+    },
+    "variant": {
+      "key": "en-source",
+      "kind": "source",
+      "language": "en",
+      "segmentsFile": "segments/en-source.json",
+      "audio": {
+        "source": "r2",
+        "file": "audio/source.mp3",
+        "origin": "original",
+        "durationMs": 2000,
+        "timingSource": "macwhisper_srt"
+      }
+    }
+  },
+  {
+    "name": "end-beyond-audio",
+    "code": "invalid_timing",
+    "document": {
+      "schemaVersion": 1,
+      "variantKey": "en-source",
+      "segments": [
+        {
+          "id": "s001",
+          "text": "A clear source sentence.",
+          "startMs": 0,
+          "endMs": 3000
+        }
+      ]
+    },
+    "variant": {
+      "key": "en-source",
+      "kind": "source",
+      "language": "en",
+      "segmentsFile": "segments/en-source.json",
+      "audio": {
+        "source": "r2",
+        "file": "audio/source.mp3",
+        "origin": "original",
+        "durationMs": 2000,
+        "timingSource": "macwhisper_srt"
+      }
+    }
+  },
+  {
+    "name": "negative-timing",
+    "code": "invalid_segments",
+    "document": {
+      "schemaVersion": 1,
+      "variantKey": "en-source",
+      "segments": [
+        {
+          "id": "s001",
+          "text": "A clear source sentence.",
+          "startMs": -1,
+          "endMs": 500
+        }
+      ]
+    },
+    "variant": {
+      "key": "en-source",
+      "kind": "source",
+      "language": "en",
+      "segmentsFile": "segments/en-source.json",
+      "audio": {
+        "source": "r2",
+        "file": "audio/source.mp3",
+        "origin": "original",
+        "durationMs": 2000,
+        "timingSource": "macwhisper_srt"
+      }
+    }
+  },
+  {
+    "name": "reversed-timing",
+    "code": "invalid_timing",
+    "document": {
+      "schemaVersion": 1,
+      "variantKey": "en-source",
+      "segments": [
+        {
+          "id": "s001",
+          "text": "A clear source sentence.",
+          "startMs": 1000,
+          "endMs": 100
+        }
+      ]
+    },
+    "variant": {
+      "key": "en-source",
+      "kind": "source",
+      "language": "en",
+      "segmentsFile": "segments/en-source.json",
+      "audio": {
+        "source": "r2",
+        "file": "audio/source.mp3",
+        "origin": "original",
+        "durationMs": 2000,
+        "timingSource": "macwhisper_srt"
+      }
+    }
+  }
+]

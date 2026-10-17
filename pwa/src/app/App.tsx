@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import { useSession } from '../api/auth';
 import { ExplorerPage } from '../pages/ExplorerPage';
+import { ContentPage } from '../pages/ContentPage';
 import { LibraryPage } from '../pages/LibraryPage';
 import { LoginPage } from '../pages/LoginPage';
 import { MindPage } from '../pages/MindPage';
@@ -19,6 +20,7 @@ const router = createBrowserRouter([
       { path: '/', element: <ExplorerPage /> },
       { path: '/shows', element: <ShowsPage /> },
       { path: '/library', element: <LibraryPage /> },
+      { path: '/library/:id', element: <ContentPage /> },
       { path: '/mind', element: <MindPage /> },
       { path: '/settings', element: <SettingsPage /> },
       { path: '*', element: <Navigate to="/" replace /> },

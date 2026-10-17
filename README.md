@@ -50,3 +50,9 @@ npm --prefix worker run migrate:remote
 ```
 
 Révocation d'urgence de toutes les sessions : changer `SESSION_EPOCH`.
+
+## Publication Atelier (lot 6)
+
+Contrats, configuration de la cible Discover, reprise et tests :
+[`contracts/README.md`](contracts/README.md). La Bibliothèque affiche les contenus
+publiés ; leur source est lisible et écoutable. Le choix entre toutes les versions arrive au lot 7.

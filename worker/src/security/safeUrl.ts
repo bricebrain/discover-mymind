@@ -26,7 +26,7 @@ export function parseSafeUrl(raw: string, opts: SafeUrlOptions = {}): URL {
   if (url.protocol !== 'https:' && !(opts.allowHttp && url.protocol === 'http:')) fail('schéma non autorisé');
   if (url.username || url.password) fail('identifiants interdits dans l’URL');
   if (url.port) fail('port non standard');
-  const host = url.hostname.toLowerCase();
+  const host = url.hostname.toLowerCase().replace(/\.$/, '');
   if (host.startsWith('[') || host.includes(':') || IPV4.test(host)) fail('adresse IP littérale');
   if (host === 'localhost' || !host.includes('.') || BLOCKED_SUFFIXES.some((s) => host.endsWith(s))) {
     fail('hôte interne');

@@ -848,7 +848,7 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 | **3 bis — Passe design** ✅ | Identité visuelle et ergonomie, une fois qu'il y a du vrai contenu (épisodes, lecteur) : cartes d'épisodes, typographie de lecture, mini-lecteur, mise en page pliée et dépliée (Fold7), mouvements discrets | Une app agréable au quotidien, jugée sur de vrais épisodes |
 | **4 — My Mind minimal** ✅ | Notes Markdown (création, modification, liste, corbeille), sauvegarde locale, synchronisation 409, « Réfléchir » depuis un épisode, export JSON | Écrire ses réflexions au fil des écoutes |
 | **5 — Transcriptions des flux** ✅ | SRT/VTT → segments, cache R2, contrôle de synchronisation par la durée | Lire en écoutant (Bloomberg) |
-| **6 — Contrat de publication** | Schémas, fixtures, validateurs TS et Python, protocole § 6.5, nettoyage, routes média, cible « discover » dans l'Atelier (bundles YouTube existants) | Les contenus déjà préparés dans l'Atelier, visibles sur le téléphone |
+| **6 — Contrat de publication** ✅ (déployé) | Schémas, fixtures, validateurs TS et Python, protocole § 6.5, nettoyage, routes média, cible « discover » dans l'Atelier (bundles YouTube existants) | Les contenus déjà préparés dans l'Atelier, visibles sur le téléphone |
 | **7 — Lecture des versions** | Sélecteur de version (avec sa nature : intégral, condensé, essentiel ; niveau ; durée), transcription, français à la demande, navigation par segment, progression par version | Écouter Original, Fidèle, Intégral B1 ou Condensé B1 |
 | **8 — File avec bail** | Bouton et options dans la PWA ; onglet « À préparer » dans l'Atelier ; bail, signal de vie, reprise ; téléchargement et normalisation de l'épisode | Marquer sur le téléphone, retrouver prêt après l'Atelier |
 | **9 — Versions préparées** | `adaptation.py` : couverture × niveau × durée (§ 7.4), synthèse en deux passes avec renvois (§ 7.7), évaluation fond puis langue (§ 7.6), exclusion des publicités, narration par défaut, calibrage du débit Kokoro, préparation auto de L'édito éco | Un épisode de 50 min écouté en 12 min à son niveau |
@@ -887,15 +887,17 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 - [ ] Le français n'est affiché que s'il traduit exactement la variante active.
 
 ### Publication et variantes (lot 6)
-- [ ] Un manifeste valide de chacun des types (épisode FR, épisode EN, YouTube, réflexion) est publié et visible.
-- [ ] Chaque règle du § 6.2 a sa fixture invalide, refusée avec un code d'erreur précis, aussi bien en TS qu'en Python.
-- [ ] Publier deux fois le même manifeste ne crée ni doublon ni nouvelle révision.
-- [ ] Un envoi interrompu au milieu d'un fichier est refusé par R2. La relance n'envoie que les fichiers manquants.
-- [ ] Deux commits simultanés de la même publication : un seul réussit, l'autre reçoit `409`.
-- [ ] Un commit d'une révision plus ancienne ne remplace pas la révision courante.
-- [ ] Une nouvelle révision qui omet une variante existante est refusée (`variant_dropped`), sauf si elle figure dans `removeVariants`.
-- [ ] Un fichier encore référencé, ou référencé par une révision remplacée depuis moins de 7 jours, n'est jamais supprimé.
-- [ ] Une publication incomplète n'est jamais visible dans la PWA.
+- [x] Un manifeste valide de chacun des types (épisode FR, épisode EN, YouTube, réflexion) est publié et visible.
+- [x] Chaque règle du § 6.2 a sa fixture invalide, refusée avec un code d'erreur précis, aussi bien en TS qu'en Python.
+- [x] Publier deux fois le même manifeste ne crée ni doublon ni nouvelle révision.
+- [x] Un envoi interrompu au milieu d'un fichier est refusé par R2. La relance n'envoie que les fichiers manquants.
+- [x] Deux commits simultanés de la même publication : un seul réussit, l'autre reçoit `409`.
+- [x] Un commit d'une révision plus ancienne ne remplace pas la révision courante.
+- [x] Une nouvelle révision qui omet une variante existante est refusée (`variant_dropped`), sauf si elle figure dans `removeVariants`.
+- [x] Un fichier encore référencé, ou référencé par une révision remplacée depuis moins de 7 jours, n'est jamais supprimé.
+- [x] Une publication incomplète n'est jamais visible dans la PWA.
+
+**Validation du 2026-10-17** : fixtures TS/Python et protocole complet testés dans le runtime Cloudflare local (podcast FR, podcast EN, YouTube, réflexion). Migration `0003` appliquée localement et en production. Un bundle YouTube réel de 15,8 Mo est publié sur Discover, relancé sans nouvelle révision ; ses 56 segments et son audio R2 (`206`) ont été vérifiés en production. Le jeton Atelier a été renouvelé et enregistré dans `convert/config_discover.json` (ignoré par Git, permissions 0600). Le sélecteur de versions reste au lot 7. Détails techniques : `contracts/README.md`. **La validation sur le Fold7 réel reste à faire.**
 
 ### File « à préparer » (lot 8)
 - [ ] Deux instances qui demandent un bail en même temps n'obtiennent jamais la même demande.
@@ -1001,3 +1003,12 @@ Limite d'abonnements : **30**, ce qui donne un cycle de collecte d'environ 30 mi
 2. **Début du lot 3** : relire 24 h de journaux du cron. **Mesures du 2026-10-17** en production : le cron ne s'est activé que 6 à 10 minutes après le déploiement ; les premières collectes (10 épisodes, insertion D1 comprise) coûtent **8 à 11 ms** de CPU, sans interruption (`outcome: ok`). Les passages suivants s'arrêtent au premier GUID connu et devraient coûter moins. Si des `exceededCpu` apparaissent, limiter la première collecte d'une émission à 5 épisodes.
 3. **Lot 5** : l'écart de durée entre le fichier officiel et celui transcrit par l'Atelier, sur 3 épisodes avec publicités dynamiques. On ajustera le seuil de 1,5 s si besoin.
 4. **Lot 9** : les seuils indicatifs de simplicité (§ 7.6), à calibrer sur 5 épisodes relus.
+
+### Compléments du lot 6 (2026-10-17)
+
+- Suppression « Idées » isolée dans le commit Atelier `9191390`, sans embarquer le travail vocabulaire.
+- Contrat : segments JSON limités à 5 Mo pour borner la mémoire du Worker ; audios transmis en streaming avec vérification SHA-256 par R2.
+- Nettoyage : réservation des blobs en D1 pour éviter une réutilisation concurrente pendant leur suppression ; au plus 10 blobs et 10 manifestes par passage, à la minute 17.
+- Un verrou de commit interrompu depuis 15 min est récupéré au prochain nettoyage, avec un jeton qui interdit une ancienne bascule tardive.
+- Première mesure de publication en production : envoi audio de 15,7 Mo à **7 ms de CPU**, `outcome: ok`. Cela ne remplace pas une mesure complète des quotas et du cron sur 24 h. Les déploiements de Discover datent de ce jour : la fenêtre complète de 24 h n’est pas encore disponible.
+- Livraison lot 6 : **138 tests Worker + 126 tests Atelier + 9 tests PWA**, types et build validés. Commit Atelier : `8dfbd86`. Version Worker : `6bac5190-0d40-4bc0-98fa-d274e0063295`.

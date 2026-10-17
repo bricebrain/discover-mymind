@@ -1,5 +1,7 @@
 import { authDisabled, type Env } from './env';
 import { apiError, HttpError, json, noContent, withSecurityHeaders } from './http';
+import { cleanupPublications } from './publications/cleanup';
+import * as contents from './routes/contents';
 import { collectNext } from './collector';
 import * as auth from './routes/auth';
 import * as episodes from './routes/episodes';
@@ -44,6 +46,12 @@ async function handleApi(req: Request, env: Env, path: string): Promise<Response
 
 /** Routes de données (émissions, épisodes, progression) : la session est vérifiée avant. */
 async function handleData(req: Request, env: Env, path: string, m: string): Promise<Response> {
+  if (path === '/api/library' && m === 'GET') return contents.library(req,env);
+  const content = path.match(/^\/api\/contents\/([a-z0-9-]{3,96})(?:\/variants\/([a-z0-9-]{2,32})\/(segments|audio))?$/);
+  if (content?.[1] && m === 'GET') {
+    if (!content[2]) return contents.detail(env,content[1]);
+    return contents.media(req,env,content[1],content[2],content[3]!);
+  }
   if (path === '/api/shows' && m === 'GET') return shows.list(env);
   if (path === '/api/shows' && m === 'POST') return shows.create(req, env);
   if (path === '/api/shows/resolve' && m === 'POST') return shows.resolve(req);
@@ -94,5 +102,6 @@ export default {
     if (r.status !== 'idle') console.log(JSON.stringify({ event: 'collect', ...r }));
     // Corbeille de My Mind : une fois par heure suffit (minute 7).
     if (new Date().getUTCMinutes() === 7) await reflections.purgeTrash(env);
+    if (new Date().getUTCMinutes() === 17) await cleanupPublications(env);
   },
 } satisfies ExportedHandler<Env>;

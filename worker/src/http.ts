@@ -34,10 +34,27 @@ export class HttpError extends Error {
 export async function readJson<T = unknown>(req: Request, maxBytes: number): Promise<T> {
   const declared = Number(req.headers.get('Content-Length') ?? '0');
   if (declared > maxBytes) throw new HttpError(413, 'payload_too_large', 'Corps de requête trop volumineux.');
-  const text = await req.text();
-  if (new TextEncoder().encode(text).byteLength > maxBytes) {
-    throw new HttpError(413, 'payload_too_large', 'Corps de requête trop volumineux.');
+  const reader = req.body?.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  if (reader) {
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > maxBytes) {
+          await reader.cancel();
+          throw new HttpError(413, 'payload_too_large', 'Corps de requête trop volumineux.');
+        }
+        chunks.push(value);
+      }
+    } finally { reader.releaseLock(); }
   }
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk,offset); offset += chunk.byteLength; }
+  const text = new TextDecoder().decode(bytes);
   try {
     return JSON.parse(text) as T;
   } catch {

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "content": {
+    "id": "test-podcast-fr",
+    "title": "Test YouTube",
+    "originalLanguage": "fr",
+    "sourceType": "podcast",
+    "sourceUrl": "https://podcasts.example.com/episode.mp3",
+    "rights": "personal_use",
+    "sourceRef": "episode:aaaaaaaaaaaaaaaaaaaa"
+  },
+  "variants": [
+    {
+      "key": "fr-source",
+      "kind": "source",
+      "language": "fr",
+      "segmentsFile": "segments/fr-source.json",
+      "audio": {
+        "source": "publisher_stream",
+        "url": "https://podcasts.example.com/episode.mp3",
+        "origin": "original",
+        "durationMs": 2000,
+        "timingSource": "none"
+      }
+    }
+  ],
+  "files": {
+    "segments/fr-source.json": {
+      "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+      "size": 133,
+      "contentType": "application/json"
+    }
+  },
+  "removeVariants": []
+}

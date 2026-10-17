@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "content": {
+    "id": "test-reflection",
+    "title": "Test YouTube",
+    "originalLanguage": "en",
+    "sourceType": "reflection",
+    "rights": "personal_use",
+    "sourceRef": "reflection:11111111-1111-4111-8111-111111111111"
+  },
+  "variants": [
+    {
+      "key": "en-source",
+      "kind": "source",
+      "language": "en",
+      "segmentsFile": "segments/en-source.json"
+    }
+  ],
+  "files": {
+    "segments/en-source.json": {
+      "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+      "size": 133,
+      "contentType": "application/json"
+    }
+  },
+  "removeVariants": []
+}

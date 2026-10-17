@@ -1,0 +1,1495 @@
+[
+  {
+    "name": "content-id",
+    "code": "invalid_manifest",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "../x",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "variant-key",
+    "code": "invalid_manifest",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "X",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "source-missing",
+    "code": "invalid_source",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "adaptation",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "source-language",
+    "code": "invalid_source",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "fr",
+          "segmentsFile": "segments/en-source.json"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "source-level",
+    "code": "invalid_source",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json",
+          "cefrLevel": "B1"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "source-parent",
+    "code": "invalid_source",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json",
+          "derivedFrom": "en-other"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "duplicate-key",
+    "code": "duplicate_variant",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-source",
+          "kind": "adaptation",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "multiple-sources",
+    "code": "invalid_source",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-other",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "translation-parent",
+    "code": "invalid_translation",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "fr-faithful",
+          "kind": "faithful_translation",
+          "language": "fr",
+          "segmentsFile": "segments/en-source.json",
+          "derivedFrom": "absent"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "translation-language",
+    "code": "invalid_translation",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-faithful",
+          "kind": "faithful_translation",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json",
+          "derivedFrom": "en-source"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "translation-level",
+    "code": "invalid_translation",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "fr-faithful",
+          "kind": "faithful_translation",
+          "language": "fr",
+          "segmentsFile": "segments/en-source.json",
+          "derivedFrom": "en-source",
+          "cefrLevel": "B1"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "adaptation-language",
+    "code": "invalid_adaptation",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-b1",
+          "kind": "adaptation",
+          "language": "fr",
+          "segmentsFile": "segments/en-source.json",
+          "style": "narration",
+          "derivedFrom": "en-source",
+          "cefrLevel": "B1"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "adaptation-style",
+    "code": "invalid_adaptation",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-b1",
+          "kind": "adaptation",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json",
+          "derivedFrom": "en-source",
+          "cefrLevel": "B1"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "adaptation-derivedFrom",
+    "code": "invalid_adaptation",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-b1",
+          "kind": "adaptation",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json",
+          "style": "narration",
+          "derivedFrom": "absent",
+          "cefrLevel": "B1"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "adaptation-cefrLevel",
+    "code": "invalid_manifest",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-b1",
+          "kind": "adaptation",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json",
+          "style": "narration",
+          "derivedFrom": "en-source",
+          "cefrLevel": "C2"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "coverage-source",
+    "code": "invalid_coverage",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json",
+          "coverage": "condensed"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "coverage-missing-condensation",
+    "code": "invalid_coverage",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-b1",
+          "kind": "adaptation",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json",
+          "style": "narration",
+          "derivedFrom": "en-source",
+          "coverage": "condensed"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "segments-missing",
+    "code": "invalid_files",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/absent.json"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "unused-file",
+    "code": "invalid_files",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        },
+        "extra.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "path-19",
+    "code": "invalid_manifest",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        },
+        "../x": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "path-20",
+    "code": "invalid_manifest",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        },
+        "/x": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "path-21",
+    "code": "invalid_manifest",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        },
+        "audio\\x.mp3": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "path-22",
+    "code": "invalid_manifest",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        },
+        "audio/x\n.mp3": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "path-23",
+    "code": "invalid_manifest",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        },
+        "audio/../x.mp3": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "audio-missing-file",
+    "code": "invalid_manifest",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json",
+          "audio": {
+            "source": "r2",
+            "origin": "original",
+            "durationMs": 2000,
+            "timingSource": "none"
+          }
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "audio-unknown-file",
+    "code": "invalid_files",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json",
+          "audio": {
+            "source": "r2",
+            "file": "audio/source.mp3",
+            "origin": "original",
+            "durationMs": 2000,
+            "timingSource": "none"
+          }
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "unsafe-url",
+    "code": "unsafe_url",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://127.0.0.1/private",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "invalid-stream",
+    "code": "invalid_stream",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json",
+          "audio": {
+            "source": "publisher_stream",
+            "url": "https://example.com/audio.mp3",
+            "origin": "original",
+            "durationMs": 2000,
+            "timingSource": "none"
+          }
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "file-limit",
+    "code": "invalid_manifest",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 95000001,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "variant-limit",
+    "code": "invalid_manifest",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "remove-present",
+    "code": "invalid_removals",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": [
+        "en-source"
+      ]
+    }
+  },
+  {
+    "name": "bad-hash",
+    "code": "invalid_manifest",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "abc",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "publication-limit",
+    "code": "publication_too_large",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-v0",
+          "kind": "source",
+          "language": "en",
+          "style": "narration",
+          "derivedFrom": null,
+          "segmentsFile": "segments/v0.json"
+        },
+        {
+          "key": "en-v1",
+          "kind": "adaptation",
+          "language": "en",
+          "style": "narration",
+          "derivedFrom": "en-v0",
+          "segmentsFile": "segments/v1.json"
+        },
+        {
+          "key": "en-v2",
+          "kind": "adaptation",
+          "language": "en",
+          "style": "narration",
+          "derivedFrom": "en-v0",
+          "segmentsFile": "segments/v2.json"
+        },
+        {
+          "key": "en-v3",
+          "kind": "adaptation",
+          "language": "en",
+          "style": "narration",
+          "derivedFrom": "en-v0",
+          "segmentsFile": "segments/v3.json"
+        }
+      ],
+      "files": {
+        "segments/v0.json": {
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "size": 80000000,
+          "contentType": "application/json"
+        },
+        "segments/v1.json": {
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "size": 80000000,
+          "contentType": "application/json"
+        },
+        "segments/v2.json": {
+          "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "size": 80000000,
+          "contentType": "application/json"
+        },
+        "segments/v3.json": {
+          "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "size": 80000000,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "segments-size-limit",
+    "code": "segments_too_large",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 5000001,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  },
+  {
+    "name": "variant-dropped",
+    "code": "variant_dropped",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-youtube",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    },
+    "context": {
+      "currentVariants": [
+        "en-source",
+        "fr-faithful"
+      ]
+    }
+  },
+  {
+    "name": "stream-mismatch",
+    "code": "stream_mismatch",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-podcast-en",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "podcast",
+        "sourceUrl": "https://podcasts.example.com/episode.mp3",
+        "rights": "personal_use",
+        "sourceRef": "episode:aaaaaaaaaaaaaaaaaaaa"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json",
+          "audio": {
+            "source": "publisher_stream",
+            "url": "https://podcasts.example.com/episode.mp3",
+            "origin": "original",
+            "durationMs": 2000,
+            "timingSource": "none"
+          }
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    },
+    "context": {
+      "episodeAudioUrl": "https://publisher.example.com/another.mp3"
+    }
+  },
+  {
+    "name": "derivation-cycle",
+    "code": "cyclic_derivation",
+    "manifest": {
+      "schemaVersion": 1,
+      "content": {
+        "id": "test-condensed",
+        "title": "Test YouTube",
+        "originalLanguage": "en",
+        "sourceType": "youtube",
+        "sourceUrl": "https://www.youtube.com/watch?v=abc",
+        "rights": "personal_use"
+      },
+      "variants": [
+        {
+          "key": "en-source",
+          "kind": "source",
+          "language": "en",
+          "segmentsFile": "segments/en-source.json"
+        },
+        {
+          "key": "en-b1",
+          "kind": "adaptation",
+          "language": "en-GB",
+          "cefrLevel": "B1",
+          "style": "narration",
+          "coverage": "condensed",
+          "condensation": {
+            "targetMinutes": 12,
+            "sourceMinutes": 50,
+            "excludeAds": true
+          },
+          "derivedFrom": "en-other",
+          "segmentsFile": "segments/en-b1.json"
+        },
+        {
+          "key": "en-other",
+          "kind": "adaptation",
+          "language": "en-GB",
+          "cefrLevel": "B1",
+          "style": "narration",
+          "coverage": "condensed",
+          "condensation": {
+            "targetMinutes": 12,
+            "sourceMinutes": 50,
+            "excludeAds": true
+          },
+          "derivedFrom": "en-b1",
+          "segmentsFile": "segments/en-b1.json"
+        }
+      ],
+      "files": {
+        "segments/en-source.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        },
+        "segments/en-b1.json": {
+          "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+          "size": 133,
+          "contentType": "application/json"
+        }
+      },
+      "removeVariants": []
+    }
+  }
+]
