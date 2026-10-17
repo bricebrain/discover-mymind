@@ -1,5 +1,5 @@
-import type { Env } from './env';
-import { apiError, HttpError, withSecurityHeaders } from './http';
+import { authDisabled, type Env } from './env';
+import { apiError, HttpError, json, noContent, withSecurityHeaders } from './http';
 import { collectNext } from './collector';
 import * as auth from './routes/auth';
 import * as episodes from './routes/episodes';
@@ -12,14 +12,24 @@ import { getSession } from './security/session';
 async function handleApi(req: Request, env: Env, path: string): Promise<Response> {
   assertSameOriginWrite(req);
 
+  const m = req.method;
+
+  if (authDisabled(env)) {
+    // Accès libre : pas de session. La PWA saute l'écran de connexion.
+    if (path === '/api/auth/session' || path === '/api/auth/login') return json({ session: null, authDisabled: true });
+    if (path === '/api/auth/logout') return noContent();
+    if (path === '/api/auth/sessions') return json({ sessions: [], authDisabled: true });
+    if (path.startsWith('/api/auth/')) return apiError(404, 'not_found', 'Connexion désactivée.');
+    return handleData(req, env, path, m);
+  }
+
   if (path === '/api/auth/login') {
-    return req.method === 'POST' ? auth.login(req, env) : apiError(405, 'method_not_allowed', 'Méthode non autorisée.');
+    return m === 'POST' ? auth.login(req, env) : apiError(405, 'method_not_allowed', 'Méthode non autorisée.');
   }
 
   const session = await getSession(env, req);
   if (!session) return apiError(401, 'unauthenticated', 'Connexion requise.');
 
-  const m = req.method;
   if (path === '/api/auth/session' && m === 'GET') return auth.current(session);
   if (path === '/api/auth/logout' && m === 'POST') return auth.logout(env, session);
   if (path === '/api/auth/sessions' && m === 'GET') return auth.list(env, session);
@@ -27,6 +37,11 @@ async function handleApi(req: Request, env: Env, path: string): Promise<Response
   const one = path.match(/^\/api\/auth\/sessions\/([^/]+)$/);
   if (one?.[1] && m === 'DELETE') return auth.revokeOne(env, session, one[1]);
 
+  return handleData(req, env, path, m);
+}
+
+/** Routes de données (émissions, épisodes, progression) : la session est vérifiée avant. */
+async function handleData(req: Request, env: Env, path: string, m: string): Promise<Response> {
   if (path === '/api/shows' && m === 'GET') return shows.list(env);
   if (path === '/api/shows' && m === 'POST') return shows.create(req, env);
   if (path === '/api/shows/resolve' && m === 'POST') return shows.resolve(req);

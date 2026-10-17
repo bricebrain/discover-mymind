@@ -13,15 +13,22 @@ export interface SessionInfo {
 const SESSION_KEY = ['auth', 'session'] as const;
 const SESSIONS_KEY = ['auth', 'sessions'] as const;
 
-/** Session courante ; `null` si non connecté. */
+export interface AuthState {
+  session: SessionInfo | null;
+  /** Connexion désactivée côté Worker : l'app s'ouvre sans écran de connexion. */
+  authDisabled: boolean;
+}
+
+/** État de connexion ; `session: null` si non connecté. */
 export function useSession() {
   return useQuery({
     queryKey: SESSION_KEY,
-    queryFn: async () => {
+    queryFn: async (): Promise<AuthState> => {
       try {
-        return (await api<{ session: SessionInfo }>('/api/auth/session')).session;
+        const r = await api<{ session: SessionInfo | null; authDisabled?: boolean }>('/api/auth/session');
+        return { session: r.session, authDisabled: r.authDisabled === true };
       } catch (e) {
-        if (e instanceof ApiError && e.status === 401) return null;
+        if (e instanceof ApiError && e.status === 401) return { session: null, authDisabled: false };
         throw e;
       }
     },
@@ -34,7 +41,7 @@ export function useLogin() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (passphrase: string) => api<{ session: SessionInfo }>('/api/auth/login', { method: 'POST', body: { passphrase } }),
-    onSuccess: ({ session }) => qc.setQueryData(SESSION_KEY, session),
+    onSuccess: ({ session }) => qc.setQueryData<AuthState>(SESSION_KEY, { session, authDisabled: false }),
   });
 }
 
@@ -44,7 +51,7 @@ export function useLogout() {
     mutationFn: () => api<void>('/api/auth/logout', { method: 'POST' }),
     onSettled: () => {
       qc.clear();
-      qc.setQueryData(SESSION_KEY, null);
+      qc.setQueryData<AuthState>(SESSION_KEY, { session: null, authDisabled: false });
     },
   });
 }
@@ -61,10 +68,10 @@ export function useRevokeSession() {
   return useMutation({
     mutationFn: (id: string) => api<void>(`/api/auth/sessions/${id}`, { method: 'DELETE' }),
     onSuccess: (_d, id) => {
-      const current = qc.getQueryData<SessionInfo | null>(SESSION_KEY);
-      if (current?.id === id) {
+      const current = qc.getQueryData<AuthState>(SESSION_KEY);
+      if (current?.session?.id === id) {
         qc.clear();
-        qc.setQueryData(SESSION_KEY, null);
+        qc.setQueryData<AuthState>(SESSION_KEY, { session: null, authDisabled: false });
       } else {
         void qc.invalidateQueries({ queryKey: SESSIONS_KEY });
       }

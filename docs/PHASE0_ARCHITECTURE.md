@@ -681,6 +681,12 @@ Le Worker n'appelle **aucun** LLM en V1.
 
 ### 8.1 Sessions révocables
 
+> **Désactivée temporairement (2026-10-17, choix du propriétaire)** : `AUTH_DISABLED = "true"` dans `wrangler.jsonc`.
+> `/api` est alors en accès libre et la PWA saute l'écran de connexion. Restent actifs : les contrôles CSRF,
+> le jeton de l'Atelier et les en-têtes de sécurité. Pour réactiver : remettre `"false"` et redéployer ;
+> `APP_PASSPHRASE` est toujours enregistrée, et tout ce qui suit s'applique de nouveau.
+
+
 - **Connexion par une phrase secrète** de 24 caractères minimum, stockée en secret Wrangler (`APP_PASSPHRASE`). La comparaison se fait en temps constant, sur des empreintes HMAC. Il n'y a pas de hachage coûteux, incompatible avec 10 ms de CPU, puisque le secret n'est stocké nulle part ailleurs.
 - **La session est un jeton aléatoire de 256 bits**, dans le cookie `__Host-discover_session` (`Secure; HttpOnly; SameSite=Strict; Path=/`). Seule son empreinte HMAC-SHA256 (clé `SESSION_EPOCH`) est en D1. Elle expire après 30 jours sans activité, et au maximum après 180 jours.
 - **Révocation** :

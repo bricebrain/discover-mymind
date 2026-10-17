@@ -8,9 +8,16 @@ export interface Env {
   SESSION_EPOCH: string;
   /** Jeton Bearer de l'Atelier (32 caractères minimum). */
   ATELIER_TOKEN: string;
+  /**
+   * "true" : connexion désactivée (accès libre à /api, choix temporaire du propriétaire).
+   * /atelier reste protégé par son jeton, et les contrôles CSRF restent actifs.
+   */
+  AUTH_DISABLED?: string;
   /** Délai fixe des réponses de connexion, en ms (défaut 400 ; 0 dans les tests). */
   LOGIN_DELAY_MS?: string;
 }
 
 export const MIN_PASSPHRASE_LENGTH = 24;
 export const MIN_ATELIER_TOKEN_LENGTH = 32;
+
+export const authDisabled = (env: Env) => env.AUTH_DISABLED === 'true';

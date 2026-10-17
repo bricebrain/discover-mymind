@@ -20,6 +20,10 @@
     { "binding": "FILES", "bucket_name": "discover-files" }
   ],
 
+  // Connexion désactivée pour l'instant (choix du 2026-10-17). Remettre "false" pour l'exiger à nouveau :
+  // APP_PASSPHRASE reste enregistrée dans les secrets.
+  "vars": { "AUTH_DISABLED": "true" },
+
   // Secrets (wrangler secret put) : APP_PASSPHRASE, SESSION_EPOCH, ATELIER_TOKEN.
   // En local : .dev.vars (voir .dev.vars.example).
 

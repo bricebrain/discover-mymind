@@ -9,7 +9,7 @@ const queryClient: QueryClient = new QueryClient({
   // Une session expirée ou révoquée ailleurs renvoie l'utilisateur vers l'écran de connexion.
   queryCache: new QueryCache({
     onError: (error) => {
-      if (error instanceof ApiError && error.status === 401) queryClient.setQueryData(['auth', 'session'], null);
+      if (error instanceof ApiError && error.status === 401) queryClient.setQueryData(['auth', 'session'], { session: null, authDisabled: false });
     },
   }),
   defaultOptions: { queries: { refetchOnWindowFocus: true } },

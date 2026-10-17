@@ -41,7 +41,8 @@ function Gate() {
       </Box>
     );
   }
-  return session.data ? <PlayerProvider><RouterProvider router={router} /></PlayerProvider> : <LoginPage />;
+  const open = session.data.authDisabled || session.data.session !== null;
+  return open ? <PlayerProvider><RouterProvider router={router} /></PlayerProvider> : <LoginPage />;
 }
 
 export function App() {

@@ -180,6 +180,32 @@ describe('Atelier', () => {
   });
 });
 
+describe('connexion désactivée (AUTH_DISABLED=true)', () => {
+  const withOpenAccess = async (fn: () => Promise<void>) => {
+    (env as { AUTH_DISABLED?: string }).AUTH_DISABLED = 'true';
+    try {
+      await fn();
+    } finally {
+      (env as { AUTH_DISABLED?: string }).AUTH_DISABLED = 'false';
+    }
+  };
+
+  it('les données sont accessibles sans session, et la PWA est prévenue', async () => {
+    await withOpenAccess(async () => {
+      expect(await (await call('/api/auth/session')).json()).toEqual({ session: null, authDisabled: true });
+      expect((await call('/api/shows')).status).toBe(200);
+    });
+  });
+
+  it('les contrôles CSRF et le jeton de l’Atelier restent actifs', async () => {
+    await withOpenAccess(async () => {
+      const res = await call('/api/progress', { method: 'PUT', body: {}, headers: { Origin: 'https://evil.example' } });
+      expect(res.status).toBe(403);
+      expect((await call('/atelier/ping', { pwa: false })).status).toBe(401);
+    });
+  });
+});
+
 describe('en-têtes de sécurité', () => {
   it('chaque réponse de l’API porte CSP, nosniff, no-referrer et no-store', async () => {
     const res = await call('/api/auth/session');

@@ -2,12 +2,29 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import {
   Alert, Box, Button, Chip, CircularProgress, Divider, List, ListItem, ListItemText, Paper, Stack, Typography,
 } from '@mui/material';
-import { useLogout, useRevokeOthers, useRevokeSession, useSessions } from '../api/auth';
+import { useLogout, useRevokeOthers, useRevokeSession, useSession, useSessions } from '../api/auth';
 
 const dateFmt = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
 const formatDate = (iso: string) => dateFmt.format(new Date(iso));
 
 export function SettingsPage() {
+  const auth = useSession();
+  if (auth.data?.authDisabled) {
+    return (
+      <Box sx={{ px: 2, pt: 2, pb: 4, maxWidth: 720, mx: 'auto' }}>
+        <Typography variant="h1" component="h1" sx={{ mb: 3 }}>Réglages</Typography>
+        <Typography variant="h2" component="h2" sx={{ mb: 1 }}>Connexion</Typography>
+        <Alert severity="info">
+          La connexion est désactivée pour l’instant : l’app s’ouvre sans phrase secrète.
+          Elle pourra être réactivée plus tard, sans rien perdre.
+        </Alert>
+      </Box>
+    );
+  }
+  return <DevicesSettings />;
+}
+
+function DevicesSettings() {
   const sessions = useSessions();
   const revoke = useRevokeSession();
   const revokeOthers = useRevokeOthers();

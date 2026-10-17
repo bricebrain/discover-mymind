@@ -14,6 +14,8 @@ export default defineConfig(async () => {
             SESSION_EPOCH: 'test-epoch',
             ATELIER_TOKEN: 'test-atelier-token-0123456789abcdef',
             LOGIN_DELAY_MS: '0',
+            // Les tests de sécurité vérifient la connexion : on l'active quelle que soit la config.
+            AUTH_DISABLED: 'false',
           },
         },
       }),
