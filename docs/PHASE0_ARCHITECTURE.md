@@ -856,7 +856,7 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 | **7 — Lecture des versions** ✅ (déployé) | Sélecteur de version (avec sa nature : intégral, condensé, essentiel ; niveau ; durée), transcription, français à la demande, navigation par segment, progression par version | Écouter Original, Fidèle, Intégral B1 ou Condensé B1 |
 | **8 — File avec bail** ✅ (déployé) | Bouton et options dans la PWA ; onglet « À préparer » dans l'Atelier ; bail, signal de vie, reprise ; téléchargement et normalisation de l'épisode | Marquer sur le téléphone et importer/transcrire dans l’Atelier ; versions adaptées au lot 9 |
 | **9 — Versions préparées** ✅ (déployé) | `adaptation.py` : couverture × niveau × durée (§ 7.4), synthèse en deux passes avec renvois (§ 7.7), évaluation fond puis langue (§ 7.6), exclusion des publicités, narration par défaut, calibrage du débit Kokoro, préparation auto de L'édito éco | Un épisode de 50 min écouté en 12 min à son niveau |
-| **9 bis — Temps réel et notifications** ✅ (déployé) | Durable Object et WebSocket avec hibernation ; outbox D1 ; Web Push et Service Worker ; activation par appareil | Suivi instantané et notification prête / à relire / échec, même PWA fermée ; réception Fold7 à valider |
+| **9 bis — Temps réel et notifications** ✅ (déployé) | Durable Object et WebSocket avec hibernation ; outbox D1 ; Web Push et Service Worker ; activation par appareil | Suivi instantané et notification prête / à relire / échec, même PWA fermée ; réception Fold7 confirmée ; fermeture et clic à valider |
 | **10 — My Mind complet** | Tags, types, questions, liens vers les passages, recherche FTS5, « Préparer en anglais » pour une note | Relire ses idées en anglais |
 | **11 — Bibliothèque et hors ligne** | Filtres, téléchargements explicites, espace utilisé, suppression | Écouter en mode avion |
 | **12 — Export et pont EnglishFluency** | Export complet (JSON + Markdown) ; case « aussi vers EnglishFluency » | Données récupérables ; les contenus nourrissent EnglishFluency |
@@ -926,7 +926,8 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 - [x] Les abonnements sont propres à chaque appareil, avec activation explicite, désactivation et test limité.
 - [x] Les messages Push sont chiffrés, génériques, dédupliqués par événement/appareil, et les envois temporaires sont repris de façon bornée ; les abonnements expirés sont retirés.
 - [x] Un état suivant annule les anciennes notifications encore en attente de la même demande.
-- [ ] Sur le Fold7 : autoriser les notifications, fermer la PWA, recevoir le test, puis ouvrir Discover depuis la notification.
+- [x] Sur le Fold7 : autoriser les notifications et recevoir le test (réception confirmée par l’utilisateur le 2026-10-18).
+- [ ] Sur le Fold7 : vérifier la réception PWA fermée, puis ouvrir Discover depuis la notification.
 
 ### My Mind (lots 4 et 10)
 - [ ] Une note se crée sans source.
@@ -1060,6 +1061,6 @@ Limite d'abonnements : **40** (relevée le 2026-10-17 pour les huit podcasts de 
 - Migration `0005_events_push.sql` appliquée localement et en production, Durable Object SQLite `PreparationEvents` avec hibernation, aucun nouveau cron. Les appels HTTP de l’Atelier restent compatibles.
 - Notifications Web Push avec VAPID configuré dans les secrets du Worker. Réglages : activation/désactivation sur cet appareil et notification de test. Aucun titre, extrait ou jeton dans les messages.
 - Vérification locale réelle : demande créée dans la PWA, passage Atelier à `tts` puis `review`, les deux états reçus sans rechargement. En production : réglages « Suivi en direct », bouton d’activation présent, configuration Push active et origine étrangère refusée (`403 csrf_origin`). Aucun abonnement ou épisode de contrôle créé en production.
-- Validation : **171 tests Worker et 37 tests PWA**, types, build et déploiement à blanc réussis. Worker final : `37baa3d8-a1ab-4f7d-b6ee-f5300588c049`. Réception et clic sur le Fold7 physique restent à vérifier après l’autorisation de l’utilisateur. Voir `docs/LOT9BIS_REALTIME_PUSH.md`.
+- Validation : **171 tests Worker et 37 tests PWA**, types, build et déploiement à blanc réussis. Worker final : `37baa3d8-a1ab-4f7d-b6ee-f5300588c049`. Réception sur le Fold7 confirmée par l’utilisateur le 2026-10-18 ; réception PWA fermée et clic restent à vérifier. Voir `docs/LOT9BIS_REALTIME_PUSH.md`.
 
-- Correctif Push (2026-10-18) : option `redirect:error` incompatible avec workerd remplacée par une Request native en mode `manual`, sans suivre les redirections. Test de régression et contrôle de fin de livraison ajoutés ; **172 tests Worker**. Deux essais utilisateur relancés, acceptés par Google avec **HTTP 201** en une tentative. Confirmation d’affichage sur le Fold7 demandée. Worker : `af9ea94e-8a30-49b0-bcc9-e712ba41be52`.
+- Correctif Push (2026-10-18) : option `redirect:error` incompatible avec workerd remplacée par une Request native en mode `manual`, sans suivre les redirections. Test de régression et contrôle de fin de livraison ajoutés ; **172 tests Worker**. Deux essais utilisateur relancés, acceptés par Google avec **HTTP 201** en une tentative. Réception sur le Fold7 confirmée par l’utilisateur. Worker : `af9ea94e-8a30-49b0-bcc9-e712ba41be52`.

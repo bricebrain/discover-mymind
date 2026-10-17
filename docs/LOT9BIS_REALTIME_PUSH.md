@@ -40,7 +40,7 @@ Tests PWA : regroupement des événements, reconnexion, mise en arrière-plan, c
 
 Parcours local réel : réglages « Suivi en direct », demande depuis la PWA, appels Atelier successifs vers `tts` puis restitution `review`, affichage immédiat des deux états sans rechargement. Aucune préparation ou souscription de contrôle n’est créée en production.
 
-La réception réelle sur le Fold7 application fermée, l’autorisation Android et le clic sur la notification restent à vérifier sur le téléphone. Aucune autorisation de notification n’est accordée automatiquement par le code.
+L’autorisation Android et la réception d’une notification sur le Fold7 sont confirmées par l’utilisateur le 18 octobre 2026. La réception application fermée et le clic sur la notification restent à vérifier sur le téléphone. Aucune autorisation de notification n’est accordée automatiquement par le code.
 
 Validation automatisée : **171 tests Worker, 37 tests PWA**, TypeScript, build et déploiement à blanc réussis. Migration appliquée en production ; secrets VAPID configurés ; version Worker finale `37baa3d8-a1ab-4f7d-b6ee-f5300588c049`. La page de réglages en production affiche « Suivi en direct » et « Activer sur cet appareil » ; une requête WebSocket complète d’origine étrangère est refusée avec `403 csrf_origin`.
 
@@ -52,4 +52,4 @@ Le premier essai sur les appareils a révélé une incompatibilité réelle : `r
 
 L’envoi construit désormais une véritable `Request`, en mode `manual`. Aucune redirection n’est suivie ; une réponse 3xx termine l’essai. Les tests construisent également une Request native et vérifient que la livraison est effectivement terminée, ainsi que le refus de transmettre la requête à une cible de redirection. Les journaux conservent le statut HTTP et la phase/type d’erreur, sans endpoint, clé ni contenu.
 
-Validation : **172 tests Worker**, types Worker/PWA réussis ; Worker `af9ea94e-8a30-49b0-bcc9-e712ba41be52`. Deux essais demandés par l’utilisateur ont été relancés après correction : le service Push Google a accepté chacun avec **HTTP 201**, dès la première tentative. L’acceptation du service ne confirme pas à elle seule l’affichage sur Android ; confirmation de réception demandée à l’utilisateur.
+Validation : **172 tests Worker**, types Worker/PWA réussis ; Worker `af9ea94e-8a30-49b0-bcc9-e712ba41be52`. Deux essais demandés par l’utilisateur ont été relancés après correction : le service Push Google a accepté chacun avec **HTTP 201**, dès la première tentative. L’utilisateur a ensuite confirmé la réception sur son Fold7.
