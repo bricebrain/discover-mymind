@@ -4,7 +4,7 @@ import { prepareOptions, type PrepareOptions } from '../queue/options';
 import { expireExhausted, QUEUE_SELECT, queueOut, type QueueRow } from '../queue/store';
 
 /** Crée (ou retrouve) la demande active d'une source ; refuse d'autres options tant qu'une préparation tourne. */
-async function insertQueue(env: Env, kind: 'episode' | 'youtube' | 'reflection', ref: string, options: PrepareOptions) {
+export async function insertQueue(env: Env, kind: 'episode' | 'youtube' | 'reflection' | 'dossier', ref: string, options: PrepareOptions) {
   const id = crypto.randomUUID(), now = new Date().toISOString();
   await env.DB.prepare(`INSERT OR IGNORE INTO prepare_queue (id,kind,ref,options_json,created_at,updated_at)
     VALUES (?,?,?,?,?,?)`).bind(id,kind,ref,JSON.stringify(options),now,now).run();

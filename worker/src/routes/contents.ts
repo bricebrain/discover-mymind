@@ -17,7 +17,7 @@ export async function library(req: Request, env: Env) {
   const offset = Number(params.get('offset') ?? 0);
   if (!Number.isSafeInteger(offset) || offset < 0) throw new HttpError(400,'invalid_pagination','Pagination invalide.');
   const type = params.get('type');
-  if (type && !['podcast','youtube','reflection'].includes(type)) throw new HttpError(400,'invalid_type','Type de contenu inconnu.');
+  if (type && !['podcast','youtube','reflection','dossier'].includes(type)) throw new HttpError(400,'invalid_type','Type de contenu inconnu.');
   const search = (params.get('q') ?? '').trim();
   if (search.length > 200) throw new HttpError(400,'invalid_search','Recherche limitée à 200 caractères.');
   const filters: string[] = [], values: string[] = [];

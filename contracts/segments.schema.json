@@ -73,6 +73,40 @@
               "type": "string",
               "pattern": "^[a-zA-Z0-9_-]{1,64}$"
             }
+          },
+          "provenance": {
+            "type": "object",
+            "properties": {
+              "sourceId": {
+                "type": "string",
+                "pattern": "^d[1-6]$"
+              },
+              "segmentId": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+              },
+              "startMs": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "endMs": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1
+              }
+            },
+            "required": [
+              "sourceId",
+              "segmentId",
+              "startMs",
+              "endMs"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
