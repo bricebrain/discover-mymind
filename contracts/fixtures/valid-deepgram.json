@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "content": {
+    "id": "test-deepgram",
+    "title": "Test YouTube",
+    "originalLanguage": "en",
+    "sourceType": "youtube",
+    "sourceUrl": "https://www.youtube.com/watch?v=abc",
+    "rights": "personal_use"
+  },
+  "variants": [
+    {
+      "key": "en-source",
+      "kind": "source",
+      "language": "en",
+      "segmentsFile": "segments/en-source.json"
+    },
+    {
+      "key": "en-b1",
+      "kind": "adaptation",
+      "language": "en-GB",
+      "cefrLevel": "B1",
+      "style": "narration",
+      "coverage": "condensed",
+      "condensation": {
+        "targetMinutes": 12,
+        "sourceMinutes": 50,
+        "excludeAds": true
+      },
+      "derivedFrom": "en-source",
+      "segmentsFile": "segments/en-b1.json",
+      "audio": {
+        "source": "r2",
+        "origin": "deepgram",
+        "timingSource": "deepgram",
+        "file": "audio/en-b1.mp3",
+        "durationMs": 720000
+      }
+    }
+  ],
+  "files": {
+    "segments/en-source.json": {
+      "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+      "size": 133,
+      "contentType": "application/json"
+    },
+    "segments/en-b1.json": {
+      "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+      "size": 133,
+      "contentType": "application/json"
+    },
+    "audio/en-b1.mp3": {
+      "size": 1234,
+      "contentType": "audio/mpeg",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  },
+  "removeVariants": []
+}

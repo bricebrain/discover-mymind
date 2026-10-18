@@ -246,3 +246,26 @@ it('rattache une vidéo suivie à sa publication YouTube et la détache à la su
   expect((await call(`/api/contents/${b.m.content.id}`, { method: 'DELETE', cookie })).status).toBe(204);
   expect(await env.DB.prepare('SELECT content_id FROM episodes WHERE id=?').bind(episodeId).first()).toMatchObject({ content_id: null });
 });
+
+it('publie et sert un audio Deepgram avec sa synchronisation exacte sans altérer la source', async () => {
+  const b = await bundle('youtube');
+  const path = 'segments/en-full-b1.json', audioPath = 'audio/en-full-b1.mp3';
+  const raw = canonicalJson({ schemaVersion: 1, variantKey: 'en-full-b1', segments: [
+    { id: 'p001', text: 'A narrated fact.', fr: 'Un fait raconté.', speaker: 'Narrator', sourceSegments: ['s001'], startMs: 0, endMs: 1000 },
+  ] });
+  b.m.variants.push({ key: 'en-full-b1', kind: 'adaptation', language: 'en', cefrLevel: 'B1', style: 'narration', coverage: 'full',
+    derivedFrom: 'en-source', segmentsFile: path, evaluation: { verdict: 'ok' },
+    audio: { source: 'r2', file: audioPath, origin: 'deepgram', timingSource: 'deepgram', durationMs: 1200 } });
+  b.data[path] = raw; b.data[audioPath] = 'deepgram-test-audio';
+  for (const asset of [path, audioPath]) b.m.files[asset] = {
+    sha256: await sha256Hex(b.data[asset]!), size: new TextEncoder().encode(b.data[asset]!).byteLength, contentType: asset === path ? 'application/json' : 'audio/mpeg',
+  };
+  const publicationId = await publish(b);
+  const stored = await env.DB.prepare('SELECT audio_origin,timing_source,timing_status FROM variants WHERE publication_id=? AND variant_key=?')
+    .bind(publicationId, 'en-full-b1').first();
+  expect(stored).toEqual({ audio_origin: 'deepgram', timing_source: 'deepgram', timing_status: 'exact' });
+  const d = await (await call(`/api/contents/${b.m.content.id}`, { cookie })).json<{ variants: { key: string; audio: { url: string }; timingStatus: string }[] }>();
+  const adapted = d.variants.find((v) => v.key === 'en-full-b1')!;
+  expect(adapted.timingStatus).toBe('exact');
+  expect((await call(adapted.audio.url, { cookie })).status).toBe(200);
+});

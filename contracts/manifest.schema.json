@@ -192,7 +192,8 @@
                   "origin": {
                     "enum": [
                       "original",
-                      "kokoro"
+                      "kokoro",
+                      "deepgram"
                     ]
                   },
                   "durationMs": {
@@ -206,6 +207,7 @@
                       "rss_vtt",
                       "macwhisper_srt",
                       "kokoro",
+                      "deepgram",
                       "none"
                     ]
                   }

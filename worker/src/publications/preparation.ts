@@ -12,8 +12,8 @@ export async function assertPrepared(env: Env,p: Publication,m: Manifest) {
   const adapted = m.variants.find((v) => v.kind==='adaptation' && v.language==='en' && v.coverage===options.coverage &&
     (v.cefrLevel ?? 'original')===options.level && v.style===options.style &&
     (options.coverage==='full' || v.condensation?.targetMinutes===options.targetMinutes));
-  if (!adapted || adapted.audio?.source!=='r2' || adapted.audio.timingSource!=='kokoro') {
-    throw new HttpError(422,'prepared_variant_missing','La version demandée et son audio Kokoro sont requis.');
+  if (!adapted || adapted.audio?.source!=='r2' || !(['kokoro','deepgram'].includes(adapted.audio.origin) && adapted.audio.timingSource===adapted.audio.origin)) {
+    throw new HttpError(422,'prepared_variant_missing','La version demandée et son audio généré et synchronisé sont requis.');
   }
   const e = adapted.evaluation as Record<string,unknown> | undefined;
   // Publication automatique (choix du 2026-10-18) : une version signalée par le contrôle passe si l'Atelier

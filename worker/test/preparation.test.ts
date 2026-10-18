@@ -60,3 +60,14 @@ it('bloque la publication automatique review/rejected et exige les options réel
  await expect(assertPrepared(env,p,m)).rejects.toMatchObject({code:'review_required'});
  m.variants=[];await expect(assertPrepared(env,p,m)).rejects.toMatchObject({code:'prepared_variant_missing'});
 });
+
+it('accepte Deepgram synchronisé et refuse une origine/timing incohérents pour terminer une demande', async () => {
+ const id=crypto.randomUUID();
+ await env.DB.prepare("INSERT INTO prepare_queue (id,kind,ref,options_json,created_at,updated_at) VALUES (?,'episode',?,?,'2026-10-19','2026-10-19')")
+  .bind(id,ep,JSON.stringify({coverage:'full',level:'B1',style:'narration',faithful:false,keepOriginalCopy:false})).run();
+ const p:Publication={id:'pub',content_id:'test',revision:'rev',seq:1,status:'uploading',manifest_r2_key:'manifest',queue_item_id:id,lease_token:'token',commit_token:null};
+ const m:Manifest={schemaVersion:1,content:{id:'test',title:'Test',sourceType:'podcast',originalLanguage:'en',rights:'personal_use'},files:{},variants:[{key:'en-full-b1',kind:'adaptation',language:'en',coverage:'full',cefrLevel:'B1',style:'narration',segmentsFile:'segments/en-full-b1.json',evaluation:{verdict:'ok'},audio:{source:'r2',origin:'deepgram',durationMs:1000,file:'audio/en-full-b1.mp3',timingSource:'deepgram'}}]};
+ await expect(assertPrepared(env,p,m)).resolves.toBeUndefined();
+ m.variants[0]!.audio!.timingSource='kokoro';
+ await expect(assertPrepared(env,p,m)).rejects.toMatchObject({code:'prepared_variant_missing'});
+});

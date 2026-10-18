@@ -46,6 +46,7 @@ export function validateManifest(input: unknown, context: ValidationContext = {}
     if (!validPath(v.segmentsFile) || m.files[v.segmentsFile]?.contentType !== 'application/json') reject('invalid_files');
     if (m.files[v.segmentsFile]!.size > 5_000_000) reject('segments_too_large');
     used.add(v.segmentsFile);
+    if (v.audio && ((v.audio.origin === 'deepgram') !== (v.audio.timingSource === 'deepgram'))) reject('invalid_audio_origin');
     if (v.audio?.source === 'r2') {
       if (!v.audio.file || !validPath(v.audio.file) || m.files[v.audio.file]?.contentType !== 'audio/mpeg') reject('invalid_files');
       used.add(v.audio.file);

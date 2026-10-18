@@ -1,8 +1,8 @@
 export interface ManifestFile { sha256: string; size: number; contentType: string }
 export interface VariantAudio {
   source: 'r2' | 'publisher_stream'; file?: string; url?: string;
-  origin: 'original' | 'kokoro'; durationMs: number;
-  timingSource: 'rss_srt' | 'rss_vtt' | 'macwhisper_srt' | 'kokoro' | 'none';
+  origin: 'original' | 'kokoro' | 'deepgram'; durationMs: number;
+  timingSource: 'rss_srt' | 'rss_vtt' | 'macwhisper_srt' | 'kokoro' | 'deepgram' | 'none';
 }
 export interface Variant {
   key: string; kind: 'source' | 'faithful_translation' | 'adaptation'; language: string;

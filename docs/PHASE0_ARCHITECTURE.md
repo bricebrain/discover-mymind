@@ -703,7 +703,7 @@ Le vocabulaire fréquent vient du référentiel d'EnglishFluency (`GET /words`, 
 | Transcription | SRT/VTT du flux, sinon MacWhisper (local) | Deepgram : hors V1 (§ 15) |
 | Traduction, adaptation, plan, notes | Gemini (quota gratuit, puis crédit) | OpenAI → DeepSeek / OpenRouter → copier-coller |
 | Juge de fidélité | OpenAI | Second appel Gemini |
-| Audio anglais | Kokoro (local) | — |
+| Audio anglais | Deepgram Aura-2 (Cora, budget local) | Kokoro Heart (local) |
 
 Le Worker n'appelle **aucun** LLM en V1.
 
@@ -1090,3 +1090,10 @@ Limite d'abonnements : **50** (relevée le 2026-10-18 pour les ajouts d’actual
 - Vidéos transmises à la file YouTube existante ; versions publiées rattachées aux vidéos suivies. Aucun changement requis dans l’Atelier.
 - Validation et limites : voir [Chaînes YouTube](YOUTUBE_CHANNELS.md).
 - Suite validée : audio Deepgram avec budget maîtrisé et Heart en secours, dossiers de sources complémentaires préparées ensemble, puis préparation cloud ponctuelle. Ces trois évolutions ne sont pas implémentées par le suivi des chaînes.
+
+### Audio Deepgram dans l’Atelier (2026-10-19)
+
+- Deepgram Aura-2 activé pour les nouvelles préparations Discover : Cora par défaut, Vesta et Draco au choix, débit natif 1,0. Plafond initial 10 USD/mois UTC, estimations avant audio, cache partagé et repli Heart. Aucune régénération de bibliothèque.
+- Contrats TS/Python et migration `0012_deepgram_audio.sql` acceptent l’origine et les timings `deepgram`. Les repères restent exacts par paragraphe. Aucun secret fournisseur dans le Worker ou la PWA.
+- Essai réel : 21,35 secondes d’audio en 10,434 secondes, 0,00969 USD ; reprise du cache en 0,002 seconde sans nouveau coût. Stockage de production vérifié : 22 variantes conservées.
+- Détails, limites budgétaires et validations : [Audio Deepgram](DEEPGRAM_AUDIO.md). La préparation sans Mac reste à développer.
