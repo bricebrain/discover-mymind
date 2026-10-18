@@ -13,6 +13,7 @@ export interface ChannelInfo {
 }
 
 export interface FeedItem {
+  videoId?: string;
   guid: string;
   title: string;
   description: string | null;
@@ -37,6 +38,7 @@ export interface ParseOptions {
   maxItems: number;
   knownGuids?: ReadonlySet<string>;
   maxBytes?: number;
+  atom?: { parseItem: (xml: string) => FeedItem | null; parseChannel: (xml: string) => ChannelInfo };
 }
 
 const DESCRIPTION_MAX = 2000;
@@ -59,7 +61,7 @@ function unwrapCdata(s: string): string {
 }
 
 /** Contenu brut de la première balise `name` (sans les balises), ou null. */
-function rawTag(chunk: string, name: string, maxLen = Infinity): string | null {
+export function rawTag(chunk: string, name: string, maxLen = Infinity): string | null {
   let from = 0;
   for (;;) {
     const open = chunk.indexOf(`<${name}`, from);
@@ -79,7 +81,7 @@ function rawTag(chunk: string, name: string, maxLen = Infinity): string | null {
   }
 }
 
-function text(chunk: string, name: string, maxLen?: number): string | null {
+export function text(chunk: string, name: string, maxLen?: number): string | null {
   const raw = rawTag(chunk, name, maxLen);
   if (raw === null) return null;
   const v = decodeEntities(unwrapCdata(raw)).trim();
@@ -87,7 +89,7 @@ function text(chunk: string, name: string, maxLen?: number): string | null {
 }
 
 /** Valeur de l'attribut `attr` de la première balise `name` qui le porte. */
-function attrOf(tagSource: string, attr: string): string | null {
+export function attrOf(tagSource: string, attr: string): string | null {
   const key = ` ${attr}=`;
   const i = tagSource.indexOf(key);
   if (i === -1) return null;
@@ -98,7 +100,7 @@ function attrOf(tagSource: string, attr: string): string | null {
 }
 
 /** Toutes les balises ouvrantes `<name …>` du morceau (source de la balise seulement). */
-function openTags(chunk: string, name: string): string[] {
+export function openTags(chunk: string, name: string): string[] {
   const out: string[] = [];
   let from = 0;
   for (;;) {
@@ -125,7 +127,7 @@ export function parseDuration(v: string | null): number | null {
   return parts.reduce((acc, p) => acc * 60 + p, 0);
 }
 
-function parseDate(v: string | null): string | null {
+export function parseDate(v: string | null): string | null {
   if (!v) return null;
   const ms = Date.parse(v);
   return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
@@ -182,6 +184,9 @@ const ITEM_OPEN = /<item[\s>]/;
 
 export async function parseFeedStream(body: ReadableStream<Uint8Array>, opts: ParseOptions): Promise<ParseResult> {
   const maxBytes = opts.maxBytes ?? 1_000_000;
+  const itemOpen = opts.atom ? /<entry[\s>]/ : ITEM_OPEN;
+  const itemClose = opts.atom ? '</entry>' : '</item>';
+  const channelParser = opts.atom?.parseChannel ?? parseChannel;
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buf = '';
@@ -198,20 +203,20 @@ export async function parseFeedStream(body: ReadableStream<Uint8Array>, opts: Pa
       bytesRead += value.byteLength;
       buf += decoder.decode(value, { stream: true });
       for (;;) {
-        const start = buf.search(ITEM_OPEN);
+        const start = buf.search(itemOpen);
         if (start === -1) {
           if (!channel && headerBuf.length < 64_000) headerBuf += buf.length > 16 ? buf.slice(0, -16) : '';
           buf = buf.slice(-16);
           break;
         }
-        if (!channel) channel = parseChannel(headerBuf + buf.slice(0, start));
-        const end = buf.indexOf('</item>', start);
+        if (!channel) channel = channelParser(headerBuf + buf.slice(0, start));
+        const end = buf.indexOf(itemClose, start);
         if (end === -1) {
           buf = buf.slice(start);
           break;
         }
-        const item = parseItem(buf.slice(start, end));
-        buf = buf.slice(end + 7);
+        const item = (opts.atom?.parseItem ?? parseItem)(buf.slice(start, end));
+        buf = buf.slice(end + itemClose.length);
         if (item) {
           if (opts.knownGuids?.has(item.guid)) {
             stoppedAt = 'known_guid';
@@ -232,5 +237,5 @@ export async function parseFeedStream(body: ReadableStream<Uint8Array>, opts: Pa
   } finally {
     await reader.cancel().catch(() => {});
   }
-  return { channel: channel ?? (headerBuf ? parseChannel(headerBuf) : null), items, bytesRead, stoppedAt };
+  return { channel: channel ?? (headerBuf ? channelParser(headerBuf) : null), items, bytesRead, stoppedAt };
 }

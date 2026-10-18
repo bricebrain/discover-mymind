@@ -16,10 +16,11 @@ async function insertQueue(env: Env, kind: 'episode' | 'youtube' | 'reflection',
 }
 
 export async function enqueue(req: Request, env: Env, episodeId: string) {
-  const ep = await env.DB.prepare(`SELECT e.duration_sec,s.language FROM episodes e JOIN shows s ON s.id=e.show_id WHERE e.id=?`)
-    .bind(episodeId).first<{ duration_sec: number | null; language: string }>();
+  const ep = await env.DB.prepare(`SELECT e.duration_sec,e.video_id,s.language FROM episodes e JOIN shows s ON s.id=e.show_id WHERE e.id=?`)
+    .bind(episodeId).first<{ duration_sec: number | null; video_id: string | null; language: string }>();
   if (!ep) throw new HttpError(404,'not_found','Épisode introuvable.');
-  return insertQueue(env,'episode',episodeId,prepareOptions(await readJson(req,4096),ep.language,ep.duration_sec));
+  const options = prepareOptions(await readJson(req,4096),ep.language,ep.duration_sec);
+  return ep.video_id ? insertQueue(env,'youtube',ep.video_id,options) : insertQueue(env,'episode',episodeId,options);
 }
 
 /** POST /api/reflections/:id/prepare — envoi explicite d'une note à l'Atelier. */
@@ -48,7 +49,9 @@ export function youtubeId(raw: string): string | null {
 async function queueYoutube(env: Env, body: Record<string, unknown>) {
   const id = typeof body.url === 'string' ? youtubeId(body.url) : null;
   if (!id) throw new HttpError(422,'invalid_url','Lien YouTube invalide.');
-  return insertQueue(env,'youtube',id,prepareOptions(body.options ?? {},'unknown',null));
+  const known = await env.DB.prepare('SELECT s.language FROM episodes e JOIN shows s ON s.id=e.show_id WHERE e.video_id=? LIMIT 1')
+    .bind(id).first<{ language: string }>();
+  return insertQueue(env,'youtube',id,prepareOptions(body.options ?? {},known?.language ?? 'unknown',null));
 }
 
 /** POST /api/sources/youtube — envoi explicite depuis la PWA, avec les mêmes contrôles que l’Atelier. */

@@ -3,6 +3,8 @@ import { api } from './client';
 import type { Category } from './episodes';
 
 export interface Show {
+  sourceType: 'podcast' | 'youtube';
+  channelId: string | null;
   id: string;
   title: string;
   publisher: string | null;
@@ -27,6 +29,8 @@ export interface Candidate {
 }
 
 export interface ShowPreview {
+  sourceType: 'podcast' | 'youtube';
+  channelId: string | null;
   feedUrl: string;
   title: string;
   publisher: string | null;
@@ -42,6 +46,8 @@ export interface ShowPreview {
 export type ResolveResult = { kind: 'candidates'; candidates: Candidate[] } | { kind: 'preview'; preview: ShowPreview };
 
 export interface NewShow {
+  sourceType?: 'podcast' | 'youtube';
+  channelId?: string | null;
   feedUrl: string;
   title: string;
   publisher: string | null;
@@ -70,7 +76,10 @@ export function useCreateShow() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (s: NewShow) => api<{ show: Show }>('/api/shows', { method: 'POST', body: s }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['shows'] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['shows'] });
+      void qc.invalidateQueries({ queryKey: ['explorer'] });
+    },
   });
 }
 

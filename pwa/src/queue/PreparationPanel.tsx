@@ -8,7 +8,8 @@ import { PrepareDialog } from './PrepareDialog';
 import { usePreparation } from './usePreparation';
 
 export function PreparationPanel({episode}: {episode?: Episode}) {
-  const {query,cancel,retry,remove} = usePreparation(episode ? {kind:'episode',id:episode.id} : undefined);
+  const target = episode ? (episode.videoId ? {kind:'youtube' as const,id:episode.videoId} : {kind:'episode' as const,id:episode.id}) : undefined;
+  const {query,cancel,retry,remove} = usePreparation(target);
   const [open,setOpen] = useState(false);
   const items = query.data?.items ?? [];
   const active = items.some((i) => i.status==='pending' || i.status==='leased');
@@ -39,7 +40,7 @@ export function PreparationPanel({episode}: {episode?: Episode}) {
       </Stack>
     </Box>)}</Stack>
     {(cancel.isError || retry.isError || remove.isError) && <Alert severity="error">{cancel.error?.message ?? retry.error?.message ?? remove.error?.message}</Alert>}
-    {open && episode && <PrepareDialog key={episode.id} target={{kind:'episode',id:episode.id}} title={episode.title}
+    {open && episode && target && <PrepareDialog key={episode.id} target={target} title={episode.title}
       initial={defaultOptions(episode.durationSec,episode.showId)} faithfulAllowed={episode.language==='fr'} onClose={() => setOpen(false)} />}
   </Box>;
 }

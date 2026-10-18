@@ -229,3 +229,20 @@ describe('Suppression', () => {
     expect((await call(`/atelier/queue/${active}/remove`,{ method:'POST',headers:bearer,pwa:false,body:{} })).status).toBe(409);
   });
 });
+
+it('rattache une vidéo suivie à sa publication YouTube et la détache à la suppression', async () => {
+  const videoId = 'ZvSfmW9F6tE', episodeId = 'd'.repeat(20);
+  await env.DB.prepare(`INSERT OR IGNORE INTO shows (id,title,feed_url,language,category,source_type,channel_id,next_check_at,created_at)
+    VALUES ('youtube-publication','Chaîne test','https://www.youtube.com/feeds/videos.xml?channel_id=UCwI-JbGNsojunnHbFAc0M4Q',
+      'fr','science','youtube','UCwI-JbGNsojunnHbFAc0M4Q','2026-10-18','2026-10-18')`).run();
+  await env.DB.prepare(`INSERT INTO episodes (id,show_id,guid,title,audio_url,video_id,created_at)
+    VALUES (?,'youtube-publication',?,'Vidéo test',?,?,'2026-10-18')`)
+    .bind(episodeId, `yt:video:${videoId}`, `https://www.youtube.com/watch?v=${videoId}`, videoId).run();
+  const b = await bundle('youtube');
+  b.m.content.sourceRef = `youtube:${videoId}`;
+  await publish(b);
+  const detail = await (await call(`/api/episodes/${episodeId}`, { cookie })).json<{ episode: { contentId: string } }>();
+  expect(detail.episode.contentId).toBe(b.m.content.id);
+  expect((await call(`/api/contents/${b.m.content.id}`, { method: 'DELETE', cookie })).status).toBe(204);
+  expect(await env.DB.prepare('SELECT content_id FROM episodes WHERE id=?').bind(episodeId).first()).toMatchObject({ content_id: null });
+});

@@ -1,3 +1,5 @@
+import { channelInput, resolveChannel, validateChannelFeed } from '../youtube/channels';
+import { channelFeedUrl, parseYoutubeFeed } from '../youtube/feed';
 import { USER_AGENT } from '../collector';
 import type { Env } from '../env';
 import { parseFeedStream } from '../feedParser';
@@ -9,6 +11,8 @@ export type Category = (typeof CATEGORIES)[number];
 export const MAX_SHOWS = 50;
 
 interface ShowPreview {
+  sourceType: 'podcast' | 'youtube';
+  channelId: string | null;
   feedUrl: string;
   title: string;
   publisher: string | null;
@@ -59,20 +63,21 @@ const lang = (v: string | null): 'fr' | 'en' | null => {
 };
 
 /** Aperçu d'un flux, sans rien enregistrer : 8 derniers épisodes au plus. */
-export async function previewFeed(feedUrl: string, fetcher: typeof fetch, apple?: Candidate): Promise<ShowPreview> {
+export async function previewFeed(feedUrl: string, fetcher: typeof fetch, apple?: Candidate, channelId?: string): Promise<ShowPreview> {
   const url = parseSafeUrl(feedUrl, { allowHttp: true }).toString();
   const res = await safeFetch(url, { allowHttp: true, headers: { 'User-Agent': USER_AGENT } }, fetcher);
   if (!res.ok || !res.body) {
     await res.body?.cancel();
     throw new HttpError(422, 'feed_unreachable', `Flux inaccessible (HTTP ${res.status}).`);
   }
-  const { channel, items } = await parseFeedStream(res.body, { maxItems: 8 });
+  const { channel, items } = await (channelId ? parseYoutubeFeed : parseFeedStream)(res.body, { maxItems: 8 });
   if (items.length === 0) throw new HttpError(422, 'feed_empty', 'Aucun épisode lisible dans ce flux.');
 
   const durations = items.map((i) => i.durationSec).filter((d): d is number => d !== null).sort((a, b) => a - b);
   const dates = items.map((i) => i.publishedAt).filter((d): d is string => d !== null).map(Date.parse).sort((a, b) => b - a);
   const spanDays = dates.length > 2 ? (dates[0]! - dates[dates.length - 1]!) / 86_400_000 : 0;
   return {
+    sourceType: channelId ? 'youtube' : 'podcast', channelId: channelId ?? null,
     feedUrl: url,
     title: apple?.title || channel?.title || 'Émission sans titre',
     publisher: apple?.publisher ?? channel?.author ?? null,
@@ -93,6 +98,10 @@ export async function resolve(req: Request, fetcher: typeof fetch = fetch): Prom
     throw new HttpError(400, 'invalid_body', 'Saisis un nom, un lien Apple Podcasts ou une adresse RSS.');
   }
   const value = input.trim();
+  if (value.startsWith('@') || /^UC[A-Za-z0-9_-]{22}$/.test(value) || /^https?:\/\/(?:www\.|m\.)?youtube\.com(?:\/|$)/i.test(value)) {
+    const id = await resolveChannel(value, fetcher);
+    return json({ kind: 'preview', preview: await previewFeed(channelFeedUrl(id), fetcher, undefined, id) });
+  }
   const appleId = value.match(APPLE_LINK)?.[1] ?? (/^\d{3,12}$/.test(value) ? value : null);
 
   if (appleId) {
@@ -118,7 +127,9 @@ export async function preview(req: Request, fetcher: typeof fetch = fetch): Prom
     ? { appleId: body.appleId, title: body.title, publisher: typeof body.publisher === 'string' ? body.publisher : null,
         imageUrl: typeof body.imageUrl === 'string' ? body.imageUrl : null, feedUrl: body.feedUrl }
     : undefined;
-  return json({ preview: await previewFeed(body.feedUrl, fetcher, apple) });
+  let channelId: string | undefined;
+  try { channelId = channelInput(body.feedUrl).id ?? undefined; } catch { /* Flux podcast. */ }
+  return json({ preview: await previewFeed(body.feedUrl, fetcher, apple, channelId) });
 }
 
 function slugify(title: string): string {
@@ -154,6 +165,12 @@ export async function create(req: Request, env: Env): Promise<Response> {
   }
   const feedUrl = parseSafeUrl(b.feedUrl, { allowHttp: true }).toString();
   const imageUrl = typeof b.imageUrl === 'string' && b.imageUrl ? parseSafeUrl(b.imageUrl).toString() : null;
+  const sourceType = b.sourceType ?? 'podcast';
+  if (sourceType !== 'podcast' && sourceType !== 'youtube') throw new HttpError(400, 'invalid_body', 'Source inconnue.');
+  const channelId = sourceType === 'youtube' ? validateChannelFeed(feedUrl, b.channelId) : null;
+  if (sourceType === 'podcast' && (b.channelId || new URL(feedUrl).hostname.endsWith('youtube.com'))) {
+    throw new HttpError(422, 'invalid_channel', 'Choisis une chaîne YouTube pour ce flux.');
+  }
   const category = validCategory(b.category);
   const language = validLanguage(b.language);
   const filter = validTitleFilter(b.titleFilter);
@@ -170,17 +187,17 @@ export async function create(req: Request, env: Env): Promise<Response> {
   const now = new Date().toISOString();
   await env.DB.prepare(
     `INSERT INTO shows (id, title, publisher, apple_id, feed_url, language, category, image_url, title_filter_json,
-       auto_prepare, enabled, next_check_at, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?, ?)`,
+       auto_prepare, enabled, next_check_at, created_at, source_type, channel_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?, ?, ?, ?)`,
   ).bind(
     id, b.title.trim(), typeof b.publisher === 'string' ? b.publisher.slice(0, 200) : null,
     typeof b.appleId === 'number' ? b.appleId : null, feedUrl, language, category, imageUrl,
-    filter ? JSON.stringify(filter) : null, now, now,
+    filter ? JSON.stringify(filter) : null, now, now, sourceType, channelId,
   ).run();
   return json({ show: await getShow(env, id) }, 201);
 }
 
-const SHOW_COLUMNS = `s.id, s.title, s.publisher, s.feed_url AS feedUrl, s.language, s.category, s.image_url AS imageUrl,
+const SHOW_COLUMNS = `s.source_type AS sourceType, s.channel_id AS channelId, s.id, s.title, s.publisher, s.feed_url AS feedUrl, s.language, s.category, s.image_url AS imageUrl,
   s.title_filter_json AS titleFilterJson, s.auto_prepare AS autoPrepare, s.enabled, s.last_success_at AS lastSuccessAt,
   s.last_attempt_at AS lastAttemptAt, s.last_error AS lastError, s.consecutive_failures AS consecutiveFailures,
   s.next_check_at AS nextCheckAt,
@@ -253,7 +270,7 @@ export async function remove(env: Env, id: string): Promise<Response> {
   if (!(await env.DB.prepare('SELECT 1 FROM shows WHERE id = ?').bind(id).first())) return apiError(404, 'not_found', 'Émission inconnue.');
   await env.DB.batch([
     env.DB.prepare(`DELETE FROM episodes WHERE show_id = ? AND state <> 'saved' AND content_id IS NULL
-      AND NOT EXISTS (SELECT 1 FROM prepare_queue q WHERE q.kind='episode' AND q.ref=episodes.id AND q.status IN ('pending','leased'))`).bind(id),
+      AND NOT EXISTS (SELECT 1 FROM prepare_queue q WHERE (q.kind='episode' AND q.ref=episodes.id OR q.kind='youtube' AND q.ref=episodes.video_id) AND q.status IN ('pending','leased'))`).bind(id),
     env.DB.prepare('UPDATE shows SET enabled = 0 WHERE id = ?').bind(id),
     env.DB.prepare('DELETE FROM shows WHERE id = ? AND NOT EXISTS (SELECT 1 FROM episodes WHERE show_id = ?)').bind(id, id),
   ]);

@@ -84,6 +84,7 @@ export async function commit(env: Env, id: string, requestToken?: string | null)
     ];
     const visible = 'EXISTS (SELECT 1 FROM contents WHERE id=? AND current_publication_id=?)';
     if (c.sourceType === 'podcast') batch.push(env.DB.prepare(`UPDATE episodes SET content_id=? WHERE id=? AND ${visible}`).bind(c.id,c.sourceRef!.slice(8),c.id,id));
+    if (c.sourceType === 'youtube' && c.sourceRef) batch.push(env.DB.prepare(`UPDATE episodes SET content_id=? WHERE video_id=? AND ${visible}`).bind(c.id,c.sourceRef!.slice(8),c.id,id));
     if (c.sourceType === 'reflection') batch.push(env.DB.prepare(`UPDATE reflections SET english_content_id=? WHERE id=? AND ${visible}`).bind(c.id,c.sourceRef!.slice(11),c.id,id));
     if (p.queue_item_id) batch.push(env.DB.prepare("UPDATE prepare_queue SET status='done',content_id=?,updated_at=? WHERE id=?").bind(c.id,now,p.queue_item_id));
     batch.push(env.DB.prepare('DELETE FROM publication_guards WHERE id=?').bind(token));

@@ -2,7 +2,7 @@ import type { Env } from '../env';
 import { apiError, HttpError, json, readJson } from '../http';
 import { CATEGORIES } from './shows';
 
-const EPISODE_COLUMNS = `e.id, e.title, e.description, e.published_at AS publishedAt, e.duration_sec AS durationSec,
+const EPISODE_COLUMNS = `s.source_type AS sourceType, e.video_id AS videoId, e.id, e.title, e.description, e.published_at AS publishedAt, e.duration_sec AS durationSec,
   e.audio_url AS audioUrl, COALESCE(e.image_url, s.image_url) AS imageUrl, e.transcript_type AS transcriptType,
   e.state, e.content_id AS contentId, s.id AS showId, s.title AS showTitle, s.language, s.category,
   p.position_ms AS progressMs, p.duration_ms AS progressDurationMs, p.completed AS progressCompleted`;
@@ -37,6 +37,11 @@ export async function explorer(req: Request, env: Env): Promise<Response> {
   const where: string[] = ['s.enabled = 1 OR e.state = \'saved\''];
   const values: unknown[] = [];
 
+  const sourceType = p.get('sourceType');
+  if (sourceType) {
+    if (!['podcast', 'youtube'].includes(sourceType)) throw new HttpError(400, 'invalid_query', 'Source inconnue.');
+    where.push('s.source_type = ?'); values.push(sourceType);
+  }
   const category = p.get('category');
   if (category) {
     if (!(CATEGORIES as readonly string[]).includes(category)) throw new HttpError(400, 'invalid_query', 'Catégorie inconnue.');

@@ -64,7 +64,7 @@ export function EpisodeBrowser({ filters, header, empty, showResume = false }: {
   const explorer = useExplorer(filters);
   const episodes = explorer.data?.pages.flatMap((p) => p.episodes) ?? [];
   const resume = showResume
-    ? episodes.find((e) => e.progressMs && e.progressDurationMs && e.progressCompleted !== 1 && e.progressMs > 5000
+    ? episodes.find((e) => e.sourceType !== 'youtube' && e.progressMs && e.progressDurationMs && e.progressCompleted !== 1 && e.progressMs > 5000
         && !(player.track?.targetType === 'episode' && player.track.targetId === e.id))
     : undefined;
 
@@ -104,7 +104,7 @@ export function EpisodeBrowser({ filters, header, empty, showResume = false }: {
       {explorer.hasNextPage && (
         <Box sx={{ textAlign: 'center', mt: 2 }}>
           <Button variant="outlined" onClick={() => void explorer.fetchNextPage()} disabled={explorer.isFetchingNextPage}>
-            {explorer.isFetchingNextPage ? 'Chargement…' : 'Plus d’épisodes'}
+            {explorer.isFetchingNextPage ? 'Chargement…' : 'Plus de contenus'}
           </Button>
         </Box>
       )}
@@ -123,7 +123,7 @@ export function EpisodeBrowser({ filters, header, empty, showResume = false }: {
       <Box sx={{ overflowY: 'auto' }}>
         {selected ? <EpisodeDetail id={selected} /> : (
           <Stack alignItems="center" justifyContent="center" sx={{ height: '100%', px: 4, textAlign: 'center', color: 'text.secondary' }}>
-            <Typography sx={{ fontFamily: fonts.display, fontSize: '1.4rem', mb: 1, color: 'text.primary' }}>Choisis un épisode</Typography>
+            <Typography sx={{ fontFamily: fonts.display, fontSize: '1.4rem', mb: 1, color: 'text.primary' }}>Choisis un contenu</Typography>
             <Typography sx={{ maxWidth: 320 }}>Son détail et sa transcription s’afficheront ici, pendant que la liste reste à portée.</Typography>
           </Stack>
         )}

@@ -1,3 +1,4 @@
+import { parseYoutubeFeed } from './youtube/feed';
 import type { Env } from './env';
 import { parseFeedStream, type FeedItem } from './feedParser';
 import { sha256Hex } from './security/crypto';
@@ -21,6 +22,7 @@ export const USER_AGENT = 'discover/1.0 (lecteur de podcasts personnel)';
 interface ShowRow {
   id: string;
   category: string;
+  source_type: 'podcast' | 'youtube';
   auto_prepare: number;
   feed_url: string;
   title_filter_json: string | null;
@@ -106,7 +108,7 @@ export async function collectNext(env: Env, now = Date.now(), fetcher: typeof fe
     if (res.status === 304) {
       await env.DB.prepare('UPDATE shows SET last_success_at = ?, last_error = NULL, consecutive_failures = 0 WHERE id = ?')
         .bind(iso(now), show.id).run();
-      if (show.auto_prepare) await automaticPreparation(env,show.id,now).run();
+      if (show.auto_prepare && show.source_type !== 'youtube') await automaticPreparation(env,show.id,now).run();
       return { showId: show.id, status: 'not_modified' };
     }
     if (!res.ok || !res.body) {
@@ -117,7 +119,7 @@ export async function collectNext(env: Env, now = Date.now(), fetcher: typeof fe
     const { results: known } = await env.DB.prepare(
       'SELECT guid FROM episodes WHERE show_id = ? ORDER BY published_at DESC LIMIT 30',
     ).bind(show.id).all<{ guid: string }>();
-    const parsed = await parseFeedStream(res.body, { maxItems, knownGuids: new Set(known.map((k) => k.guid)) });
+    const parsed = await (show.source_type === 'youtube' ? parseYoutubeFeed : parseFeedStream)(res.body, { maxItems, knownGuids: new Set(known.map((k) => k.guid)) });
     if (!parsed.channel && parsed.items.length === 0 && known.length === 0) throw new Error('Flux illisible (aucun épisode)');
 
     const fresh = parsed.items.filter((it) => matchesTitleFilter(it.title, show.title_filter_json));
@@ -134,12 +136,12 @@ export async function collectNext(env: Env, now = Date.now(), fetcher: typeof fe
       // Les histoires et anecdotes restent écoutables en archive ; les autres catégories expirent après 30 jours.
       env.DB.prepare(
         `DELETE FROM episodes WHERE show_id = ? AND state <> 'saved' AND content_id IS NULL
-           AND NOT EXISTS (SELECT 1 FROM prepare_queue q WHERE q.kind='episode' AND q.ref=episodes.id AND q.status IN ('pending','leased'))
+           AND NOT EXISTS (SELECT 1 FROM prepare_queue q WHERE (q.kind='episode' AND q.ref=episodes.id OR q.kind='youtube' AND q.ref=episodes.video_id) AND q.status IN ('pending','leased'))
            AND ((? NOT IN ('stories', 'humour') AND COALESCE(published_at, created_at) < ?)
                 OR id NOT IN (SELECT id FROM episodes WHERE show_id = ? ORDER BY COALESCE(published_at, created_at) DESC LIMIT ?))`,
       ).bind(show.id, show.category, iso(now - RETENTION_MS), show.id, RETENTION_PER_SHOW),
     );
-    if (show.auto_prepare) statements.push(automaticPreparation(env,show.id,now));
+    if (show.auto_prepare && show.source_type !== 'youtube') statements.push(automaticPreparation(env,show.id,now));
     await env.DB.batch(statements);
     return { showId: show.id, status: 'ok', newItems: fresh.length, bytesRead: parsed.bytesRead, stoppedAt: parsed.stoppedAt };
   } catch (e) {
@@ -156,10 +158,11 @@ async function insertEpisode(env: Env, showId: string, it: FeedItem, now: number
   if (!audioUrl) return null;
   return env.DB.prepare(
     `INSERT OR IGNORE INTO episodes
-       (id, show_id, guid, title, description, published_at, duration_sec, audio_url, image_url, transcript_url, transcript_type, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, show_id, guid, title, description, published_at, duration_sec, audio_url, image_url, transcript_url, transcript_type, created_at, video_id, content_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+       (SELECT id FROM contents WHERE source_type='youtube' AND source_ref=? AND deleted_at IS NULL AND current_publication_id IS NOT NULL LIMIT 1))`,
   ).bind(
     await episodeId(showId, it.guid), showId, it.guid, it.title, it.description, it.publishedAt, it.durationSec,
-    audioUrl, imageUrl(it.imageUrl), safeOrNull(it.transcriptUrl), it.transcriptUrl ? it.transcriptType : null, iso(now),
+    audioUrl, imageUrl(it.imageUrl), safeOrNull(it.transcriptUrl), it.transcriptUrl ? it.transcriptType : null, iso(now), it.videoId ?? null, it.videoId ? `youtube:${it.videoId}` : null,
   );
 }

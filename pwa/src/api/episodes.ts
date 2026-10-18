@@ -15,6 +15,8 @@ export const CATEGORY_LABELS: Record<Category, string> = {
 };
 
 export interface Episode {
+  sourceType?: 'podcast' | 'youtube';
+  videoId?: string | null;
   id: string;
   title: string;
   description: string | null;
@@ -36,6 +38,7 @@ export interface Episode {
 }
 
 export interface ExplorerFilters {
+  sourceType?: 'podcast' | 'youtube';
   category?: Category;
   lang?: 'fr' | 'en';
   state?: EpisodeState;

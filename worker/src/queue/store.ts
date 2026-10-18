@@ -14,9 +14,10 @@ export function queueOut(row: QueueRow) {
     attempts: row.attempts, maxAttempts: row.max_attempts, contentId: row.content_id,
     error: row.error, createdAt: row.created_at, updatedAt: row.updated_at, leaseExpiresAt: row.lease_expires_at };
 }
-export const QUEUE_SELECT = `SELECT q.*, COALESCE(e.title, r.title, c.title,
+export const QUEUE_SELECT = `SELECT q.*, COALESCE(e.title, y.title, r.title, c.title,
     CASE q.kind WHEN 'youtube' THEN 'Vidéo YouTube' WHEN 'reflection' THEN 'Note My Mind' ELSE q.ref END) AS title FROM prepare_queue q
   LEFT JOIN episodes e ON q.kind='episode' AND e.id=q.ref
+  LEFT JOIN episodes y ON q.kind='youtube' AND y.id=(SELECT id FROM episodes WHERE video_id=q.ref LIMIT 1)
   LEFT JOIN reflections r ON q.kind='reflection' AND r.id=q.ref
   LEFT JOIN contents c ON c.id=q.content_id`;
 

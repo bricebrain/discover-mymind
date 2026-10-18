@@ -31,7 +31,7 @@ Trois verbes : **découvrir, consommer, réfléchir.**
 | **EnglishFluency** | Entraînement (SRS, exercices, mots en contexte) | Inchangé ; reçoit, en option, des contenus publiés par l'Atelier |
 
 Ce qui change par rapport au cahier des charges :
-- **Explorer V1 = podcasts uniquement**, sans RSS d'articles (contenus tronqués et scraping parasite, la leçon de TechPulse).
+- **Explorer V1 initiale = podcasts uniquement** (étendu aux chaînes YouTube après la V1 initiale, voir `YOUTUBE_CHANNELS.md`), sans RSS d'articles (contenus tronqués et scraping parasite, la leçon de TechPulse).
 - **Pas d'interface d'import dans la PWA** : l'Atelier publie directement.
 - **3 onglets** : Explorer, Bibliothèque, My Mind, avec un mini-lecteur persistant.
 - **Reporté après la V1** : collections, historique de versions des notes, édition hors ligne avec fusion de conflits, IA dans la PWA, plusieurs niveaux CEFR par contenu.
@@ -858,6 +858,7 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 | **8 — File avec bail** ✅ (déployé) | Bouton et options dans la PWA ; onglet « À préparer » dans l'Atelier ; bail, signal de vie, reprise ; téléchargement et normalisation de l'épisode | Marquer sur le téléphone et importer/transcrire dans l’Atelier ; versions adaptées au lot 9 |
 | **9 — Versions préparées** ✅ (déployé) | `adaptation.py` : couverture × niveau × durée (§ 7.4), synthèse en deux passes avec renvois (§ 7.7), évaluation fond puis langue (§ 7.6), exclusion des publicités, narration par défaut, calibrage du débit Kokoro, préparation auto de L'édito éco | Un épisode de 50 min écouté en 12 min à son niveau |
 | **9 bis — Temps réel et notifications** ✅ (déployé) | Durable Object et WebSocket avec hibernation ; outbox D1 ; Web Push et Service Worker ; activation par appareil | Suivi instantané et notification prête / à relire / échec, même PWA fermée ; réception Fold7 confirmée ; fermeture et clic à valider |
+| **9 ter — Chaînes YouTube** ✅ | Abonnement par lien de chaîne / @identifiant ; collecte Atom via le cron ; filtres Explorer ; préparation via la file YouTube existante. Voir `YOUTUBE_CHANNELS.md`. | Retrouver les vidéos des chaînes suivies sans coller chaque lien |
 | **10 — My Mind complet** | Tags, types, questions, liens vers les passages, recherche FTS5, « Préparer en anglais » pour une note | Relire ses idées en anglais |
 | **11 — Bibliothèque et hors ligne** (partiel) | Onglets par source, recherche de titre et file séparée livrés ; téléchargements explicites et espace utilisé restent à faire | Écouter en mode avion |
 | **12 — Export et pont EnglishFluency** | Export complet (JSON + Markdown) ; case « aussi vers EnglishFluency » | Données récupérables ; les contenus nourrissent EnglishFluency |
@@ -1082,3 +1083,10 @@ Limite d'abonnements : **50** (relevée le 2026-10-18 pour les ajouts d’actual
 - Déploiement de ces parcours : Worker `db93acb4-1d36-4026-9ec5-e620482aa712`. Vérification production en lecture seule : nouveaux boutons et onglets visibles après actualisation, filtre YouTube (trois contenus existants), recherche My Mind vide correctement retournée. Aucun envoi de contrôle vers l’Atelier de production.
 
 - Correctif associé au contrôle navigateur : fermeture WebSocket sans renvoi de code réservé (erreur `1005` reproduite localement). **198 tests Worker**, dont cinq fermetures sur de vraies WebSockets. Version finale déployée : `ca18d3e5-2918-4a41-b746-45642071f687`. Détails : `docs/LOT9BIS_REALTIME_PUSH.md`.
+
+### Chaînes YouTube et prochaines évolutions (2026-10-18)
+
+- Suivi des chaînes dans les abonnements, filtre YouTube et filtre par chaîne dans Explorer. Collecte sans clé API, à tour de rôle avec les podcasts ; aucune génération automatique. Migration additive `0011_youtube_channels.sql`.
+- Vidéos transmises à la file YouTube existante ; versions publiées rattachées aux vidéos suivies. Aucun changement requis dans l’Atelier.
+- Validation et limites : voir [Chaînes YouTube](YOUTUBE_CHANNELS.md).
+- Suite validée : audio Deepgram avec budget maîtrisé et Heart en secours, dossiers de sources complémentaires préparées ensemble, puis préparation cloud ponctuelle. Ces trois évolutions ne sont pas implémentées par le suivi des chaînes.

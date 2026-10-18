@@ -8,8 +8,11 @@ const STAGES = ['download','normalize','transcribe','source_ready','plan','extra
 
 export async function source(env: Env, row: QueueRow) {
   if (row.kind === 'youtube') {
-    // Le titre et la langue sont lus par l'Atelier lors du téléchargement.
-    return { kind: 'youtube', videoId: row.ref, url: `https://www.youtube.com/watch?v=${row.ref}`, title: `YouTube ${row.ref}`, language: null, category: null };
+    const known = await env.DB.prepare(`SELECT e.title,s.language,s.category,s.title AS showTitle FROM episodes e
+      JOIN shows s ON s.id=e.show_id WHERE e.video_id=? LIMIT 1`).bind(row.ref)
+      .first<{ title: string; language: string; category: string; showTitle: string }>();
+    return { kind: 'youtube', videoId: row.ref, url: `https://www.youtube.com/watch?v=${row.ref}`,
+      title: known?.title ?? `YouTube ${row.ref}`, language: known?.language ?? null, category: known?.category ?? null };
   }
   if (row.kind === 'reflection') {
     const note = await env.DB.prepare('SELECT id,title,body_md AS text FROM reflections WHERE id=? AND deleted_at IS NULL')

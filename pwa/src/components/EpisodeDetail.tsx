@@ -1,3 +1,4 @@
+import YouTubeIcon from '@mui/icons-material/YouTube';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
@@ -36,6 +37,7 @@ export function EpisodeDetail({ id, onBack }: { id: string; onBack?: () => void 
   if (isPending) return <Box sx={{ p: 4, textAlign: 'center' }}><CircularProgress size={28} /></Box>;
   if (isError || !episode) return <Alert severity="warning" sx={{ m: 2 }}>Épisode introuvable.</Alert>;
 
+  const youtube = episode.sourceType === 'youtube';
   const saved = episode.state === 'saved';
   const isCurrent = player.track?.targetType === 'episode' && player.track.targetId === episode.id;
   const resumeAt = !isCurrent && episode.progressMs && episode.progressCompleted !== 1 && episode.progressMs > 5000 ? episode.progressMs / 1000 : null;
@@ -64,7 +66,7 @@ export function EpisodeDetail({ id, onBack }: { id: string; onBack?: () => void 
               width: 112, height: 112, borderRadius: 4, boxShadow: '0 14px 34px rgba(0,0,0,0.22)', bgcolor: alpha(color, 0.2),
             }} />
             <Box sx={{ minWidth: 0, pb: 0.5 }}>
-              <Typography variant="body2" sx={{ fontWeight: 650 }}>{episode.showTitle}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 650 }}>{youtube ? 'YouTube · ' : ''}{episode.showTitle}</Typography>
               <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 0.5, color: 'text.secondary', flexWrap: 'wrap', rowGap: 0.5 }}>
                 <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: color }} />
                 <Typography variant="caption" sx={{ fontWeight: 600 }}>{CATEGORY_LABELS[episode.category]}</Typography>
@@ -81,13 +83,14 @@ export function EpisodeDetail({ id, onBack }: { id: string; onBack?: () => void 
           <PreparationPanel key={episode.id} episode={episode} />
           <Stack direction="row" spacing={1} alignItems="center">
             {/* Épisode préparé : l'écoute se choisit par version, plus bas (l'original y figure aussi). */}
-            {!episode.contentId && <Button variant="contained" size="large" onClick={listen}
+            {youtube && <Button variant="outlined" href={episode.audioUrl} target="_blank" rel="noreferrer" startIcon={<YouTubeIcon />}>Voir sur YouTube</Button>}
+            {!youtube && !episode.contentId && <Button variant="contained" size="large" onClick={listen}
               startIcon={isCurrent && player.playing ? <PauseIcon /> : <PlayArrowIcon />}
               sx={{ px: 3, position: 'relative', overflow: 'hidden' }}>
               {isCurrent ? (player.playing ? 'Pause' : 'Reprendre') : resumeAt ? `Reprendre à ${formatClock(resumeAt)}` : 'Écouter'}
               {pct > 0 && <Box aria-hidden sx={{ position: 'absolute', left: 0, bottom: 0, height: 3, width: `${pct}%`, bgcolor: 'secondary.main' }} />}
             </Button>}
-            {!episode.contentId && isCurrent && player.playing && <PlayingBars active />}
+            {!youtube && !episode.contentId && isCurrent && player.playing && <PlayingBars active />}
             <Box sx={{ flex: 1 }} />
             <Tooltip title="Réfléchir : écrire une note liée à cet épisode">
               <IconButton aria-label="Réfléchir : écrire une note liée à cet épisode" sx={{ border: 1, borderColor: 'divider' }}

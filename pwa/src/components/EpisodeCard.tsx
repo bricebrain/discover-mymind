@@ -1,3 +1,4 @@
+import YouTubeIcon from '@mui/icons-material/YouTube';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
 import PauseIcon from '@mui/icons-material/Pause';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -33,6 +34,7 @@ export function PlayingBars({ active }: { active: boolean }) {
 export function EpisodeCard({ episode, selected, onOpen }: { episode: Episode; selected?: boolean; onOpen: () => void }) {
   const theme = useTheme();
   const player = usePlayer();
+  const youtube = episode.sourceType === 'youtube';
   const current = player.track?.targetType === 'episode' && player.track.targetId === episode.id;
   const playing = current && player.playing;
   const unseen = episode.state === 'new';
@@ -59,7 +61,7 @@ export function EpisodeCard({ episode, selected, onOpen }: { episode: Episode; s
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 0.25 }}>
             <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: color, flexShrink: 0 }} />
-            <Typography variant="caption" color="text.secondary" noWrap sx={{ fontWeight: 600, letterSpacing: '0.01em' }}>{episode.showTitle}</Typography>
+            <Typography variant="caption" color="text.secondary" noWrap sx={{ fontWeight: 600, letterSpacing: '0.01em' }}>{youtube ? 'YouTube · ' : ''}{episode.showTitle}</Typography>
           </Stack>
           <Typography sx={{
             fontWeight: unseen ? 650 : 550, fontSize: '0.98rem', lineHeight: 1.32, color: episode.progressCompleted === 1 ? 'text.secondary' : 'text.primary',
@@ -85,15 +87,15 @@ export function EpisodeCard({ episode, selected, onOpen }: { episode: Episode; s
         </Box>
       </ButtonBase>
       <IconButton
-        aria-label={playing ? `Mettre en pause ${episode.title}` : `Écouter ${episode.title}`}
-        onClick={() => (current ? player.toggle() : player.play(trackOf(episode)))}
+        aria-label={youtube ? `Ouvrir ${episode.title}` : playing ? `Mettre en pause ${episode.title}` : `Écouter ${episode.title}`}
+        onClick={() => youtube ? onOpen() : (current ? player.toggle() : player.play(trackOf(episode)))}
         sx={{
           mr: 0.75, flexShrink: 0, border: 1.5, borderColor: current ? 'primary.main' : 'divider',
           color: current ? 'primary.contrastText' : 'text.primary', bgcolor: current ? 'primary.main' : 'transparent',
           '&:hover': { bgcolor: current ? 'primary.main' : 'action.hover' },
         }}
       >
-        {playing ? <PauseIcon fontSize="small" /> : <PlayArrowIcon fontSize="small" />}
+        {youtube ? <YouTubeIcon fontSize="small" /> : playing ? <PauseIcon fontSize="small" /> : <PlayArrowIcon fontSize="small" />}
       </IconButton>
     </Box>
   );
