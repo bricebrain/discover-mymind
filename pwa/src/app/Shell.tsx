@@ -6,6 +6,7 @@ import { BottomNavigation, BottomNavigationAction, Box, IconButton, Toolbar, Typ
 import { alpha } from '@mui/material/styles';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { MiniPlayer } from '../player/MiniPlayer';
+import { OfflineBanner } from '../offline/OfflineBanner';
 import { fonts } from './theme';
 
 export const TABS = [
@@ -42,6 +43,7 @@ export function Shell() {
             <SettingsOutlinedIcon />
           </IconButton>
         </Toolbar>
+        <OfflineBanner />
       </Box>
 
       <Box component="main" sx={{ flex: 1, pb: `calc(${NAV_H}px + var(--player-h, 0px) + env(safe-area-inset-bottom))` }}>

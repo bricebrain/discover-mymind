@@ -4,7 +4,7 @@ import type { ContentSourceType } from '../api/contents';
 
 export const LIBRARY_VIEWS = {
   all: 'Tout', youtube: 'YouTube', reflection: 'My Mind', podcast: 'Podcasts',
-  queue: 'À préparer', saved: 'Sauvegardés',
+  queue: 'À préparer', saved: 'Sauvegardés', downloads: 'Téléchargements',
 };
 export type LibraryView = keyof typeof LIBRARY_VIEWS;
 

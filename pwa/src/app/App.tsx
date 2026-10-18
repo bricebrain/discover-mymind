@@ -1,5 +1,5 @@
 import { Alert, Box, Button, CircularProgress, CssBaseline, ThemeProvider, useMediaQuery } from '@mui/material';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import { useSession } from '../api/auth';
 import { ExplorerPage } from '../pages/ExplorerPage';
@@ -11,6 +11,7 @@ import { ShowsPage } from '../pages/ShowsPage';
 import { SettingsPage } from '../pages/SettingsPage';
 import { PreparationEventsProvider } from '../notifications/PreparationEventsProvider';
 import { PlayerProvider } from '../player/PlayerProvider';
+import { initOffline, isNetworkFailure, useOffline } from '../offline';
 import { Shell } from './Shell';
 import { buildTheme } from './theme';
 
@@ -31,10 +32,22 @@ const router = createBrowserRouter([
 
 function Gate() {
   const session = useSession();
-  if (session.isPending) {
+  const offlineState = useOffline();
+  useEffect(() => { void initOffline(); }, []);
+  // Hors ligne avec des téléchargements : l'app s'ouvre sur ce qui est disponible localement (chantier B).
+  // Une révocation de session n'est découverte qu'au retour du réseau.
+  const networkDown = session.isError && isNetworkFailure(session.error);
+  // Une fois ouverte hors ligne, l'app le reste (supprimer le dernier téléchargement ne la ferme pas).
+  const [offlineLatched, setOfflineLatched] = useState(false);
+  const offlineOpen = networkDown && (offlineLatched || offlineState.records.some((r) => r.status === 'complete'));
+  useEffect(() => { if (offlineOpen) setOfflineLatched(true); }, [offlineOpen]);
+  useEffect(() => {
+    if (offlineOpen && router.state.location.pathname === '/') void router.navigate('/library?view=downloads', { replace: true });
+  }, [offlineOpen]);
+  if (session.isPending || (networkDown && !offlineState.ready)) {
     return <Box sx={{ minHeight: '100dvh', display: 'grid', placeItems: 'center' }}><CircularProgress /></Box>;
   }
-  if (session.isError) {
+  if (session.isError && !offlineOpen) {
     return (
       <Box sx={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', px: 2 }}>
         <Alert severity="warning" action={<Button onClick={() => void session.refetch()}>Réessayer</Button>}>
@@ -43,7 +56,7 @@ function Gate() {
       </Box>
     );
   }
-  const open = session.data.authDisabled || session.data.session !== null;
+  const open = offlineOpen || session.data!.authDisabled || session.data!.session !== null;
   return open ? <PlayerProvider><PreparationEventsProvider><RouterProvider router={router} /></PreparationEventsProvider></PlayerProvider> : <LoginPage />;
 }
 

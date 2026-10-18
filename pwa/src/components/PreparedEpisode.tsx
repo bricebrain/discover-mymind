@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { useContent, type ContentVariant } from '../api/contents';
 import { DeleteContentButton } from '../content/DeleteContentButton';
 import { PlaybackControls } from '../content/VariantControls';
+import { DownloadButton } from '../offline/DownloadButton';
 import { VariantTranscript } from '../content/VariantTranscript';
 import { useContentReader } from '../content/useContentReader';
 import { durationLabel, languageName, variantName } from '../content/variants';
@@ -59,6 +60,7 @@ export function PreparedEpisode({ contentId, about, onDeleted }: { contentId: st
         </Alert>
       )}
       <PlaybackControls reader={reader} />
+      <DownloadButton detail={query.data} variant={variant} />
       <VariantTranscript key={`${query.data.publicationId}:${variant.key}`} detail={query.data} variant={variant}
         activePositionMs={reader.activePositionMs} verified={reader.verified} playing={reader.playing} onSeek={reader.play} />
       <Box sx={{ mt: 2 }}><DeleteContentButton id={contentId} title={query.data.content.title} onDeleted={onDeleted} /></Box>

@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { api } from './client';
+import { cachedSegments, isNetworkFailure, offline } from '../offline';
 
 export type ContentSourceType = 'podcast' | 'youtube' | 'reflection';
 export interface LibraryFilters { type?: ContentSourceType; search?: string }
@@ -37,12 +38,21 @@ export function usePreparedContents(filters: LibraryFilters = {}) {
     getNextPageParam: (page) => page.nextOffset ?? undefined });
 }
 export function useContent(id: string) {
-  return useQuery({ queryKey: ['content',id], queryFn: () => api<ContentDetail>(`/api/contents/${id}`) });
+  return useQuery({ queryKey: ['content',id], queryFn: async () => {
+    try { return await api<ContentDetail>(`/api/contents/${id}`); }
+    catch (error) {
+      // Hors ligne : l'instantané des versions téléchargées (chantier B).
+      const local = isNetworkFailure(error) ? await offline.detail(id).catch(() => null) : null;
+      if (local) return local;
+      throw error;
+    }
+  } });
 }
 export function useContentSegments(publicationId: string, variant: ContentVariant | undefined, enabled = true) {
   return useQuery({ queryKey: ['content-segments',publicationId,variant?.key], enabled: enabled && !!variant,
     queryFn: async () => {
-      const data = await api<ContentSegments>(variant!.segmentsUrl);
+      // Une transcription téléchargée sert aussi en ligne : même publication, même contenu.
+      const data = await cachedSegments(publicationId, variant!.key) ?? await api<ContentSegments>(variant!.segmentsUrl);
       if (data.variantKey !== variant!.key || !Array.isArray(data.segments)) throw new Error('Transcription incompatible avec cette version.');
       return data;
     }, staleTime: Infinity });

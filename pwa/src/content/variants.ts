@@ -1,5 +1,6 @@
 import type { ContentDetail, ContentSegment, ContentSegments, ContentVariant } from '../api/contents';
 import type { Track } from '../player/types';
+import { offline } from '../offline/index';
 import { isSynced } from '../transcript/subtitles';
 
 export function variantName(v: ContentVariant): string {
@@ -19,8 +20,10 @@ export function variantLabel(v: ContentVariant): string {
   return `${variantName(v)} · ${language} · ${v.audio ? durationLabel(v.audio.durationMs) : 'Texte seul'}${style}`;
 }
 export function variantTrack(detail: ContentDetail, v: ContentVariant): Track | null {
+  // Audio local seulement s'il a exactement la même empreinte que la version affichée.
+  const local = v.audio?.sha256 ? offline.audioUrl(v.audio.sha256) : undefined;
   return v.audio ? { targetType: 'variant', targetId: `${detail.content.id}:${v.key}`,
-    audioRef: v.audio.sha256 ?? v.audio.url, src: v.audio.url, title: detail.content.title,
+    audioRef: v.audio.sha256 ?? v.audio.url, src: local ?? v.audio.url, title: detail.content.title,
     subtitle: `${variantName(v)} · ${languageName(v.language)}`, imageUrl: null, durationSec: v.audio.durationMs / 1000 } : null;
 }
 export function timingVerified(v: ContentVariant, actualDurationSec: number): boolean {

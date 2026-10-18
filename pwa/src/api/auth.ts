@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from './client';
+import { offline } from '../offline';
 
 export interface SessionInfo {
   id: string;
@@ -28,12 +29,17 @@ export function useSession() {
         const r = await api<{ session: SessionInfo | null; authDisabled?: boolean }>('/api/auth/session');
         return { session: r.session, authDisabled: r.authDisabled === true };
       } catch (e) {
-        if (e instanceof ApiError && e.status === 401) return { session: null, authDisabled: false };
+        if (e instanceof ApiError && e.status === 401) {
+          // Session refusée : les téléchargements de cet appareil sont effacés (chantier B).
+          await offline.purge().catch(() => {});
+          return { session: null, authDisabled: false };
+        }
         throw e;
       }
     },
     staleTime: 5 * 60_000,
-    retry: (count, e) => !(e instanceof ApiError && e.status < 500) && count < 2,
+    // Hors ligne, inutile d'insister : l'app s'ouvre sur les téléchargements.
+    retry: (count, e) => navigator.onLine && !(e instanceof ApiError && e.status < 500) && count < 2,
   });
 }
 
@@ -49,7 +55,8 @@ export function useLogout() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => api<void>('/api/auth/logout', { method: 'POST' }),
-    onSettled: () => {
+    onSettled: async () => {
+      await offline.purge().catch(() => {});
       qc.clear();
       qc.setQueryData<AuthState>(SESSION_KEY, { session: null, authDisabled: false });
     },

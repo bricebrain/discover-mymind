@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { api } from '../api/client';
+import { saveProgress } from '../offline';
 import { fetchProgress, progressKey } from '../api/progress';
 import { AudioPosition } from './AudioPosition';
 import { sameAudio, SPEEDS, SKIP_SECONDS, type Track, type PlayerApi, type PlayerState, type PlayOptions } from './types';
@@ -65,16 +65,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       durationMs: Number.isFinite(a.duration) ? Math.round(a.duration * 1000) : null,
       completed: opts.completed ?? a.ended,
     };
-    if (opts.keepalive) {
-      void fetch('/api/progress', {
-        method: 'PUT', keepalive: true, credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-Discover-Client': '1' }, body: JSON.stringify(body),
-      }).catch(() => {});
-      return;
-    }
-    void api('/api/progress', { method: 'PUT', body }).then(() => {
-      void qc.invalidateQueries({ queryKey: progressKey(t) });
-    }).catch(() => {});
+    // Gardée sur l'appareil puis envoyée ; hors ligne, elle attend le retour du réseau (chantier B).
+    void saveProgress(body, opts.keepalive).then((sent) => {
+      if (sent && !opts.keepalive) void qc.invalidateQueries({ queryKey: progressKey(t) });
+    });
   }, [qc]);
 
   // Événements de l'élément audio → état React + Media Session.

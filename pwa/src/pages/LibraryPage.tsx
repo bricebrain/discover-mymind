@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { EpisodeBrowser } from '../components/EpisodeBrowser';
 import { PreparedContents } from '../library/PreparedContents';
+import { DownloadsList } from '../offline/DownloadsList';
 import { LIBRARY_VIEWS, useLibraryNavigation, type LibraryView } from '../library/useLibraryNavigation';
 import { AddYoutubeDialog } from '../queue/AddYoutubeDialog';
 import { PreparationPanel } from '../queue/PreparationPanel';
@@ -14,7 +15,7 @@ export function LibraryPage() {
   const navigation = useLibraryNavigation();
   const [adding, setAdding] = useState(false);
   const newNote = useNewNote();
-  const prepared = navigation.view !== 'queue' && navigation.view !== 'saved';
+  const prepared = navigation.view !== 'queue' && navigation.view !== 'saved' && navigation.view !== 'downloads';
   return <Box sx={{ maxWidth: 960, mx: 'auto', px: 2, pt: 3, pb: 4 }}>
     <Typography variant="h1" component="h1">Bibliothèque</Typography>
     <Typography color="text.secondary" sx={{ mt: 1, mb: 2 }}>Retrouve tes vidéos, tes notes et tes podcasts préparés.</Typography>
@@ -37,6 +38,7 @@ export function LibraryPage() {
         <PreparedContents filters={navigation.filters} />
       </>}
       {navigation.view === 'queue' && <PreparationPanel />}
+      {navigation.view === 'downloads' && <DownloadsList />}
       {navigation.view === 'saved' && <EpisodeBrowser filters={{ state: 'saved' }}
         header={<Typography variant="h5" component="h2">Épisodes sauvegardés</Typography>}
         empty="Les épisodes sauvegardés depuis Explorer apparaîtront ici." />}
