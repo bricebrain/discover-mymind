@@ -25,6 +25,14 @@ export async function assertSource(env: Env, m: Manifest) {
   if (m.content.sourceType === 'reflection') {
     if (!await env.DB.prepare('SELECT id FROM reflections WHERE id=? AND deleted_at IS NULL').bind(m.content.sourceRef!.slice(11)).first()) reject('source_not_found');
   }
+  if (m.content.sourceType === 'dossier') {
+    // Le résultat reste rattaché aux sources réellement capturées pour cette exécution.
+    const run = await env.DB.prepare('SELECT sources_json FROM dossier_runs WHERE id=?').bind(m.content.sourceRef!.slice(8)).first<{ sources_json: string }>();
+    if (!run) reject('source_not_found');
+    const captured = (JSON.parse(run.sources_json) as { id: string; type: string; ref: string }[]).map((x) => `${x.id}:${x.type}:${x.ref}`);
+    const declared = (m.content.sources ?? []).map((x) => `${x.id}:${x.type}:${x.ref}`);
+    if (captured.join('|') !== declared.join('|')) reject('dossier_sources_mismatch');
+  }
 }
 export async function current(env: Env, contentId: string): Promise<string | null> {
   const row = await env.DB.prepare('SELECT current_publication_id FROM contents WHERE id=?').bind(contentId).first<{ current_publication_id: string | null }>();

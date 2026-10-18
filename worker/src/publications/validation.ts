@@ -30,6 +30,14 @@ export function validateManifest(input: unknown, context: ValidationContext = {}
   if (m.content.sourceType === 'podcast' && !/^episode:[0-9a-f]{20}$/.test(m.content.sourceRef ?? '')) reject('invalid_source_ref');
   if (m.content.sourceType === 'reflection' && !/^reflection:[0-9a-f-]{36}$/.test(m.content.sourceRef ?? '')) reject('invalid_source_ref');
   if (m.content.sourceType === 'youtube' && m.content.sourceRef != null && !/^youtube:[A-Za-z0-9_-]{11}$/.test(m.content.sourceRef)) reject('invalid_source_ref');
+  // Dossier : un contenu par exécution, ses sources capturées et rien d'autre (chantier A).
+  if (m.content.sourceType === 'dossier') {
+    const run = /^dossier:([0-9a-f-]{36})$/.exec(m.content.sourceRef ?? '')?.[1];
+    if (!run || m.content.id !== `dossier-${run}` || !m.content.sources?.length) reject('invalid_source_ref');
+    const ids = m.content.sources.map((x) => x.id);
+    if (new Set(ids).size !== ids.length || ids.some((id, i) => id !== `d${i + 1}`)) reject('invalid_dossier_sources');
+    if (m.variants.some((v) => v.audio?.source === 'publisher_stream' || (v.kind === 'source' && v.audio))) reject('invalid_dossier_sources');
+  } else if (m.content.sources) reject('invalid_dossier_sources');
   if (Object.values(m.files).reduce((total, f) => total + f.size, 0) > 300_000_000) reject('publication_too_large');
   const used = new Set<string>();
   for (const v of m.variants) {

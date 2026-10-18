@@ -11,6 +11,6 @@ export async function candidates(req:Request,env:Env) {
    FROM reflections WHERE deleted_at IS NULL AND length(trim(body_md))>=20
   UNION ALL SELECT 'content',c.id,c.title,'Contenu préparé',c.updated_at FROM contents c JOIN publications p ON p.id=c.current_publication_id
    WHERE c.deleted_at IS NULL AND p.status='ready' AND c.source_type<>'dossier'
- ) WHERE title LIKE ? ESCAPE '\' ORDER BY date DESC,type,id LIMIT 31 OFFSET ?`).bind(pattern,offset).all();
+ ) WHERE title LIKE ? ESCAPE '\\' ORDER BY date DESC,type,id LIMIT 31 OFFSET ?`).bind(pattern,offset).all();
  return json({sources:rows.results.slice(0,30),nextOffset:rows.results.length>30?offset+30:null});
 }

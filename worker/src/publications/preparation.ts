@@ -6,8 +6,11 @@ import type { Manifest,Publication } from './types';
 /** Une demande n'est achevée que lorsque la version demandée est publiable et possède son audio. */
 export async function assertPrepared(env: Env,p: Publication,m: Manifest) {
   if (!p.queue_item_id) return;
-  const row = await env.DB.prepare('SELECT options_json FROM prepare_queue WHERE id=?').bind(p.queue_item_id).first<{options_json:string}>();
+  const row = await env.DB.prepare('SELECT kind,ref,options_json FROM prepare_queue WHERE id=?').bind(p.queue_item_id).first<{kind:string;ref:string;options_json:string}>();
   if (!row) throw new HttpError(409,'lease_lost','Demande introuvable.');
+  if ((m.content.sourceType==='dossier') !== (row.kind==='dossier') || (row.kind==='dossier' && m.content.sourceRef!==`dossier:${row.ref}`)) {
+    throw new HttpError(422,'source_mismatch','La publication ne correspond pas à la demande préparée.');
+  }
   const options = JSON.parse(row.options_json) as PrepareOptions;
   const adapted = m.variants.find((v) => v.kind==='adaptation' && v.language==='en' && v.coverage===options.coverage &&
     (v.cefrLevel ?? 'original')===options.level && v.style===options.style &&
