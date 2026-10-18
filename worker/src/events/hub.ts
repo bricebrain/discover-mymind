@@ -30,7 +30,11 @@ export class PreparationEvents extends DurableObject<Env> {
     if(message!=='ping' || !await validIdentity(this.env,ws.deserializeAttachment() as EventIdentity)) ws.close(1008,'Reconnexion requise');
     else ws.send('pong');
   }
-  override webSocketClose(ws:WebSocket,code:number,reason:string) {ws.close(code,reason);}
+  override webSocketClose(ws:WebSocket,code:number,reason:string) {
+    // Ces codes décrivent une fermeture sans trame valide et ne peuvent pas être renvoyés.
+    const replyCode=[1004,1005,1006,1015].includes(code)?1000:code;
+    ws.close(replyCode,reason);
+  }
   override webSocketError(ws:WebSocket) {ws.close(1011,'Reconnexion requise');}
 
   flush():Promise<void> {

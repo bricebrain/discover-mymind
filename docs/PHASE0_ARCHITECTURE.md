@@ -1080,3 +1080,5 @@ Limite d'abonnements : **50** (relevée le 2026-10-18 pour les ajouts d’actual
 - Validation : **193 tests Worker et 47 tests PWA**, TypeScript et build ; parcours navigateur local isolé YouTube et note → file, publications de démonstration, recherche, navigation et affichage à 390 et 880 px. Aucun contenu de contrôle ajouté à la production ; le Fold7 physique reste à vérifier.
 
 - Déploiement de ces parcours : Worker `db93acb4-1d36-4026-9ec5-e620482aa712`. Vérification production en lecture seule : nouveaux boutons et onglets visibles après actualisation, filtre YouTube (trois contenus existants), recherche My Mind vide correctement retournée. Aucun envoi de contrôle vers l’Atelier de production.
+
+- Correctif associé au contrôle navigateur : fermeture WebSocket sans renvoi de code réservé (erreur `1005` reproduite localement). **198 tests Worker**, dont cinq fermetures sur de vraies WebSockets. Version finale déployée : `ca18d3e5-2918-4a41-b746-45642071f687`. Détails : `docs/LOT9BIS_REALTIME_PUSH.md`.

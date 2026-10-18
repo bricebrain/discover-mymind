@@ -53,3 +53,8 @@ Le premier essai sur les appareils a révélé une incompatibilité réelle : `r
 L’envoi construit désormais une véritable `Request`, en mode `manual`. Aucune redirection n’est suivie ; une réponse 3xx termine l’essai. Les tests construisent également une Request native et vérifient que la livraison est effectivement terminée, ainsi que le refus de transmettre la requête à une cible de redirection. Les journaux conservent le statut HTTP et la phase/type d’erreur, sans endpoint, clé ni contenu.
 
 Validation : **172 tests Worker**, types Worker/PWA réussis ; Worker `af9ea94e-8a30-49b0-bcc9-e712ba41be52`. Deux essais demandés par l’utilisateur ont été relancés après correction : le service Push Google a accepté chacun avec **HTTP 201**, dès la première tentative. L’utilisateur a ensuite confirmé la réception sur son Fold7.
+
+
+## Fermeture du suivi en direct (18 octobre 2026)
+
+La vérification des nouveaux parcours a révélé une fermeture navigateur sans code (`1005`) : le renvoyer à `WebSocket.close()` levait une erreur du runtime. Les codes réservés de fermeture sont maintenant remplacés par une fermeture normale. Cinq tests de régression utilisent de vraies paires WebSocket Cloudflare ; **198 tests Worker** passent. Correctif déployé : `ca18d3e5-2918-4a41-b746-45642071f687`. Les abonnements Push et les préparations ne sont pas modifiés.
