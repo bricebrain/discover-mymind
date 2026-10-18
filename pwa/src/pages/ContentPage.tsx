@@ -1,6 +1,7 @@
 import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { DeleteContentButton } from '../content/DeleteContentButton';
+import { DossierSourcesList } from '../dossiers/DossierSourcesList';
 import { useContent } from '../api/contents';
 import { useContentReader } from '../content/useContentReader';
 import { PlaybackControls, VariantSelector } from '../content/VariantControls';
@@ -22,6 +23,7 @@ export function ContentPage() {
     {query.isSuccess && !variant && <Alert severity="info">Aucune version disponible pour ce contenu.</Alert>}
     {query.data && variant && <>
       <Typography variant="h1" sx={{ mt: 2 }}>{query.data.content.title}</Typography>
+      {query.data.content.sources && <DossierSourcesList sources={query.data.content.sources} />}
       {reader.unavailableVersion && <Alert severity="info" sx={{ mt: 2 }}>La version demandée n’est plus disponible. Une version présente est affichée.</Alert>}
       <VariantSelector variants={query.data.variants} selected={variant} onSelect={reader.select} />
       <PlaybackControls reader={reader} />

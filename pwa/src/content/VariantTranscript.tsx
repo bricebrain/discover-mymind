@@ -3,6 +3,7 @@ import { alpha } from '@mui/material/styles';
 import type { ContentDetail, ContentVariant } from '../api/contents';
 import { fonts } from '../app/theme';
 import { formatClock } from '../player/MiniPlayer';
+import { SegmentSources, useDossierPassages } from '../dossiers/SegmentSources';
 import { useVariantTranscript } from './useVariantTranscript';
 
 export function VariantTranscript({ detail, variant, activePositionMs, verified, playing, onSeek }: {
@@ -11,6 +12,8 @@ export function VariantTranscript({ detail, variant, activePositionMs, verified,
 }) {
   const reading = useVariantTranscript(detail, variant, activePositionMs, playing);
   const { segments, translated } = reading;
+  // Dossier multisource : chaque paragraphe renvoie à ses sources (chantier A).
+  const passages = useDossierPassages(detail);
   if (segments.isPending) return <Box sx={{ py: 3, textAlign: 'center' }}><CircularProgress size={24} aria-label="Chargement de la transcription" /></Box>;
   if (segments.isError) return <Alert severity="warning" action={<Button onClick={() => void segments.refetch()}>Réessayer</Button>}>{segments.error.message}</Alert>;
   if (!segments.data.segments.length) return <Alert severity="info">Aucun texte disponible pour cette version.</Alert>;
@@ -41,6 +44,7 @@ export function VariantTranscript({ detail, variant, activePositionMs, verified,
             borderLeft: '3px solid', borderColor: active ? 'primary.main' : 'transparent' })}>
           {navigable ? <ButtonBase onClick={() => onSeek(s.startMs! / 1000)} title={`Écouter depuis ${formatClock(s.startMs! / 1000)}`}
             sx={{ display: 'block', width: '100%', textAlign: 'left', borderRadius: 1 }}>{text}</ButtonBase> : <Box>{text}</Box>}
+          {passages && variant.kind !== 'source' && <SegmentSources segment={s} passages={passages} />}
           {reading.showFrench && <Typography lang="fr" sx={{ mt: 1, color: 'text.secondary', fontFamily: fonts.reading, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
             {reading.french.get(s.id) ?? (translated.isFetching ? '…' : 'Traduction non disponible pour ce passage.')}
           </Typography>}

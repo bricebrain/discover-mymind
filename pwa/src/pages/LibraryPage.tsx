@@ -4,6 +4,7 @@ import { Box, Button, Stack, Tab, Tabs, TextField, Typography } from '@mui/mater
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { EpisodeBrowser } from '../components/EpisodeBrowser';
+import { DossiersPanel } from '../dossiers/DossiersPanel';
 import { PreparedContents } from '../library/PreparedContents';
 import { LIBRARY_VIEWS, useLibraryNavigation, type LibraryView } from '../library/useLibraryNavigation';
 import { AddYoutubeDialog } from '../queue/AddYoutubeDialog';
@@ -28,6 +29,7 @@ export function LibraryPage() {
     </Tabs>
     <Box role="tabpanel" id="library-panel" aria-labelledby={`library-tab-${navigation.view}`}>
       {prepared && <>
+        {navigation.view === 'dossier' && <DossiersPanel />}
         {navigation.view === 'reflection' && <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Colle ou écris ton texte dans My Mind, puis choisis « Préparer en anglais » sous la note.
           {' '}<Button component={Link} to="/mind" size="small">Ouvrir mes notes</Button>

@@ -25,7 +25,7 @@ export function PreparationPanel({episode}: {episode?: Episode}) {
     {!episode && query.isSuccess && !shown.length && <Typography variant="body2" color="text.secondary">Ajoute un lien YouTube, ou choisis « Préparer en anglais » sur un épisode ou une note My Mind.</Typography>}
     <Stack spacing={1} sx={{mt:1}}>{shown.map((item) => <Box key={item.id} sx={{p:1.5,border:1,borderColor:'divider',borderRadius:2}}>
       {!episode && <Typography variant="body2" sx={{fontWeight:600}}>{item.title}</Typography>}
-      {!episode && <Typography variant="caption" color="text.secondary">{{ episode: 'Podcast', youtube: 'YouTube', reflection: 'My Mind' }[item.kind]}</Typography>}
+      {!episode && <Typography variant="caption" color="text.secondary">{{ episode: 'Podcast', youtube: 'YouTube', reflection: 'My Mind', dossier: 'Dossier' }[item.kind]}</Typography>}
       <Typography variant="body2">{queueLabel(item)}</Typography>
       <Typography variant="caption" color="text.secondary">{optionsLabel(item.options)}</Typography>
       {item.error && item.status==='failed' && <Typography variant="body2" color="error">{item.error}</Typography>}

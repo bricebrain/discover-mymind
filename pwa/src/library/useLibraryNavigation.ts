@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import type { ContentSourceType } from '../api/contents';
 
 export const LIBRARY_VIEWS = {
-  all: 'Tout', youtube: 'YouTube', reflection: 'My Mind', podcast: 'Podcasts',
+  all: 'Tout', youtube: 'YouTube', reflection: 'My Mind', podcast: 'Podcasts', dossier: 'Dossiers',
   queue: 'À préparer', saved: 'Sauvegardés',
 };
 export type LibraryView = keyof typeof LIBRARY_VIEWS;
@@ -28,6 +28,6 @@ export function useLibraryNavigation() {
     if (value) updated.set('q', value); else updated.delete('q');
     setParams(updated, { replace: true });
   };
-  const type: ContentSourceType | undefined = ['youtube','reflection','podcast'].includes(view) ? view as ContentSourceType : undefined;
+  const type: ContentSourceType | undefined = ['youtube','reflection','podcast','dossier'].includes(view) ? view as ContentSourceType : undefined;
   return { view, select, search, setSearch, filters: { type, search: debouncedSearch } };
 }

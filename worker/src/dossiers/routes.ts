@@ -2,10 +2,22 @@ import type { Env } from '../env';
 import { HttpError, json, readJson } from '../http';
 import { prepareOptions } from '../queue/options';
 import { insertQueue } from '../routes/queue';
-import { capture, references } from './sources';
+import { capture, references, type SourceRef } from './sources';
 
 interface Dossier {id:string;title:string;version:number;sources_json:string;created_at:string;updated_at:string}
-const out=(d:Dossier)=>({id:d.id,title:d.title,version:d.version,sources:JSON.parse(d.sources_json),createdAt:d.created_at,updatedAt:d.updated_at});
+const out=(d:Dossier)=>({id:d.id,title:d.title,version:d.version,sources:JSON.parse(d.sources_json) as SourceRef[],createdAt:d.created_at,updatedAt:d.updated_at});
+/** Titres actuels des sources (une source supprimée depuis reste listée, marquée indisponible). */
+async function withTitles(env:Env,dossiers:ReturnType<typeof out>[]) {
+ const refs=[...new Set(dossiers.flatMap(d=>d.sources.map(s=>s.type+':'+s.id)))];
+ const titles=new Map<string,string>();
+ for(const ref of refs){
+  const [type,id]=ref.split(':') as [SourceRef['type'],string];
+  const sql=type==='episode'?'SELECT title FROM episodes WHERE id=?':type==='reflection'?"SELECT COALESCE(title,substr(body_md,1,80)) AS title FROM reflections WHERE id=? AND deleted_at IS NULL":'SELECT title FROM contents WHERE id=? AND deleted_at IS NULL';
+  const row=await env.DB.prepare(sql).bind(id).first<{title:string}>();
+  if(row) titles.set(ref,row.title);
+ }
+ return dossiers.map(d=>({...d,sources:d.sources.map(s=>({...s,title:titles.get(s.type+':'+s.id)??null}))}));
+}
 const title=(v:unknown)=>{if(typeof v!=='string'||!v.trim()||v.trim().length>200) throw new HttpError(422,'invalid_title','Titre de 1 à 200 caractères attendu.');return v.trim();};
 async function load(env:Env,id:string) {
  const d=await env.DB.prepare('SELECT * FROM dossiers WHERE id=?').bind(id).first<Dossier>();
@@ -14,7 +26,7 @@ async function load(env:Env,id:string) {
 export async function route(req:Request,env:Env,path:string):Promise<Response|null> {
  if(path==='/api/dossiers'&&req.method==='GET') {
   const rows=await env.DB.prepare('SELECT * FROM dossiers ORDER BY updated_at DESC LIMIT 100').all<Dossier>();
-  return json({dossiers:rows.results.map(out)});
+  return json({dossiers:await withTitles(env,rows.results.map(out))});
  }
  if(path==='/api/dossiers'&&req.method==='POST') {
   const b=await readJson<Record<string,unknown>>(req,4096),refs=references(b.sources),t=title(b.title);
@@ -30,7 +42,7 @@ export async function route(req:Request,env:Env,path:string):Promise<Response|nu
   const runs=await env.DB.prepare(`SELECT r.id,r.version,r.created_at AS createdAt,q.status,q.content_id AS contentId
    FROM dossier_runs r LEFT JOIN prepare_queue q ON q.id=(SELECT id FROM prepare_queue WHERE kind='dossier' AND ref=r.id ORDER BY created_at DESC LIMIT 1)
    WHERE dossier_id=? ORDER BY r.created_at DESC LIMIT 30`).bind(d.id).all();
-  return json({dossier:out(d),runs:runs.results});
+  return json({dossier:(await withTitles(env,[out(d)]))[0],runs:runs.results});
  }
  if(!match[2]&&req.method==='PATCH') {
   const b=await readJson<Record<string,unknown>>(req,4096),refs=references(b.sources),t=title(b.title);
