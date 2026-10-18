@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { usePreparedContents, type LibraryFilters } from '../api/contents';
 import { DeleteContentButton } from '../content/DeleteContentButton';
 
-const SOURCE_LABELS = { youtube: 'YouTube', reflection: 'Note My Mind', podcast: 'Podcast' };
+const SOURCE_LABELS = { youtube: 'YouTube', reflection: 'Note My Mind', podcast: 'Podcast', dossier: 'Dossier' };
 
 export function PreparedContents({ filters = {} }: { filters?: LibraryFilters }) {
   const query = usePreparedContents(filters);

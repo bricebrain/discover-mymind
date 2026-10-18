@@ -11,6 +11,8 @@ import * as auth from './routes/auth';
 import * as episodes from './routes/episodes';
 import * as progress from './routes/progress';
 import * as queue from './routes/queue';
+import { route as dossierRoute } from './dossiers/routes';
+import { candidates } from './dossiers/candidates';
 import { expireExhausted } from './queue/store';
 import * as reflections from './routes/reflections';
 import * as shows from './routes/shows';
@@ -52,6 +54,8 @@ async function handleApi(req: Request, env: Env, path: string): Promise<Response
 
 /** Routes de données (émissions, épisodes, progression) : la session est vérifiée avant. */
 async function handleData(req: Request, env: Env, path: string, m: string): Promise<Response> {
+  if (path==='/api/dossier-sources' && m==='GET') return candidates(req,env);
+  if (path.startsWith('/api/dossiers')) { const response=await dossierRoute(req,env,path); if(response) return response; }
   if (path === '/api/sources/youtube' && m === 'POST') return queue.enqueueYoutube(req,env);
   if (path.startsWith('/api/notifications/')) return notifications(req,env,path);
   if (path === '/api/events' && m==='GET') {

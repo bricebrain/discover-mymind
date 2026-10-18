@@ -17,9 +17,15 @@ async function checkSegments(env: Env, m: Manifest, prepared: boolean) {
   const source = m.variants.find((v) => v.kind === 'source')!;
   const sourceDoc = validateSegments(await load(source), source);
   const ids = new Set(sourceDoc.segments.map((s) => s.id));
+  // Provenance : uniquement dans la source d'un dossier, chaque passage vers une source déclarée.
+  const dossierSources = new Set((m.content.sources ?? []).map((x) => x.id));
+  if (sourceDoc.segments.some((s) => m.content.sourceType === 'dossier' ? !s.provenance || !dossierSources.has(s.provenance.sourceId) : !!s.provenance)) {
+    throw new HttpError(422, 'invalid_provenance', 'Provenance des passages invalide.');
+  }
   for (const v of m.variants) {
     if (v.key !== source.key) {
       const doc = validateSegments(await load(v), v, ids);
+      if (doc.segments.some((x) => x.provenance)) throw new HttpError(422, 'invalid_provenance', 'Provenance réservée à la source d’un dossier.');
       if (prepared && v.kind==='adaptation' && doc.segments.some((s) => !s.fr?.trim() ||
           (v.style==='narration' ? s.speaker!=='Narrator' : s.speaker!=='Host' && s.speaker!=='Guest'))) {
         throw new HttpError(422,'invalid_adaptation_segments','Traduction française et intervenants conformes au style requis.');
