@@ -35,6 +35,7 @@ const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
 export function youtubeId(raw: string): string | null {
   let url: URL;
   try { url = new URL(raw.trim()); } catch { return null; }
+  if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password || url.port) return null;
   const host = url.hostname.replace(/^(www|m|music)\./, '');
   let id: string | null = null;
   if (host === 'youtu.be') id = url.pathname.slice(1).split('/')[0] ?? null;
@@ -42,6 +43,17 @@ export function youtubeId(raw: string): string | null {
     id = url.searchParams.get('v') ?? url.pathname.match(/^\/(?:shorts|embed|live)\/([^/]+)/)?.[1] ?? null;
   }
   return id && YOUTUBE_ID.test(id) ? id : null;
+}
+
+async function queueYoutube(env: Env, body: Record<string, unknown>) {
+  const id = typeof body.url === 'string' ? youtubeId(body.url) : null;
+  if (!id) throw new HttpError(422,'invalid_url','Lien YouTube invalide.');
+  return insertQueue(env,'youtube',id,prepareOptions(body.options ?? {},'unknown',null));
+}
+
+/** POST /api/sources/youtube — envoi explicite depuis la PWA, avec les mêmes contrôles que l’Atelier. */
+export async function enqueueYoutube(req: Request, env: Env) {
+  return queueYoutube(env, await readJson<Record<string, unknown>>(req, 4096));
 }
 
 /**
@@ -52,9 +64,7 @@ export async function enqueueSource(req: Request, env: Env) {
   const b = await readJson<Record<string, unknown>>(req, 120_000);
   const options = b.options ?? {};
   if (b.kind === 'youtube') {
-    const id = typeof b.url === 'string' ? youtubeId(b.url) : null;
-    if (!id) throw new HttpError(422,'invalid_url','Lien YouTube invalide.');
-    return insertQueue(env,'youtube',id,prepareOptions(options,'unknown',null));
+    return queueYoutube(env,b);
   }
   if (b.kind === 'text') {
     const text = typeof b.text === 'string' ? b.text.trim() : '';
@@ -71,8 +81,8 @@ export async function enqueueSource(req: Request, env: Env) {
 export async function list(req: Request, env: Env) {
   await expireExhausted(env);
   const params = new URL(req.url).searchParams;
-  const kind = params.has('reflection') ? 'reflection' : 'episode';
-  const ref = params.get('episode') ?? params.get('reflection');
+  const kind = params.has('youtube') ? 'youtube' : params.has('reflection') ? 'reflection' : 'episode';
+  const ref = params.get(kind);
   const rows = await env.DB.prepare(`${QUEUE_SELECT} ${ref ? `WHERE q.kind='${kind}' AND q.ref=?` : ''}
     ORDER BY q.created_at DESC,q.id DESC LIMIT 100`).bind(...(ref ? [ref] : [])).all<QueueRow>();
   return json({ items: rows.results.map(queueOut) });

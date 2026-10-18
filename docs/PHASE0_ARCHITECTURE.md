@@ -344,12 +344,13 @@ Une session est requise, sauf pour la connexion. Tout appel qui modifie quelque 
 | GET | `/api/episodes/:id/transcript` | Texte brut du SRT/VTT du flux (`{ type, audioRef, text }`), récupéré une fois puis servi depuis R2 | episodes |
 | POST | `/api/episodes/:id/state` | `seen` · `saved` · `dismissed` | episodes |
 | POST | `/api/episodes/:id/prepare` | Demande de préparation (§ 7.4) | prepare_queue |
+| POST | `/api/sources/youtube` | Lien YouTube depuis la PWA → file Atelier (session et CSRF de la PWA) | prepare_queue |
 | GET · POST | `/api/shows` | Liste · abonnement | shows |
 | POST | `/api/shows/resolve` | Nom, lien Apple ou URL RSS → candidats ou aperçu (sans enregistrer) | — |
 | POST | `/api/shows/preview` | Aperçu d'un candidat choisi (8 derniers épisodes, durée médiane, rythme) | — |
 | PATCH · DELETE | `/api/shows/:id` | Réglages · désabonnement (les épisodes sauvegardés sont gardés) | shows, episodes |
 | GET · DELETE | `/api/queue` · `/api/queue/:id` | Suivi · annulation | prepare_queue |
-| GET | `/api/library?type=&category=&status=&q=` | Contenus préparés et épisodes sauvegardés | contents, episodes |
+| GET | `/api/library?type=&q=&offset=` | Contenus préparés, type (podcast / youtube / reflection), recherche par titre et pagination ; sauvegardés via Explorer | contents, publications |
 | GET | `/api/contents/:id` | Contenu et variantes de sa publication courante | contents, variants |
 | GET | `/api/contents/:id/variants/:key/segments` | Fichier de segments | variants, publication_files |
 | GET | `/api/contents/:id/variants/:key/audio` | Audio R2 avec requêtes `Range` (ou 404 si streaming officiel) | variants, publication_files |
@@ -858,7 +859,7 @@ Chaque lot produit un résultat **utilisable**, vérifié sur le Galaxy Z Fold7 
 | **9 — Versions préparées** ✅ (déployé) | `adaptation.py` : couverture × niveau × durée (§ 7.4), synthèse en deux passes avec renvois (§ 7.7), évaluation fond puis langue (§ 7.6), exclusion des publicités, narration par défaut, calibrage du débit Kokoro, préparation auto de L'édito éco | Un épisode de 50 min écouté en 12 min à son niveau |
 | **9 bis — Temps réel et notifications** ✅ (déployé) | Durable Object et WebSocket avec hibernation ; outbox D1 ; Web Push et Service Worker ; activation par appareil | Suivi instantané et notification prête / à relire / échec, même PWA fermée ; réception Fold7 confirmée ; fermeture et clic à valider |
 | **10 — My Mind complet** | Tags, types, questions, liens vers les passages, recherche FTS5, « Préparer en anglais » pour une note | Relire ses idées en anglais |
-| **11 — Bibliothèque et hors ligne** | Filtres, téléchargements explicites, espace utilisé, suppression | Écouter en mode avion |
+| **11 — Bibliothèque et hors ligne** (partiel) | Onglets par source, recherche de titre et file séparée livrés ; téléchargements explicites et espace utilisé restent à faire | Écouter en mode avion |
 | **12 — Export et pont EnglishFluency** | Export complet (JSON + Markdown) ; case « aussi vers EnglishFluency » | Données récupérables ; les contenus nourrissent EnglishFluency |
 
 ---
@@ -1069,3 +1070,13 @@ Limite d'abonnements : **50** (relevée le 2026-10-18 pour les ajouts d’actual
 - Révision du catalogue (2026-10-18) : migration `0006_podcast_selection.sql` appliquée. Huit émissions désactivées sans effacement d’historique ; six flux officiels ajoutés dans **Humour et anecdotes**. Production vérifiée : **34 actives (23 EN / 11 FR), 8 désactivées**. La limite et le compteur portent sur les émissions actives. Les dix dernières histoires et anecdotes restent accessibles sans limite d’âge. **187 tests Worker**, TypeScript et build PWA réussis. Worker : `ef4ba014-d4e3-45a9-8372-c4731054f1a0`. Première collecte des six ajouts confiée au cron.
 
 - Ajouts d’actualité (2026-10-18) : migration `0007_news_shows.sql` appliquée. BBC Global News et The Daily étaient déjà actifs ; ajout de Sky News Daily — This Is Why, Reuters World News, The Intelligence (The Economist), Ça dit quoi ?, L’Heure du Monde, Les informés de franceinfo et Un Monde d’avance (Le Monde, distinct de franceinfo). Flux officiels vérifiés ; **41 actives (26 EN / 15 FR), 8 désactivées**, sans doublon de flux. Plafond porté à **50 émissions actives**. **187 tests Worker**, TypeScript et build PWA réussis. Worker : `160318e2-3105-49b1-b18c-349d294f98ec`. Première collecte des sept ajouts confiée au cron.
+
+### Sources depuis la PWA et bibliothèque (2026-10-18)
+
+- **Bibliothèque → Lien YouTube** : coller le lien, puis choisir couverture, niveau, durée et style. La demande rejoint le même consommateur Atelier que les demandes Mac. L’URL est normalisée en identifiant vidéo ; liens malformés refusés et demande active dédupliquée. Aucun jeton Atelier dans le navigateur.
+- **Bibliothèque → Texte My Mind** : ouvre une nouvelle note ; écrire ou coller le texte, attendre la synchronisation, puis **Préparer en anglais**. Le parcours existant des notes est conservé. Le Mac doit être allumé avec l’Atelier lancé pour consommer les demandes.
+- Onglets **Tout / YouTube / My Mind / Podcasts / À préparer / Sauvegardés**, recherche de titre côté serveur, comptage et pagination appliqués après filtres. Le type vient de `sourceType`, même pour les anciens identifiants sans préfixe. Retour depuis la lecture avec l’onglet et la recherche conservés.
+- Les états de file indiquent la source et donnent accès à la note ou à la vidéo. Les téléchargements et l’écoute hors ligne restent au lot 11.
+- Validation : **193 tests Worker et 47 tests PWA**, TypeScript et build ; parcours navigateur local isolé YouTube et note → file, publications de démonstration, recherche, navigation et affichage à 390 et 880 px. Aucun contenu de contrôle ajouté à la production ; le Fold7 physique reste à vérifier.
+
+- Déploiement de ces parcours : Worker `db93acb4-1d36-4026-9ec5-e620482aa712`. Vérification production en lecture seule : nouveaux boutons et onglets visibles après actualisation, filtre YouTube (trois contenus existants), recherche My Mind vide correctement retournée. Aucun envoi de contrôle vers l’Atelier de production.

@@ -62,3 +62,27 @@ describe('note envoyée depuis l’app', () => {
     expect((await call('/api/reflections/11111111-2222-4333-8444-555555555555/prepare', { method: 'POST', cookie, body: {} })).status).toBe(404);
   });
 });
+
+describe('YouTube envoyé depuis l’app', () => {
+  it('authentifie, déduplique et transmet une vidéo canonique à l’Atelier', async () => {
+    const body = { url: 'https://youtu.be/dQw4w9WgXcQ?si=partage', options: { coverage: 'condensed', targetMinutes: 12 } };
+    expect((await call('/api/sources/youtube', { method: 'POST', body })).status).toBe(401);
+    const cookie = await login();
+    expect((await call('/api/sources/youtube', { method: 'POST', cookie, pwa: false, body })).status).toBe(403);
+    expect((await call('/api/sources/youtube', { method: 'POST', cookie, body })).status).toBe(201);
+    expect((await call('/api/sources/youtube', { method: 'POST', cookie, body: { ...body, url: 'https://youtube.com/watch?v=dQw4w9WgXcQ&t=25' } })).status).toBe(200);
+    expect((await call('/api/sources/youtube', { method: 'POST', cookie, body: { ...body, options: { coverage: 'full' } } })).status).toBe(409);
+    const filtered = await (await call('/api/queue?youtube=dQw4w9WgXcQ', { cookie })).json<{ items: { kind: string; ref: string }[] }>();
+    expect(filtered.items).toHaveLength(1);
+    expect(filtered.items[0]).toMatchObject({ kind: 'youtube', ref: 'dQw4w9WgXcQ' });
+    expect(await lease()).toMatchObject({ kind: 'youtube', source: { videoId: 'dQw4w9WgXcQ', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' } });
+  });
+
+  it('refuse les liens trompeurs et les options incompatibles avec la langue inconnue', async () => {
+    const cookie = await login();
+    for (const url of ['https://youtube.com.evil.example/watch?v=dQw4w9WgXcQ', 'ftp://youtube.com/watch?v=dQw4w9WgXcQ', 'https://user:password@youtube.com/watch?v=dQw4w9WgXcQ']) {
+      expect((await call('/api/sources/youtube', { method: 'POST', cookie, body: { url } })).status).toBe(422);
+    }
+    expect((await call('/api/sources/youtube', { method: 'POST', cookie, body: { url: 'https://youtu.be/dQw4w9WgXcQ', options: { faithful: true } } })).status).toBe(422);
+  });
+});

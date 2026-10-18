@@ -5,9 +5,9 @@ import { COVERAGES } from './options';
 import type { PrepareOptions } from './types';
 import { usePreparation } from './usePreparation';
 
-/** Options d'une préparation (épisode ou note). Une note n'a pas d'audio : pas de copie de l'original. */
-export function PrepareDialog({target,title,initial,faithfulAllowed,onClose}: {
-  target: PrepTarget; title: string; initial: PrepareOptions; faithfulAllowed: boolean; onClose:() => void;
+/** Options communes aux épisodes, vidéos et notes ; la copie de l’audio original concerne les épisodes. */
+export function PrepareDialog({target,title,initial,faithfulAllowed,onClose,onQueued}: {
+  target: PrepTarget; title: string; initial: PrepareOptions; faithfulAllowed: boolean; onClose:() => void; onQueued?:() => void;
 }) {
   const [options,setOptions] = useState(initial);
   const {prepare} = usePreparation(target);
@@ -36,6 +36,6 @@ export function PrepareDialog({target,title,initial,faithfulAllowed,onClose}: {
       {prepare.isError && <Alert severity="error">{prepare.error.message}</Alert>}
     </Stack></DialogContent>
     <DialogActions><Button onClick={onClose} disabled={prepare.isPending}>Annuler</Button><Button variant="contained" disabled={!valid || prepare.isPending}
-      onClick={() => prepare.mutate(options,{onSuccess:onClose})}>{prepare.isPending ? 'Envoi…' : 'Mettre à préparer'}</Button></DialogActions>
+      onClick={() => prepare.mutate(options,{onSuccess:() => { onQueued?.(); onClose(); }})}>{prepare.isPending ? 'Envoi…' : 'Mettre à préparer'}</Button></DialogActions>
   </Dialog>;
 }

@@ -16,10 +16,21 @@ export async function library(req: Request, env: Env) {
   const params = new URL(req.url).searchParams;
   const offset = Number(params.get('offset') ?? 0);
   if (!Number.isSafeInteger(offset) || offset < 0) throw new HttpError(400,'invalid_pagination','Pagination invalide.');
-  const where = "FROM contents c JOIN publications p ON p.id=c.current_publication_id WHERE c.deleted_at IS NULL AND p.status='ready'";
+  const type = params.get('type');
+  if (type && !['podcast','youtube','reflection'].includes(type)) throw new HttpError(400,'invalid_type','Type de contenu inconnu.');
+  const search = (params.get('q') ?? '').trim();
+  if (search.length > 200) throw new HttpError(400,'invalid_search','Recherche limitée à 200 caractères.');
+  const filters: string[] = [], values: string[] = [];
+  if (type) { filters.push('c.source_type=?'); values.push(type); }
+  if (search) {
+    filters.push("c.title LIKE ? ESCAPE '\\'");
+    values.push(`%${search.replace(/[\\%_]/g, '\\$&')}%`);
+  }
+  const where = `FROM contents c JOIN publications p ON p.id=c.current_publication_id WHERE c.deleted_at IS NULL AND p.status='ready'
+    ${filters.map((f) => `AND ${f}`).join(' ')}`;
   const rows = await env.DB.prepare(`SELECT c.id,c.title,c.original_language AS originalLanguage,c.source_type AS sourceType,c.category,c.updated_at AS updatedAt,
-    (SELECT COUNT(*) FROM variants v WHERE v.publication_id=p.id) AS variantCount ${where} ORDER BY c.updated_at DESC,c.id LIMIT 30 OFFSET ?`).bind(offset).all();
-  const count = await env.DB.prepare(`SELECT COUNT(*) AS total ${where}`).first<{ total: number }>();
+    (SELECT COUNT(*) FROM variants v WHERE v.publication_id=p.id) AS variantCount ${where} ORDER BY c.updated_at DESC,c.id LIMIT 30 OFFSET ?`).bind(...values,offset).all();
+  const count = await env.DB.prepare(`SELECT COUNT(*) AS total ${where}`).bind(...values).first<{ total: number }>();
   return json({ contents: rows.results, total: count?.total ?? 0, nextOffset: offset+rows.results.length < (count?.total ?? 0) ? offset+rows.results.length : null });
 }
 export async function detail(env: Env, id: string) {

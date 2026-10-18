@@ -1,5 +1,5 @@
 import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { DeleteContentButton } from '../content/DeleteContentButton';
 import { useContent } from '../api/contents';
 import { useContentReader } from '../content/useContentReader';
@@ -9,11 +9,14 @@ import { VariantTranscript } from '../content/VariantTranscript';
 export function ContentPage() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { libraryLocation?: unknown } | null)?.libraryLocation;
+  const libraryLocation = typeof from === 'string' && /^\/library(?:\?|$)/.test(from) ? from : '/library';
   const query = useContent(id);
   const reader = useContentReader(query.data);
   const variant = reader.variant;
   return <Box sx={{ px: 2, py: 3, maxWidth: 760, mx: 'auto' }}>
-    <Button component={Link} to="/library">Retour à la bibliothèque</Button>
+    <Button component={Link} to={libraryLocation}>Retour à la bibliothèque</Button>
     {query.isPending && <Box sx={{ py: 3 }}><CircularProgress size={28} /></Box>}
     {query.isError && <Alert severity="warning" action={<Button onClick={() => void query.refetch()}>Réessayer</Button>}>{query.error.message}</Alert>}
     {query.isSuccess && !variant && <Alert severity="info">Aucune version disponible pour ce contenu.</Alert>}
@@ -24,7 +27,7 @@ export function ContentPage() {
       <PlaybackControls reader={reader} />
       <VariantTranscript key={`${query.data.publicationId}:${variant.key}`} detail={query.data} variant={variant}
         activePositionMs={reader.activePositionMs} verified={reader.verified} playing={reader.playing} onSeek={reader.play} />
-      <Box sx={{ mt: 3 }}><DeleteContentButton id={id} title={query.data.content.title} onDeleted={() => navigate('/library', { replace: true })} /></Box>
+      <Box sx={{ mt: 3 }}><DeleteContentButton id={id} title={query.data.content.title} onDeleted={() => navigate(libraryLocation, { replace: true })} /></Box>
     </>}
   </Box>;
 }

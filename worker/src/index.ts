@@ -52,6 +52,7 @@ async function handleApi(req: Request, env: Env, path: string): Promise<Response
 
 /** Routes de données (émissions, épisodes, progression) : la session est vérifiée avant. */
 async function handleData(req: Request, env: Env, path: string, m: string): Promise<Response> {
+  if (path === '/api/sources/youtube' && m === 'POST') return queue.enqueueYoutube(req,env);
   if (path.startsWith('/api/notifications/')) return notifications(req,env,path);
   if (path === '/api/events' && m==='GET') {
     if(req.headers.get('Origin')!==new URL(req.url).origin) throw new HttpError(403,'csrf_origin','Origine refusée.');

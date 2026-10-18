@@ -1,8 +1,10 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { api } from './client';
 
+export type ContentSourceType = 'podcast' | 'youtube' | 'reflection';
+export interface LibraryFilters { type?: ContentSourceType; search?: string }
 export interface PreparedContent {
-  id: string; title: string; originalLanguage: string; sourceType: string; category: string | null;
+  id: string; title: string; originalLanguage: string; sourceType: ContentSourceType; category: string | null;
   updatedAt: string; variantCount: number;
 }
 export interface ContentVariant {
@@ -24,9 +26,14 @@ export interface ContentSegment {
 export interface ContentSegments { schemaVersion: 1; variantKey: string; segments: ContentSegment[] }
 export interface ContentDetail { content: { id: string; title: string }; publicationId: string; variants: ContentVariant[] }
 
-export function usePreparedContents() {
-  return useInfiniteQuery({ queryKey: ['library','prepared'], initialPageParam: 0,
-    queryFn: ({ pageParam }) => api<{ contents: PreparedContent[]; total: number; nextOffset: number | null }>(`/api/library?offset=${pageParam}`),
+export function usePreparedContents(filters: LibraryFilters = {}) {
+  return useInfiniteQuery({ queryKey: ['library','prepared',filters], initialPageParam: 0,
+    queryFn: ({ pageParam }) => {
+      const params = new URLSearchParams({ offset: String(pageParam) });
+      if (filters.type) params.set('type', filters.type);
+      if (filters.search) params.set('q', filters.search);
+      return api<{ contents: PreparedContent[]; total: number; nextOffset: number | null }>(`/api/library?${params}`);
+    },
     getNextPageParam: (page) => page.nextOffset ?? undefined });
 }
 export function useContent(id: string) {
