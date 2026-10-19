@@ -1,147 +1,148 @@
-# Chantier E — Export complet (lot 12)
+# Brief 1 — E : export complet
 
-Branche `glm/e-export`, worktree `../discover-mymind-glm-e`. Réalisé par GLM 5.2 le 19 octobre 2026,
-relu et fusionné par Claude Opus. **Aucune migration** (aucun changement de schéma : la 0014 et la 0015
-restent les dernières), aucun déploiement, aucune génération payante.
+Branche `glm/e-export`, worktree `/Users/brice/mesProjects/myMobileProjects/discover-mymind-glm-e`.
+Travail commencé par GLM 5.2 puis repris et corrigé par Codex le 19 octobre 2026.
+**Prêt pour relecture par Claude Opus, pas encore fusionné ni déployé.**
+Aucune migration, dépendance ajoutée, génération payante ou modification de `convert/`.
 
-## Fichiers modifiés
+## Fichiers du chantier
 
-| Fichier | Nature |
+| Fichier | Rôle |
 |---|---|
-| `worker/src/routes/export.ts` | **nouveau** — export v2 (JSON + Markdown), inventaire, avertissement audios |
-| `worker/src/index.ts` | point d'entrée : `GET /api/export` → `exportData` (2 lignes, fichier partagé sensible signalé) |
-| `worker/test/export.test.ts` | **nouveau** — 9 tests (contenu v2, secrets, v1 inchangé, Markdown) |
-| `pwa/src/pages/SettingsPage.tsx` | section « Mes données » : bouton « Exporter tout (JSON + Markdown) », l'ancien bouton conservé sur `?v=1` |
-| `docs/GLM_E.md` | ce document |
+| `worker/src/routes/export.ts` | routage des formats et orchestration des pages |
+| `worker/src/export/data.ts` | notes, liens, abonnements, épisodes sauvegardés, progression, préparations, réglage utilisateur |
+| `worker/src/export/contents.ts` | publications courantes et segments R2, métadonnées des variantes et inventaire des fichiers |
+| `worker/src/export/dossiers.ts` | dossiers et exécutions avec sources capturées |
+| `worker/src/export/markdown.ts` | document lisible et fragments de sections pour l’assemblage paginé |
+| `worker/src/export/pagination.ts`, `constants.ts` | pagination et avertissement sur les audios |
+| `worker/src/index.ts` | point d’intégration partagé : import et appel d’`exportData`, commentaire de routage |
+| `worker/test/export.test.ts`, `export.fixture.ts` | 14 tests et fixture utilisant les vraies API locales D1/R2 |
+| `pwa/src/api/export.ts` | appels API et assemblage des pages dans le navigateur |
+| `pwa/src/api/export.test.ts` | 5 tests d’assemblage, échec réseau, réponse invalide et données manquantes |
+| `pwa/src/settings/useDataExport.ts` | mutation React Query, fichiers téléchargeables, libération des URL de Blob |
+| `pwa/src/settings/ExportSection.tsx` | interface MUI et liens d’enregistrement JSON / Markdown |
+| `pwa/src/pages/SettingsPage.tsx` | intégration de la section dans les deux modes de connexion |
+| `docs/GLM_E.md` | inventaire, contrat, validation et limites |
 
-`reflections.ts` n'est **pas modifié** : `exportAll` (v1) reste le code d'origine, servi via `?v=1`.
-`mind.test.ts` n'est pas modifié (voir « Compatibilité »). Aucun fichier de Claude Opus (My Mind, sw,
-vite.config, App.tsx) n'a été touché.
+`worker/src/routes/reflections.ts` et son export historique ne sont pas modifiés.
+Les fichiers réservés à Opus (`pwa/src/mind/*`, `App.tsx`, `vite.config.ts`, `sw.ts`) ne sont pas modifiés.
+La branche part de `d7afa03` : les ajouts plus récents de `main` appartiennent à d’autres chantiers.
+Les différences entre les têtes des branches ne doivent pas être interprétées comme des suppressions à appliquer.
 
-## Routage
+## Inventaire
 
-- `GET /api/export` → **v2** par défaut (JSON complet, `schemaVersion: 2`).
-- `GET /api/export?v=1` → v1 **inchangé** (mêmes clés, même `Content-Disposition`, même code).
-- `GET /api/export?v=2&format=markdown` → document Markdown seul (`text/markdown`, pièce jointe `.md`).
-- `?v=<autre>` → 400 `invalid_version`.
+| Donnée | Décision et raison |
+|---|---|
+| `reflections` | incluse, corbeille comprise et marquée `deletedAt` ; corps Markdown, type, état de question, tags, dates, contenu anglais associé |
+| `origin`, `source_name`, `source_url` | inclus sous `origin`, `sourceName`, `sourceUrl` pour les notes personnelles et articles |
+| `reflection_links` | inclus : références de cibles, variantes, passages, citations et titres conservés même si la cible disparaît |
+| `shows` | configuration incluse : podcasts / YouTube (`sourceType`, `channelId`), abonnement, filtres, réglages de préparation automatique |
+| Santé de collecte des émissions | exclue : ETag, ordonnanceur, erreurs, compteurs et limites internes recalculables |
+| Épisodes sauvegardés | inclus : identifiants, émission, GUID, titre, description, dates, état, durée, image, URL audio / transcription, contenu associé, vidéo |
+| Autres épisodes et cache R2 de transcription éditeur | exclus : catalogue de découverte et cache technique, hors publications préparées |
+| `listening_progress` | incluse : cible, `audioRef`, position, durée, terminé et date ; les URL éditeur ne sauvegardent pas l’audio |
+| `prepare_queue` | toutes les lignes incluses, sans plafond silencieux à 500 : statut, options, étape, tentatives, résultat, erreur et dates |
+| Jetons de bail, propriétaire / expiration du bail, jetons de commit | exclus : contrôle interne d’exécution |
+| Contenus et publications courantes `ready`, non supprimés | inclus : métadonnées, droits, révision / séquence et fichiers du manifeste R2 |
+| Variantes courantes | incluses : langue, niveau, style, couverture, condensation, dérivation, génération / évaluation, synchronisation |
+| Segments courants R2 | inclus : identifiants, textes, traductions françaises, locuteurs, temps, `sourceSegments`, provenance ; `keyVocab` conservé |
+| Anciennes publications, publications non finalisées, contenus supprimés | exclus : l’export sauvegarde l’état publié courant, sans historique technique |
+| `dossiers`, `dossier_runs` | inclus : références actuelles, versions, instantanés des sources, textes capturés, options, dates et état du dernier traitement associé |
+| `app_settings` | seul le réglage utilisateur `auto_prepare_enabled` est exporté, via `autoPrepareEnabled` |
+| Audios R2 | octets exclus ; inventaire avec chemin, SHA-256, taille et type MIME ; récupération séparée optionnelle |
+| Flux audio éditeur externes | URL incluse ; empreinte / taille inconnues (`null`), sans téléchargement ni requête vers l’éditeur |
+| `sessions`, `login_attempts`, abonnements / livraisons push | exclus : données de sécurité |
+| Secrets d’environnement, `ATELIER_TOKEN`, clés API | jamais lus pour produire l’export ; tests avec valeurs sentinelles |
+| FTS5, `queue_events`, verrous / gardes / GC de publication | exclus : index, journaux et états internes dérivés |
+| Brouillons locaux et progression non synchronisée, téléchargements hors ligne | exclus : l’API exporte les données serveur ; synchroniser les appareils auparavant |
 
-## Inventaire des données
+Les liens vers un épisode non sauvegardé ou une cible supprimée restent des références avec titre et citation.
+Le catalogue éphémère n’est pas recréé pour compléter ces cibles.
 
-| Donnée | Décision | Pourquoi |
-|---|---|---|
-| Notes `reflections` (corbeille incluse, marquée `deletedAt`) | incluse | tout ce qui appartient à l'utilisateur ; la corbeille purge à 30 jours |
-| Nouveaux champs `origin`, `source_name`, `source_url` | inclus | notes « Article » (migration 0015) : journal et lien |
-| `english_content_id` | inclus | rattache la note à sa publication anglaise |
-| Liens `reflection_links` | inclus | `target_title` conservé : le lien reste lisible si la cible disparaît |
-| `shows` (podcasts **et** chaînes YouTube : `source_type`, `channel_id`) | inclus (configuration) | abonnements de l'utilisateur |
-| — colonnes de santé de collecte (`etag`, `next_check_at`, `last_error`, `consecutive_failures`, `max_items`…) | exclues | état interne technique, recalculé par le cron |
-| Épisodes sauvegardés (`state='saved'`) | inclus | comme en v1 |
-| Épisodes non sauvegardés | exclus | flux éphémère de découverte, volume sans valeur de sauvegarde |
-| `listening_progress` (dont `audio_ref`) | incluse | progression d'écoute ; `audio_ref` est un sha256 ou l'URL officielle, pas un secret |
-| `prepare_queue` | incluse (500 plus récentes) | statut, options, dates, erreurs |
-| — `lease_token`, `lease_owner`, `lease_expires_at`, `commit_token` | exclus | jetons de fonctionnement (test « aucun secret ») |
-| `queue_events` | exclu | journal de notification dérivé |
-| Contenus préparés + publication courante (manifeste R2) | inclus | variantes, segments complets, fichiers avec sha256/taille |
-| Publications historiques (`superseded`, `failed`, `abandoned`) | exclues | remplacées ; l'export porte la publication courante de chaque contenu |
-| `variants` (D1) | lu pour `timing_status` | complément du manifeste |
-| `dossiers` et `dossier_runs` | inclus | sources capturées (instantanés complets avec texte) et options |
-| `app_settings` (`auto_prepare_enabled`) | inclus | réglage de l'utilisateur |
-| **Audios (blobs R2)** | **non inclus** | voir « Stratégie audios » |
-| `sessions`, `login_attempts` | exclus | sécurité |
-| `push_subscriptions`, `push_deliveries` | exclus | endpoint et clés push : secrets |
-| `search_index` (FTS5) | exclu | dérivé des notes, reconstruit |
-| `publication_guards`, `publication_gc` | exclus | interne de publication |
-| Secrets d'environnement (`APP_PASSPHRASE`, `SESSION_EPOCH`, `ATELIER_TOKEN`) | jamais | testé explicitement |
+## Contrat v1 et v2
 
-## Format v2 (résumé)
+- `GET /api/export` et `?v=1` : **v1 historique inchangé**, y compris corbeille exclue et en-tête de téléchargement.
+- `GET /api/export?v=2` : JSON v2 complet en une requête, utile pour les petits jeux de données.
+- `GET /api/export?v=2&format=markdown` : Markdown autonome en une requête.
+- `GET /api/export?v=2&page=0`, puis `page=1`, etc. : format paginé utilisé par la PWA.
+- Version inconnue, page invalide ou format v2 inconnu : 400. Le contrôle de session existant s’applique.
 
-```jsonc
-{
-  "schemaVersion": 2, "exportedAt": "…", "audioNotice": "…",
-  "reflections": [{ /* notes v1 + origin, sourceName, sourceUrl, deletedAt marqué */ }],
-  "shows": [{ "id", "title", "publisher", "sourceType", "channelId", "feedUrl", "appleId", "imageUrl",
-              "language", "category", "titleFilter", "autoPrepare", "autoPreset", "autoLevel", "enabled", "createdAt" }],
-  "savedEpisodes": [{ "id", "showId", "title", "show", "audioUrl", "publishedAt", "videoId" }],
-  "listeningProgress": [{ "targetType", "targetId", "audioRef", "positionMs", "durationMs", "completed", "updatedAt" }],
-  "preparations": [{ "id", "kind", "ref", "options", "status", "stage", "attempts", "maxAttempts",
-                     "contentId", "error", "createdAt", "updatedAt" }],
-  "contents": [{
-    "id", "title", "originalLanguage", "sourceType", "sourceRef", "sourceUrl", "category", "editorial",
-    "createdAt", "updatedAt", "sources",                      // sources du manifeste (dossiers)
-    "publication": { "id", "revision", "seq", "publishedAt" },
-    "variants": [{ "key", "kind", "language", "cefrLevel", "style", "derivedFrom", "coverage", "timingStatus",
-                   "audio": { "origin", "source", "durationMs", "timingSource",
-                              "sha256", "sizeBytes", "streamUrl", "playbackPath" },   // null si sans audio
-                   "segments": [{ "id", "text", "fr", "speaker", "startMs", "endMs", "sourceSegments", "provenance" }],
-                   "segmentsError": null }],
-    "files": [{ "path", "sha256", "size", "contentType" }],
-    "error": null                                            // manifest_unavailable : l'export continue
-  }],
-  "dossiers": [{ "id", "title", "version", "createdAt", "updatedAt", "sources",
-                 "runs": [{ "id", "version", "title", "sources", "options", "createdAt",
-                            "preparation": { "status", "contentId" } | null }] }],
-  "appSettings": { "autoPrepareEnabled": true },
-  "markdown": "…"                                            // même document que format=markdown
-}
-```
+Le JSON final contient `schemaVersion: 2`, `exportedAt`, `audioNotice`, `reflections`, `shows`,
+`savedEpisodes`, `listeningProgress`, `preparations`, `contents`, `dossiers`, `appSettings`, `markdown`.
+Chaque contenu comprend sa publication courante, ses variantes avec segments, ses sources et la liste
+`files` (`path`, `sha256`, `size`, `contentType`). Un audio R2 indique notamment `sha256`, `sizeBytes`
+et un `playbackPath` relatif fixé à la publication.
 
-Le Markdown suit l'ordre demandé : **notes** (corbeille et articles marqués), **contenus préparés**
-(texte anglais puis traduction française en citation, par paragraphe ; ligne audio avec empreinte),
-**dossiers** (sources et exécutions), puis annexes compactes (émissions suivies, épisodes sauvegardés,
-progression). L'avertissement audios figure en tête du JSON et du document.
+Une page transporte jusqu’à **50 lignes par collection légère**, **1 contenu**, **1 dossier** avec ses
+exécutions, plus `pagination: { page, hasMore }` et `markdownSections`.
+Elle n’embarque pas de deuxième document Markdown complet. Continuer jusqu’à `hasMore: false` ; une page
+vide terminale est possible. Ordre SQL stable avec identifiants pour départager les dates identiques.
+Les liens / synchronisations D1 chargés sont limités aux notes / publications de la page.
 
-## Stratégie audios
+La PWA assemble les tableaux et les fragments dans l’ordre : notes, contenus préparés, dossiers,
+annexes (émissions, épisodes, progression). Les textes anglais et français se suivent par paragraphe.
+Les sources capturées des dossiers restent lisibles, même si la note d’origine a disparu.
+Le JSON final est autonome et contient le même document que le fichier Markdown proposé à côté.
+Les champs de transport `pagination` et `markdownSections` sont retirés du fichier final.
 
-1. Aucun audio dans le JSON. Chaque variante liste `sha256`, `sizeBytes`, `origin`, `durationMs`,
-   `timingSource` (ou `streamUrl` pour un flux éditeur) et un `playbackPath` **relatif**
-   (`/api/contents/:id/variants/:key/audio?publication=…`), jamais une URL absolue présentée comme
-   une sauvegarde.
-2. L'`audioNotice` (JSON et Markdown) dit explicitement : les adresses de lecture exigent la session et
-   disparaissent si le contenu est supprimé — une sauvegarde réelle = télécharger les fichiers puis
-   vérifier leur SHA-256.
-3. **Zip par contenu : écarté**, documenté comme limite. Construire un zip sans dépendance suppose
-   CRC32 + en-têtes binaires écrits à la main, et le traitement de plusieurs Mo d'audio dépasse
-   vraisemblablement le CPU du Worker gratuit (10 ms). Piste future : un script local (Mac) qui lit
-   l'export JSON et récupère chaque fichier par son empreinte, ou un zip produit par l'Atelier.
+Une erreur réseau sur une page interrompt l’opération : aucun fichier partiel n’est proposé.
+Un manifeste / des segments R2 absents sont signalés par `error` / `segmentsError` ; les autres données
+restent exportables et l’interface avertit que des textes sont manquants.
 
-## Compatibilité v1
+## Audios
 
-- Le code v1 (`reflections.exportAll`) est inchangé et servi via `?v=1` ; test dédié (clés exactes,
-  corbeille toujours exclue du v1, `schemaVersion` 1).
-- `mind.test.ts` (non modifié) appelle `/api/export` sans paramètre : il reste vert parce que le JSON v2
-  conserve les clés `reflections` (même forme) et `markdown` (les notes y figurent de la même façon).
-- Le bouton historique de la PWA appelle désormais `/api/export?v=1` explicitement : comportement
-  identique à avant, seul le libellé devient « Export historique (notes et émissions) ».
+Les octets audio ne sont pas incorporés. Les empreintes et tailles proviennent des manifestes validés
+à la publication, sans relecture ni recalcul des gros blobs pendant l’export.
+Les URL de lecture exigent la session et peuvent disparaître : **ce ne sont pas des sauvegardes**.
+Pour une sauvegarde audio réelle, récupérer séparément les fichiers R2 et vérifier leurs tailles et SHA-256.
+Les flux officiels peuvent changer et leurs octets ne sont pas conservés par Discover.
 
-## Commandes et résultats (worktree)
+Le ZIP par contenu est différé : aucune dépendance d’archivage ajoutée et aucun téléchargement massif
+ni calcul CRC / SHA des audios imposé au Worker gratuit. Une récupération locale séparée est une piste
+future ; aucun script audio n’est livré et aucun changement de l’Atelier n’est nécessaire à ce chantier.
+
+## Validation dans le worktree
+
+Dépendances existantes vérifiées avec `npm install --ignore-scripts --no-audit --no-fund` dans les deux projets.
+Aucun changement de version ni de lockfile. Le type Worker ignoré par Git était déjà présent.
 
 | Commande | Résultat |
 |---|---|
-| `worker/ : npx tsc --noEmit -p .` | OK |
-| `worker/ : npm test` | **20 fichiers, 245 tests verts** (dont 9 nouveaux) |
-| `pwa/ : npx tsc --noEmit -p .` | OK |
-| `pwa/ : npx vitest run` | **11 fichiers, 66 tests verts** |
-| `pwa/ : npm run build` | OK (33 entrées précachées) |
+| `worker/` : `npx tsc --noEmit -p .` | OK |
+| `worker/` : `npm test` | 20 fichiers, **250 tests** réussis, dont 14 pour l’export |
+| `pwa/` : `npx tsc --noEmit -p .` | OK |
+| `pwa/` : `npx vitest run` | 12 fichiers, **71 tests** réussis, dont 5 pour l’assemblage d’export |
+| `pwa/` : `npm run build` | OK, 33 entrées de précache ; avertissement Vite sur le chunk principal > 500 ko |
+| `git diff --check` | OK |
 
-## Limites
+Le test volumétrique utilise **105 notes, 503 préparations, 1 contenu à 2 variantes et 1 dossier** :
+**11 pages**, aucun doublon ni omission, comparaison avec l’export non paginé.
+La taille UTF-8 de chaque page est calculée et vérifiée **inférieure à 100 000 octets** sur cette fixture.
+Les tests vérifient aussi les champs Article, les textes bilingues, les métadonnées de génération,
+le vocabulaire, la corbeille, les secrets, le v1 par défaut, les paramètres invalides et les fichiers R2 manquants.
+Aucun test Python lancé : `convert/` est hors périmètre explicite.
 
-- **CPU du Worker gratuit (10 ms)** : chaque contenu coûte une lecture R2 du manifeste + une lecture et
-  un `JSON.parse` par variante. Le JSON v2 embarque en outre le Markdown (textes présents deux fois),
-  choix assumé pour garder un JSON autonome et le test v1 existant vert. Pas de pagination dans cette
-  livraison : mesuré sur le jeu de test (4 notes, 1 contenu à 2 variantes, 1 dossier, 2 émissions,
-  1 épisode sauvegardé, 2 progressions, 2 préparations) → **≈ 10,4 ko**. La volumétrie personnelle
-  actuelle (dizaines de contenus, textes bornés par la collecte) doit rester dans les clous ;
-  **à retester sur les données réelles après déploiement**. Si l'export grossit : servir le Markdown
-  uniquement via `format=markdown`, puis paginer (`?part=`).
-- `preparations` plafonnées aux 500 plus récentes (les entrées terminées sont de toute façon
-  supprimables depuis la file).
-- Un manifeste R2 indisponible n'interrompt pas l'export : le contenu sort avec
-  `error: "manifest_unavailable"` ; de même `segmentsError` par variante.
-- Import / restauration automatique : hors périmètre (export exploitable uniquement), conformément au plan.
+## Limites et recette manuelle
 
-## Étapes manuelles (Claude Opus)
+La limite CPU de l’offre Workers gratuite est de **10 ms par requête** :
+[documentation Cloudflare](https://developers.cloudflare.com/workers/platform/limits/).
+La durée des tests locaux et le temps d’attente D1/R2 **ne mesurent pas** le CPU en production.
+La pagination réduit le travail et la mémoire par requête ; elle ne garantit pas qu’un contenu exceptionnellement
+long, un dossier avec beaucoup d’exécutions ou 50 très longues notes reste sous cette limite.
+La version v2 non paginée conserve ce risque ; préférer le parcours PWA paginé.
+Une pagination plus fine des segments / exécutions serait nécessaire si la recette révèle un dépassement.
 
-1. Relire la branche `glm/e-export`, fusionner dans `main` (rien à coordonner avec `convert/`).
-2. Déployer worker + PWA ; **aucune migration D1** à appliquer.
-3. Après déploiement : lancer « Exporter tout » depuis les Réglages sur les données réelles et noter
-   taille/durée ; vérifier que le Markdown se lit bien (notes → contenus bilingues → dossiers).
+L’assemblage final utilise la mémoire du navigateur. Il n’y a pas de snapshot transactionnel global entre pages :
+un changement simultané des données peut décaler la pagination. Lancer l’export hors modification / publication
+et le relancer si les données ont changé. `exportedAt` est la date de la première page côté PWA.
+L’import / restauration automatique reste hors périmètre.
+
+Étapes pour Claude Opus :
+
+1. Relire et fusionner uniquement cette branche ; conserver les travaux plus récents de `main`.
+2. Déployer Worker et PWA selon le processus habituel. **Aucune migration à appliquer.**
+3. Sur les données réelles, lancer « Exporter tout », puis enregistrer le JSON et le Markdown depuis les deux liens.
+   Vérifier aussi ce parcours sur Fold7, avec connexion activée puis désactivée selon la configuration de recette.
+4. Contrôler notes Article / corbeille, segments bilingues, sources capturées et nombre de préparations.
+5. Mesurer le CPU par requête et les tailles réelles dans les métriques Worker après déploiement autorisé.
+6. Vérifier le bouton historique et traiter les éventuels avertissements de fichiers manquants.
