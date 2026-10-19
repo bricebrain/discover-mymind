@@ -1,3 +1,4 @@
+import { related, groups as relatedGroups } from './related/routes';
 import { vocabularyRoute } from './vocabulary/routes';
 import { flushEvents,cleanupEvents } from './events/hub';
 import { identity } from './events/identity';
@@ -76,6 +77,8 @@ async function handleData(req: Request, env: Env, path: string, m: string): Prom
     headers.set('X-Discover-Identity',JSON.stringify(who.attachment));
     return env.EVENTS.getByName('personal-library').fetch(new Request(req,{headers}));
   }
+  if (path === '/api/related' && m === 'GET') return related(req,env);
+  if (path === '/api/related/groups' && m === 'GET') return relatedGroups(req,env);
   if (path === '/api/queue' && m === 'GET') return queue.list(req,env);
   const queued = path.match(/^\/api\/queue\/([0-9a-f-]{36})(?:\/(retry|remove))?$/);
   if (queued?.[1] && !queued[2] && m === 'DELETE') return queue.cancel(env,queued[1]);

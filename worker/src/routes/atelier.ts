@@ -1,3 +1,5 @@
+import { items as relatedItems } from '../related/items';
+import { publish as publishRelated } from '../related/publish';
 import { vocabularyRoute } from '../vocabulary/routes';
 import { MIN_ATELIER_TOKEN_LENGTH, type Env } from '../env';
 import { apiError, json } from '../http';
@@ -27,6 +29,8 @@ export async function handleAtelier(req: Request, env: Env, path: string): Promi
   if (!token || token.length > 256 || !(await secretsEqual(env.ATELIER_TOKEN, `atelier:${token}`, `atelier:${env.ATELIER_TOKEN}`))) {
     return apiError(401, 'unauthenticated', 'Jeton Atelier invalide.', { 'WWW-Authenticate': 'Bearer' });
   }
+  if (path === '/atelier/related/items' && req.method === 'GET') return relatedItems(req,env);
+  if (path === '/atelier/related' && req.method === 'POST') return publishRelated(req,env);
   if (path.startsWith('/atelier/vocabulary/')) { const r = await vocabularyRoute(req,env,path,true); if (r) return r; }
   if (path === '/atelier/ping' && req.method === 'GET') return json({ ok: true });
   const content = path.match(/^\/atelier\/contents\/([a-z0-9-]{3,96})\/manifest$/);
