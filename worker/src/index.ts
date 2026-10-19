@@ -6,6 +6,7 @@ import { authDisabled, type Env } from './env';
 import { apiError, HttpError, json, noContent, withSecurityHeaders } from './http';
 import { cleanupPublications } from './publications/cleanup';
 import * as contents from './routes/contents';
+import { exportData } from './routes/export';
 import { collectNext } from './collector';
 import * as auth from './routes/auth';
 import * as episodes from './routes/episodes';
@@ -103,7 +104,8 @@ async function handleData(req: Request, env: Env, path: string, m: string): Prom
   if (rf?.[1] && rf[2] && m === 'POST') return reflections.restore(env, rf[1]);
   const rfPrepare = path.match(/^\/api\/reflections\/([0-9a-f-]{36})\/prepare$/);
   if (rfPrepare?.[1] && m === 'POST') return queue.enqueueReflection(req,env,rfPrepare[1]);
-  if (path === '/api/export' && m === 'GET') return reflections.exportAll(env);
+  // Export v2 par défaut (?v=1 : format historique inchangé ; ?v=2&format=markdown : document seul).
+  if (path === '/api/export' && m === 'GET') return exportData(req, env);
 
   if (path === '/api/explorer' && m === 'GET') return episodes.explorer(req, env);
   const ep = path.match(/^\/api\/episodes\/([0-9a-f]{20})(\/state|\/transcript)?$/);
