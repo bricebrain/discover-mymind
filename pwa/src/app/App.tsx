@@ -1,5 +1,6 @@
-import { Alert, Box, Button, CircularProgress, CssBaseline, ThemeProvider } from '@mui/material';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Notice, Spinner } from '@/components/ui/kit';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import { useSession } from '../api/auth';
 import { ExplorerPage } from '../pages/ExplorerPage';
@@ -14,8 +15,6 @@ import { PreparationEventsProvider } from '../notifications/PreparationEventsPro
 import { PlayerProvider } from '../player/PlayerProvider';
 import { initOffline, isNetworkFailure, useOffline } from '../offline';
 import { Shell } from './Shell';
-import { buildTheme } from './theme';
-import { useAppearance } from '../settings/AppearanceProvider';
 
 const router = createBrowserRouter([
   {
@@ -49,28 +48,19 @@ function Gate() {
     if (offlineOpen && router.state.location.pathname === '/') void router.navigate('/library?view=downloads', { replace: true });
   }, [offlineOpen]);
   if (session.isPending || (networkDown && !offlineState.ready)) {
-    return <Box sx={{ minHeight: '100dvh', display: 'grid', placeItems: 'center' }}><CircularProgress /></Box>;
+    return <div className="grid min-h-dvh place-items-center bg-background"><Spinner className="size-7" /></div>;
   }
   if (session.isError && !offlineOpen) {
-    return (
-      <Box sx={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', px: 2 }}>
-        <Alert severity="warning" action={<Button onClick={() => void session.refetch()}>Réessayer</Button>}>
-          {session.error.message}
-        </Alert>
-      </Box>
-    );
+    return <div className="grid min-h-dvh place-items-center bg-background px-4 font-sans">
+      <Notice tone="warning" className="max-w-sm" action={<Button size="sm" variant="ghost" onClick={() => void session.refetch()}>Réessayer</Button>}>
+        {session.error.message}
+      </Notice>
+    </div>;
   }
   const open = offlineOpen || session.data!.authDisabled || session.data!.session !== null;
   return open ? <PlayerProvider><PreparationEventsProvider><RouterProvider router={router} /></PreparationEventsProvider></PlayerProvider> : <LoginPage />;
 }
 
 export function App() {
-  const { mode } = useAppearance();
-  const theme = useMemo(() => buildTheme(mode), [mode]);
-  return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Gate />
-    </ThemeProvider>
-  );
+  return <Gate />;
 }

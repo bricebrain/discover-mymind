@@ -1,19 +1,13 @@
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import CloudDoneOutlinedIcon from '@mui/icons-material/CloudDoneOutlined';
-import CloudOffOutlinedIcon from '@mui/icons-material/CloudOffOutlined';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import PodcastsOutlinedIcon from '@mui/icons-material/PodcastsOutlined';
-import SyncIcon from '@mui/icons-material/Sync';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import {
-  Alert, Box, Button, ButtonBase, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputBase,
-  Snackbar, Stack, Tab, Tabs, Tooltip, Typography,
-} from '@mui/material';
+import { AlertTriangle, ArrowLeft, CloudCheck, CloudOff, Podcast, RefreshCw, Trash2 } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import { Button } from '@/components/ui/button';
+import { Notice, Sheet, Spinner } from '@/components/ui/kit';
+import { cn } from '@/lib/utils';
+import { UnderlineTabs } from '../components/EpisodeDetail';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
-import { fonts } from '../app/theme';
 import { cleanPastedArticle, worthCleaning } from './cleanPaste';
 import { renderMarkdown } from './markdown';
 import { NoteOriginFields } from './NoteOriginFields';
@@ -24,12 +18,12 @@ import { deleteDraft, draftFromNote, getDraft, pushDraft, putDraft, type Article
 type Status = 'loading' | 'saved' | 'saving' | 'local' | 'offline' | 'conflict' | 'error' | 'missing';
 
 const STATUS: Record<Exclude<Status, 'loading' | 'missing'>, { label: string; icon: ReactElement }> = {
-  saved: { label: 'Synchronisée', icon: <CloudDoneOutlinedIcon fontSize="small" /> },
-  saving: { label: 'Synchronisation…', icon: <SyncIcon fontSize="small" /> },
-  local: { label: 'Enregistrée sur l’appareil', icon: <CloudDoneOutlinedIcon fontSize="small" /> },
-  offline: { label: 'Hors ligne — enregistrée sur l’appareil', icon: <CloudOffOutlinedIcon fontSize="small" /> },
-  conflict: { label: 'Modifiée ailleurs', icon: <WarningAmberIcon fontSize="small" /> },
-  error: { label: 'Non synchronisée', icon: <WarningAmberIcon fontSize="small" /> },
+  saved: { label: 'Synchronisée', icon: <CloudCheck className="size-4" /> },
+  saving: { label: 'Synchronisation…', icon: <RefreshCw className="size-4 animate-spin" /> },
+  local: { label: 'Enregistrée sur l’appareil', icon: <CloudCheck className="size-4" /> },
+  offline: { label: 'Hors ligne — enregistrée sur l’appareil', icon: <CloudOff className="size-4" /> },
+  conflict: { label: 'Modifiée ailleurs', icon: <AlertTriangle className="size-4" /> },
+  error: { label: 'Non synchronisée', icon: <AlertTriangle className="size-4" /> },
 };
 
 const PUSH_DELAY = 1200;
@@ -181,6 +175,12 @@ export function NoteEditor({ id, onBack, onDeleted }: { id: string; onBack?: () 
     void qc.invalidateQueries({ queryKey: ['reflections'] });
   };
 
+  useEffect(() => {
+    if (!pasted) return;
+    const t = window.setTimeout(() => setPasted(null), 9000);
+    return () => window.clearTimeout(t);
+  }, [pasted]);
+
   const remove = async () => {
     const d = latest.current;
     if (!d) return;
@@ -192,110 +192,80 @@ export function NoteEditor({ id, onBack, onDeleted }: { id: string; onBack?: () 
     onDeleted(d.id, onServer);
   };
 
-  if (status === 'loading') return <Box sx={{ p: 4, textAlign: 'center' }}><CircularProgress size={26} /></Box>;
-  if (status === 'missing' || !draft) return <Alert severity="warning" sx={{ m: 2 }}>Note introuvable.</Alert>;
+  if (status === 'loading') return <div className="grid place-items-center p-10"><Spinner /></div>;
+  if (status === 'missing' || !draft) return <Notice tone="warning" className="m-4">Note introuvable.</Notice>;
   const st = STATUS[status];
+  const pastedMessage = pasted ? `Texte nettoyé : ${[pasted.removed ? `${pasted.removed} ligne${pasted.removed > 1 ? 's' : ''} parasite${pasted.removed > 1 ? 's' : ''} retirée${pasted.removed > 1 ? 's' : ''}` : '', pasted.joined ? `${pasted.joined} phrase${pasted.joined > 1 ? 's' : ''} recollée${pasted.joined > 1 ? 's' : ''}` : ''].filter(Boolean).join(', ')}.` : '';
 
-  return (
-    <Box sx={{ px: 2, pt: onBack ? 1 : 3, pb: 6, maxWidth: 720, mx: 'auto', animation: 'riseIn .2s ease-out' }}>
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-        {onBack && <IconButton onClick={onBack} aria-label="Retour aux notes" edge="start"><ArrowBackIcon /></IconButton>}
-        <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: status === 'conflict' || status === 'error' ? 'warning.main' : 'text.secondary', flex: 1 }} role="status">
-          {st.icon}
-          <Typography variant="caption" sx={{ fontWeight: 600 }}>{st.label}</Typography>
-        </Stack>
-        <Tooltip title="Mettre à la corbeille">
-          <IconButton onClick={() => void remove()} aria-label="Mettre la note à la corbeille"><DeleteOutlineIcon /></IconButton>
-        </Tooltip>
-      </Stack>
+  return <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}
+    className={cn('mx-auto max-w-[720px] px-4 pb-12', onBack ? 'pt-2' : 'pt-5')}>
+    <div className="mb-2 flex items-center gap-2">
+      {onBack && <Button variant="ghost" size="icon" onClick={onBack} aria-label="Retour aux notes" className="-ml-2"><ArrowLeft className="size-5" /></Button>}
+      <span role="status" className={cn('flex flex-1 items-center gap-1.5 text-xs font-semibold',
+        status === 'conflict' || status === 'error' ? 'text-amber-700' : 'text-muted-foreground')}>{st.icon}{st.label}</span>
+      <Button variant="ghost" size="icon" title="Mettre à la corbeille" aria-label="Mettre la note à la corbeille" className="text-muted-foreground"
+        onClick={() => void remove()}><Trash2 className="size-5" /></Button>
+    </div>
 
-      {draft.links.length > 0 && (
-        <Stack spacing={0.75} sx={{ mb: 1.5 }}>
-          {draft.links.map((l) => (
-            <ButtonBase key={`${l.targetType}:${l.targetId}`} component={Link} to={l.targetType === 'episode' ? `/?e=${l.targetId}` : '/library'}
-              sx={{ justifyContent: 'flex-start', gap: 1, px: 1.25, py: 0.75, borderRadius: 3, bgcolor: 'action.hover', color: 'text.secondary', textAlign: 'left' }}>
-              <PodcastsOutlinedIcon fontSize="small" color="primary" />
-              <Typography variant="body2" noWrap sx={{ fontWeight: 600 }}>{l.targetTitle ?? 'Épisode'}</Typography>
-            </ButtonBase>
-          ))}
-        </Stack>
-      )}
+    {draft.links.length > 0 && <div className="mb-3 flex flex-col gap-1.5">
+      {draft.links.map((l) => <Link key={`${l.targetType}:${l.targetId}`} to={l.targetType === 'episode' ? `/?e=${l.targetId}` : '/library'}
+        className="flex min-h-10 items-center gap-2 rounded-xl bg-muted px-3 text-muted-foreground no-underline">
+        <Podcast className="size-4 shrink-0 text-primary" /><span className="truncate text-sm font-semibold">{l.targetTitle ?? 'Épisode'}</span>
+      </Link>)}
+    </div>}
 
-      <InputBase
-        value={draft.title}
-        onChange={(e) => edit({ title: e.target.value })}
-        placeholder="Titre (facultatif)"
-        inputProps={{ 'aria-label': 'Titre de la note', maxLength: 200 }}
-        fullWidth
-        sx={{ fontFamily: fonts.display, fontSize: '1.7rem', fontWeight: 600, lineHeight: 1.2, mb: 1 }}
-      />
+    <input value={draft.title} onChange={(e) => edit({ title: e.target.value })} placeholder="Titre (facultatif)" aria-label="Titre de la note" maxLength={200}
+      className="mb-2 w-full appearance-none border-0 bg-transparent p-0 font-display text-[1.9rem] leading-tight text-foreground outline-none placeholder:text-zinc-400" />
 
-      <NoteOriginFields draft={draft} onChange={edit}>
-        <ArticleFetch key={draft.id} draft={draft} synced={status === 'saved'} initial={articleFetch} onFilled={applyFetched} />
-      </NoteOriginFields>
+    <NoteOriginFields draft={draft} onChange={edit}>
+      <ArticleFetch key={draft.id} draft={draft} synced={status === 'saved'} initial={articleFetch} onFilled={applyFetched} />
+    </NoteOriginFields>
 
-      <Tabs value={tab} onChange={(_e, v: 'write' | 'preview') => setTab(v)} sx={{ mb: 1.5, minHeight: 36 }}>
-        <Tab value="write" label="Écrire" sx={{ minHeight: 36 }} />
-        <Tab value="preview" label="Aperçu" sx={{ minHeight: 36 }} />
-      </Tabs>
+    <UnderlineTabs id={`note-${draft.id}`} value={tab} onChange={setTab} options={[['write', 'Écrire'], ['preview', 'Aperçu']] as const} />
 
-      {tab === 'write' ? (
-        <InputBase
-          value={draft.body}
-          onChange={(e) => edit({ body: e.target.value })}
-          onPaste={(e) => {
-            // Article collé depuis un site : cookies, « Lire aussi », crédits… retirés ; annulable.
-            const raw = e.clipboardData.getData('text/plain');
-            const cleaned = cleanPastedArticle(raw);
-            if (!worthCleaning(raw, cleaned)) return;
-            e.preventDefault();
-            const area = e.target as HTMLTextAreaElement;
-            const start = area.selectionStart ?? draft.body.length, end = area.selectionEnd ?? start;
-            const head = draft.body.slice(0, start), tail = draft.body.slice(end);
-            edit({ body: head + cleaned.text + tail });
-            setPasted({ raw: head + raw + tail, removed: cleaned.removedLines, joined: cleaned.joinedLines });
-          }}
-          placeholder={'Écris librement ou colle un article… (Markdown simple : # titre, - liste, **gras**)'}
-          inputProps={{ 'aria-label': 'Texte de la note', maxLength: 100_000 }}
-          multiline
-          minRows={12}
-          fullWidth
-          autoFocus={draft.baseUpdatedAt === null && isEmpty(draft)}
-          sx={{ fontFamily: fonts.reading, fontSize: '1.08rem', lineHeight: 1.75, alignItems: 'flex-start' }}
-        />
-      ) : (
-        <Box
-          sx={{
-            fontFamily: fonts.reading, fontSize: '1.08rem', lineHeight: 1.75,
-            '& h2, & h3, & h4': { fontFamily: fonts.display, fontWeight: 600, lineHeight: 1.25, mt: 2.5, mb: 1 },
-            '& a': { color: 'primary.main' }, '& code': { fontFamily: 'ui-monospace, monospace', fontSize: '0.9em', bgcolor: 'action.hover', px: 0.5, borderRadius: 1 },
-            '& ul, & ol': { pl: 3 },
-          }}
-          // Rendu sûr : tout le HTML est échappé par renderMarkdown (§ 8.6).
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(draft.body) || '<p style="opacity:.6">Rien à afficher.</p>' }}
-        />
-      )}
+    {tab === 'write' ? <textarea
+      value={draft.body}
+      onChange={(e) => edit({ body: e.target.value })}
+      onPaste={(e) => {
+        // Article collé depuis un site : cookies, « Lire aussi », crédits… retirés ; annulable.
+        const raw = e.clipboardData.getData('text/plain');
+        const cleaned = cleanPastedArticle(raw);
+        if (!worthCleaning(raw, cleaned)) return;
+        e.preventDefault();
+        const area = e.target as HTMLTextAreaElement;
+        const start = area.selectionStart ?? draft.body.length, end = area.selectionEnd ?? start;
+        const head = draft.body.slice(0, start), tail = draft.body.slice(end);
+        edit({ body: head + cleaned.text + tail });
+        setPasted({ raw: head + raw + tail, removed: cleaned.removedLines, joined: cleaned.joinedLines });
+      }}
+      placeholder={'Écris librement ou colle un article… (Markdown simple : # titre, - liste, **gras**)'}
+      aria-label="Texte de la note" maxLength={100_000}
+      autoFocus={draft.baseUpdatedAt === null && isEmpty(draft)}
+      className="min-h-[18rem] w-full resize-none appearance-none border-0 bg-transparent p-0 font-reading text-[1.08rem] leading-[1.75] text-foreground outline-none [field-sizing:content] placeholder:text-zinc-400"
+    /> : <div
+      className="font-reading text-[1.08rem] leading-[1.75] [&_a]:text-primary [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:font-mono [&_code]:text-[.9em] [&_h2]:mb-2 [&_h2]:mt-5 [&_h2]:font-display [&_h2]:text-[1.6rem] [&_h2]:font-normal [&_h3]:mb-2 [&_h3]:mt-5 [&_h3]:font-display [&_h3]:text-[1.35rem] [&_h3]:font-normal [&_h4]:font-semibold [&_ol]:pl-6 [&_p]:my-3 [&_ul]:pl-6"
+      // Rendu sûr : tout le HTML est échappé par renderMarkdown (§ 8.6).
+      dangerouslySetInnerHTML={{ __html: renderMarkdown(draft.body) || '<p style="opacity:.6">Rien à afficher.</p>' }}
+    />}
 
-      <NotePreparation id={draft.id} title={draft.title} body={draft.body} synced={status === 'saved'} englishContentId={englishContentId} />
+    <NotePreparation id={draft.id} title={draft.title} body={draft.body} synced={status === 'saved'} englishContentId={englishContentId} />
 
-      <Snackbar open={!!pasted} autoHideDuration={9000} onClose={(_e, reason) => reason !== 'clickaway' && setPasted(null)}
-        message={pasted ? `Texte nettoyé : ${[pasted.removed ? `${pasted.removed} ligne${pasted.removed > 1 ? 's' : ''} parasite${pasted.removed > 1 ? 's' : ''} retirée${pasted.removed > 1 ? 's' : ''}` : '', pasted.joined ? `${pasted.joined} phrase${pasted.joined > 1 ? 's' : ''} recollée${pasted.joined > 1 ? 's' : ''}` : ''].filter(Boolean).join(', ')}.` : ''}
-        action={<Button color="inherit" size="small" onClick={() => { if (pasted) edit({ body: pasted.raw }); setPasted(null); }}>Garder l’original</Button>} />
+    <AnimatePresence>
+      {pasted && <motion.div role="status" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 16 }}
+        className="fixed inset-x-3 z-[1200] mx-auto flex max-w-[560px] items-center gap-3 rounded-2xl bg-dock px-4 py-3 text-sm text-dock-foreground shadow-xl"
+        style={{ bottom: 'calc(72px + var(--player-h, 0px) + env(safe-area-inset-bottom))' }}>
+        <span className="flex-1">{pastedMessage}</span>
+        <button type="button" className="shrink-0 font-semibold text-emerald-300" onClick={() => { edit({ body: pasted.raw }); setPasted(null); }}>Garder l’original</button>
+      </motion.div>}
+    </AnimatePresence>
 
-      <Dialog open={!!conflict}>
-        <DialogTitle>Cette note a été modifiée ailleurs</DialogTitle>
-        <DialogContent>
-          <Typography sx={{ mb: 1.5 }}>Une autre version a été enregistrée depuis un autre appareil. Laquelle garder ?</Typography>
-          <Typography variant="overline" color="text.secondary">L’autre version</Typography>
-          <Typography sx={{ fontFamily: fonts.reading, whiteSpace: 'pre-line', maxHeight: 180, overflowY: 'auto', p: 1.5, borderRadius: 3, bgcolor: 'action.hover' }}>
-            {conflict?.body || '(vide)'}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => void takeTheirs()}>Prendre l’autre version</Button>
-          <Button variant="contained" onClick={keepMine}>Garder la mienne</Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
-  );
+    {conflict && <Sheet title="Modifiée ailleurs" onClose={() => {}} locked footer={<>
+      <Button variant="ghost" onClick={() => void takeTheirs()}>Prendre l’autre version</Button>
+      <Button onClick={keepMine}>Garder la mienne</Button>
+    </>}>
+      <p className="m-0 text-sm">Une autre version a été enregistrée depuis un autre appareil. Laquelle garder ?</p>
+      <p className="m-0 text-[11px] font-semibold uppercase tracking-[.08em] text-muted-foreground">L’autre version</p>
+      <p className="m-0 max-h-44 overflow-y-auto whitespace-pre-line rounded-xl bg-muted p-3 font-reading">{conflict.body || '(vide)'}</p>
+    </Sheet>}
+  </motion.div>;
 }

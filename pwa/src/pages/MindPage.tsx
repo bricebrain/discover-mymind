@@ -1,4 +1,4 @@
-import { useMediaQuery } from '@mui/material';
+import { useMediaQuery } from '@/lib/useMediaQuery';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ClipboardPaste, Link2, Loader2, PenLine, Plus, Search, X } from 'lucide-react';
 import { motion } from 'motion/react';

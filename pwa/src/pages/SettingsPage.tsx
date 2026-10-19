@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils';
 import { useLogout, useRevokeOthers, useRevokeSession, useSession, useSessions } from '../api/auth';
 import { NotificationSettings } from '../notifications/NotificationSettings';
 import { ExportSection } from '../settings/ExportSection';
-import { AppearanceSettings } from '../settings/AppearanceSettings';
 
 const dateFmt = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
 const formatDate = (iso: string) => dateFmt.format(new Date(iso));
@@ -15,7 +14,6 @@ export function SettingsPage() {
   const auth = useSession();
   return <div className="mx-auto max-w-[720px] px-4 pb-8 pt-1">
     <h1 className="sr-only">Réglages</h1>
-    <AppearanceSettings />
     <section aria-label="Bilan hebdomadaire" className="mt-4">
       <Button asChild variant="outline" className="w-full justify-start">
         <Link to="/week"><CalendarDays className="size-4" />Ma semaine</Link>

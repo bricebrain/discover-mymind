@@ -1,4 +1,5 @@
-import { Alert, Button, LinearProgress, Stack, Typography } from '@mui/material';
+import { Button } from '@/components/ui/button';
+import { Notice } from '@/components/ui/kit';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
@@ -46,20 +47,20 @@ export function ArticleFetch({ draft, synced, initial, onFilled }: {
   if (draft.origin !== 'article' || !url) return null;
   if (status === 'pending') {
     const slow = Date.now() - since > 45_000;
-    return <Stack spacing={0.75} role="status">
-      <Typography variant="body2" color="text.secondary">Récupération du texte de l’article par l’Atelier…</Typography>
-      <LinearProgress sx={{ borderRadius: 1 }} />
-      {slow && <Typography variant="caption" color="text.secondary">Toujours en attente : l’Atelier doit être lancé sur le Mac. Tu peux aussi coller le texte toi-même.</Typography>}
-    </Stack>;
+    return <div role="status" className="flex flex-col gap-1.5">
+      <p className="m-0 text-sm text-muted-foreground">Récupération du texte de l’article par l’Atelier…</p>
+      <div className="h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full w-1/3 animate-pulse rounded-full bg-primary" /></div>
+      {slow && <p className="m-0 text-xs text-muted-foreground">Toujours en attente : l’Atelier doit être lancé sur le Mac. Tu peux aussi coller le texte toi-même.</p>}
+    </div>;
   }
-  if (status === 'complete' && draft.body.trim()) return <Alert severity="success" variant="outlined">Texte récupéré depuis le site. Vérifie-le avant de le préparer.</Alert>;
-  if (status === 'partial') return <Alert severity="warning" variant="outlined">
+  if (status === 'complete' && draft.body.trim()) return <Notice tone="success">Texte récupéré depuis le site. Vérifie-le avant de le préparer.</Notice>;
+  if (status === 'partial') return <Notice tone="warning">
     Article partiel : réservé aux abonnés ou tronqué. Ouvre l’article dans ton navigateur et colle la suite ici.
-  </Alert>;
-  if ((status === 'unavailable' || error) && !draft.body.trim()) return <Alert severity="warning" variant="outlined"
-    action={<Button color="inherit" size="small" onClick={ask}>Réessayer</Button>}>
+  </Notice>;
+  if ((status === 'unavailable' || error) && !draft.body.trim()) return <Notice tone="warning"
+    action={<Button size="sm" variant="ghost" onClick={ask}>Réessayer</Button>}>
     {error ?? 'Texte inaccessible depuis le lien.'} Ouvre l’article, copie son texte et colle-le ci-dessous : il sera nettoyé automatiquement.
-  </Alert>;
-  if (eligible && !synced) return <Typography variant="caption" color="text.secondary">Le texte sera récupéré depuis le lien dès que la note sera synchronisée.</Typography>;
+  </Notice>;
+  if (eligible && !synced) return <p className="m-0 text-xs text-muted-foreground">Le texte sera récupéré depuis le lien dès que la note sera synchronisée.</p>;
   return null;
 }

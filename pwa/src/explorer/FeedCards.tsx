@@ -6,8 +6,9 @@ import { categoryColor } from '../app/theme';
 import { cn } from '@/lib/utils';
 import { formatClock } from '../player/MiniPlayer';
 import { usePlayer } from '../player/PlayerProvider';
-import { trackOf } from '../components/EpisodeCard';
+import { trackOf } from '../player/trackOf';
 import { publisherMark } from './feed';
+import { readingTime } from '../articles/readingTime';
 
 /** Petit égaliseur animé : « en cours de lecture ». */
 export function PlayingBars({ active }: { active: boolean }) {
@@ -77,7 +78,6 @@ export function PublisherThumb({ publisher, size = 'md' }: { publisher: string; 
     style={{ background: m.bg, color: m.fg }}>{m.mark}</span>;
 }
 
-export const readingTime = (chars: number | null) => (chars ? `${Math.max(1, Math.round(chars / 1200))} min de lecture` : null);
 
 /** Article : vignette du journal, journal, date, temps de lecture, titre ; même fil que les épisodes. */
 export function ArticleFeedCard({ article, selected, onOpen, index }: { article: ArticleSummary; selected?: boolean; onOpen: () => void; index: number }) {

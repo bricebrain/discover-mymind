@@ -1,6 +1,4 @@
-import '@fontsource-variable/fraunces';
 import '@fontsource-variable/geist';
-import '@fontsource-variable/inter';
 import '@fontsource-variable/literata';
 import '@fontsource/instrument-serif';
 import './styles/app.css';
@@ -10,8 +8,6 @@ import { createRoot } from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
 import { ApiError } from './api/client';
 import { App } from './app/App';
-import { AppearanceProvider } from './settings/AppearanceProvider';
-import { applyThemePreference, readThemePreference } from './settings/themePreference';
 
 const queryClient: QueryClient = new QueryClient({
   // Une session expirée ou révoquée ailleurs renvoie l'utilisateur vers l'écran de connexion.
@@ -24,12 +20,11 @@ const queryClient: QueryClient = new QueryClient({
 });
 
 registerSW({ immediate: true });
-applyThemePreference(readThemePreference());
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <AppearanceProvider><App /></AppearanceProvider>
+      <App />
     </QueryClientProvider>
   </StrictMode>,
 );

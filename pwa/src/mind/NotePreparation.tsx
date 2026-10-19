@@ -1,5 +1,6 @@
-import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
-import { Alert, Box, Button, Stack, Typography } from '@mui/material';
+import { Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Notice, cardCls } from '@/components/ui/kit';
 import { useState } from 'react';
 import { PreparedEpisode } from '../components/PreparedEpisode';
 import { optionsLabel, queueLabel } from '../queue/options';
@@ -25,38 +26,29 @@ export function NotePreparation({ id, title, body, synced, englishContentId }: {
   const contentId = found === deleted ? null : found;
   const tooShort = body.trim().length < MIN_CHARS;
 
-  return (
-    <Box sx={{ mt: 4, pt: 2, borderTop: 1, borderColor: 'divider' }}>
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1, flexWrap: 'wrap', rowGap: 1 }}>
-        <Typography variant="overline" color="text.secondary" sx={{ flex: 1 }}>En anglais</Typography>
-        <Button size="small" variant="outlined" startIcon={<AutoAwesomeOutlinedIcon />}
-          disabled={!!current || tooShort || !synced || query.isPending} onClick={() => setOpen(true)}>
-          {contentId ? 'Préparer une autre version' : 'Préparer en anglais'}
-        </Button>
-      </Stack>
-      {(tooShort || !synced) && !contentId && (
-        <Typography variant="caption" color="text.secondary">
-          {tooShort ? `Écris au moins ${MIN_CHARS} caractères pour pouvoir préparer la note.` : 'La note doit être synchronisée avant d’être préparée.'}
-        </Typography>
-      )}
-      {query.isError && <Alert severity="warning" action={<Button onClick={() => void query.refetch()}>Réessayer</Button>}>{query.error.message}</Alert>}
-      {(current ?? failed) && (
-        <Box sx={{ p: 1.5, mb: 2, border: 1, borderColor: 'divider', borderRadius: 2 }} role="status">
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>{queueLabel((current ?? failed)!)}</Typography>
-          <Typography variant="caption" color="text.secondary">{optionsLabel((current ?? failed)!.options)}</Typography>
-          {failed?.error && <Typography variant="body2" color="error">{failed.error}</Typography>}
-          <Stack direction="row" spacing={1}>
-            {current && <Button size="small" disabled={cancel.isPending} onClick={() => cancel.mutate(current.id)}>Annuler</Button>}
-            {failed && <Button size="small" disabled={retry.isPending} onClick={() => retry.mutate(failed.id)}>Réessayer</Button>}
-          </Stack>
-        </Box>
-      )}
-      {contentId && <PreparedEpisode contentId={contentId} about={null} onDeleted={() => setDeleted(contentId)} />}
-      {open && (
-        <PrepareDialog target={{ kind: 'reflection', id }} title={title || 'Note sans titre'} faithfulAllowed
-          initial={{ coverage: 'full', level: 'B1', style: 'narration', targetMinutes: null, faithful: false, keepOriginalCopy: false }}
-          onClose={() => setOpen(false)} />
-      )}
-    </Box>
-  );
+  return <section className="mt-8 border-t border-border pt-4">
+    <div className="mb-2 flex flex-wrap items-center gap-2">
+      <p className="m-0 flex-1 text-[11px] font-semibold uppercase tracking-[.08em] text-muted-foreground">En anglais</p>
+      <Button size="sm" variant="outline" disabled={!!current || tooShort || !synced || query.isPending} onClick={() => setOpen(true)}>
+        <Sparkles className="size-4 text-primary" />{contentId ? 'Préparer une autre version' : 'Préparer en anglais'}
+      </Button>
+    </div>
+    {(tooShort || !synced) && !contentId && <p className="m-0 text-xs text-muted-foreground">
+      {tooShort ? `Écris au moins ${MIN_CHARS} caractères pour pouvoir préparer la note.` : 'La note doit être synchronisée avant d’être préparée.'}
+    </p>}
+    {query.isError && <Notice tone="warning" action={<Button size="sm" variant="ghost" onClick={() => void query.refetch()}>Réessayer</Button>}>{query.error.message}</Notice>}
+    {(current ?? failed) && <div className={`${cardCls} mb-4 p-3`} role="status">
+      <p className="m-0 text-sm font-semibold">{queueLabel((current ?? failed)!)}</p>
+      <p className="m-0 text-xs text-muted-foreground">{optionsLabel((current ?? failed)!.options)}</p>
+      {failed?.error && <p className="m-0 mt-1 text-sm text-red-700">{failed.error}</p>}
+      <div className="-mx-2 mt-1 flex gap-1">
+        {current && <Button size="sm" variant="ghost" className="text-primary" disabled={cancel.isPending} onClick={() => cancel.mutate(current.id)}>Annuler</Button>}
+        {failed && <Button size="sm" variant="ghost" className="text-primary" disabled={retry.isPending} onClick={() => retry.mutate(failed.id)}>Réessayer</Button>}
+      </div>
+    </div>}
+    {contentId && <PreparedEpisode contentId={contentId} about={null} onDeleted={() => setDeleted(contentId)} />}
+    {open && <PrepareDialog target={{ kind: 'reflection', id }} title={title || 'Note sans titre'} faithfulAllowed
+      initial={{ coverage: 'full', level: 'B1', style: 'narration', targetMinutes: null, faithful: false, keepOriginalCopy: false }}
+      onClose={() => setOpen(false)} />}
+  </section>;
 }

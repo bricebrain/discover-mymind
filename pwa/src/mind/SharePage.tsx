@@ -1,4 +1,4 @@
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { Spinner } from '@/components/ui/kit';
 import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { sharedToNote } from './share';
@@ -16,8 +16,8 @@ export function SharePage() {
     const draft = { ...newDraft(), ...shared };
     void putDraft(draft).then(() => navigate(`/mind?n=${draft.id}`, { replace: true }));
   }, [params, navigate]);
-  return <Box sx={{ p: 4, textAlign: 'center' }}>
-    <CircularProgress size={26} />
-    <Typography color="text.secondary" sx={{ mt: 1.5 }}>Création de la note…</Typography>
-  </Box>;
+  return <div className="grid place-items-center gap-3 p-10 text-center">
+    <Spinner />
+    <p className="m-0 text-muted-foreground">Création de la note…</p>
+  </div>;
 }

@@ -1,12 +1,12 @@
 import { Loader2 } from 'lucide-react';
 import { Fragment, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useMediaQuery } from '@mui/material';
+import { useMediaQuery, WIDE } from '@/lib/useMediaQuery';
 import { useArticles } from '../api/articles';
 import { useExplorer, type ExplorerFilters } from '../api/episodes';
 import { ArticleDetail } from '../articles/ArticleDetail';
 import { Button } from '@/components/ui/button';
-import { dayLabel } from '../components/EpisodeBrowser';
+import { dayLabel } from './dayLabel';
 import { EpisodeDetail } from '../components/EpisodeDetail';
 import { usePlayer } from '../player/PlayerProvider';
 import { ArticleFeedCard, EpisodeFeedCard, ResumeFeedCard } from './FeedCards';
@@ -19,7 +19,7 @@ import { mergeFeed } from './feed';
 export function ExplorerFeed({ filters, withEpisodes, withArticles, showResume, header, empty }: {
   filters: ExplorerFilters; withEpisodes: boolean; withArticles: boolean; showResume: boolean; header: ReactNode; empty: string;
 }) {
-  const wide = useMediaQuery('(min-width:600px)');
+  const wide = useMediaQuery(WIDE);
   const [params, setParams] = useSearchParams();
   const player = usePlayer();
   const episodesQuery = useExplorer(filters, withEpisodes);
@@ -41,6 +41,8 @@ export function ExplorerFeed({ filters, withEpisodes, withArticles, showResume, 
     next.delete('e'); next.delete('a'); next.delete('v');
     if (id) next.set(kind, id);
     setParams(next, { replace: wide });
+    // Plié : le détail remplace le fil, on le lit depuis le haut.
+    if (!wide && id) window.scrollTo({ top: 0 });
   };
   const close = () => (window.history.length > 1 ? window.history.back() : open('e', null));
   const loadMore = () => {

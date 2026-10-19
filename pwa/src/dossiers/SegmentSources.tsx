@@ -1,4 +1,3 @@
-import { Chip, Stack } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { useContentSegments, type ContentDetail, type ContentSegment, type DossierSource } from '../api/contents';
 import { formatClock } from '../player/MiniPlayer';
@@ -36,11 +35,10 @@ export function sourcesForSegment(segment: Pick<ContentSegment, 'sourceSegments'
 export function SegmentSources({ segment, passages }: { segment: ContentSegment; passages: Map<string, SourcePassage> }) {
   const cited = sourcesForSegment(segment, passages);
   if (!cited.length) return null;
-  return <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" sx={{ mt: 1 }} aria-label="Sources de ce passage">
-    {cited.map((p) => (
-      <Chip key={p.source.id} size="small" variant="outlined" clickable component={Link} to={sourceLink(p.source)}
-        title={p.source.title}
-        label={`${p.index + 1}. ${p.source.title.length > 32 ? `${p.source.title.slice(0, 31)}…` : p.source.title}${p.startMs !== null ? ` · ${formatClock(p.startMs / 1000)}` : ''}`} />
-    ))}
-  </Stack>;
+  return <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Sources de ce passage">
+    {cited.map((p) => <Link key={p.source.id} to={sourceLink(p.source)} title={p.source.title}
+      className="inline-flex h-7 items-center rounded-full border border-border bg-card px-2.5 text-xs font-semibold text-foreground no-underline hover:bg-muted">
+      {`${p.index + 1}. ${p.source.title.length > 32 ? `${p.source.title.slice(0, 31)}…` : p.source.title}${p.startMs !== null ? ` · ${formatClock(p.startMs / 1000)}` : ''}`}
+    </Link>)}
+  </div>;
 }

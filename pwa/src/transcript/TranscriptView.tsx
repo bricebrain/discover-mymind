@@ -1,10 +1,10 @@
-import { Alert, Box, Button, ButtonBase, CircularProgress, FormControlLabel, Stack, Switch, Typography, useTheme } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api/client';
 import type { Episode } from '../api/episodes';
-import { alpha } from '@mui/material/styles';
-import { fonts, tokensFor } from '../app/theme';
+import { Button } from '@/components/ui/button';
+import { Notice, Spinner, Switch } from '@/components/ui/kit';
+import { cn } from '@/lib/utils';
 import { formatClock } from '../player/MiniPlayer';
 import { usePlayer } from '../player/PlayerProvider';
 import { activeSegment, isSynced, parseTranscript } from './subtitles';
@@ -14,10 +14,10 @@ const speakerLabel = (s: string | null) => (s ? s.replace(/^(Speaker|Intervenant
 
 /** Une couleur stable par intervenant, pour suivre qui parle d'un coup d'œil. */
 const SPEAKER_HUES = [172, 28, 262, 205, 340, 95];
-function speakerColor(s: string, dark: boolean): string {
+function speakerColor(s: string): string {
   let h = 0;
   for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return `hsl(${SPEAKER_HUES[h % SPEAKER_HUES.length]} ${dark ? '55% 70%' : '50% 36%'})`;
+  return `hsl(${SPEAKER_HUES[h % SPEAKER_HUES.length]} 50% 36%)`;
 }
 
 /**
@@ -26,8 +26,6 @@ function speakerColor(s: string, dark: boolean): string {
  */
 export function TranscriptView({ episode, onPlay }: { episode: Episode; onPlay: () => void }) {
   const player = usePlayer();
-  const theme = useTheme();
-  const t = tokensFor(theme.palette.mode);
   const transcript = useQuery({
     queryKey: ['transcript', episode.id],
     queryFn: () => api<{ type: 'srt' | 'vtt'; text: string; audioRef: string }>(`/api/episodes/${episode.id}/transcript`),
@@ -52,9 +50,9 @@ export function TranscriptView({ episode, onPlay }: { episode: Episode; onPlay: 
     if (follow && player.playing && active >= 0) activeRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }, [active, follow, player.playing]);
 
-  if (transcript.isPending) return <Box sx={{ py: 3, textAlign: 'center' }}><CircularProgress size={24} /></Box>;
-  if (transcript.isError) return <Alert severity="warning">{transcript.error.message}</Alert>;
-  if (segments.length === 0) return <Alert severity="info">Transcription vide ou illisible.</Alert>;
+  if (transcript.isPending) return <div className="grid place-items-center py-6"><Spinner /></div>;
+  if (transcript.isError) return <Notice tone="warning">{transcript.error.message}</Notice>;
+  if (segments.length === 0) return <Notice>Transcription vide ou illisible.</Notice>;
 
   const goTo = (startMs: number) => {
     if (!isCurrent) return onPlay();
@@ -67,62 +65,37 @@ export function TranscriptView({ episode, onPlay }: { episode: Episode; onPlay: 
     if (synced) player.seek((startMs + shift) / 1000);
   };
 
-  return (
-    <Box>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1, flexWrap: 'wrap', rowGap: 0.5 }}>
-        <Typography variant="overline" color="text.secondary">Transcription fournie par l’émission</Typography>
-        {synced && (
-          <FormControlLabel control={<Switch size="small" checked={follow} onChange={(e) => setFollow(e.target.checked)} />}
-            label={<Typography variant="caption">Suivre la lecture</Typography>} />
-        )}
-      </Stack>
-      {isCurrent && player.mediaDuration > 0 && !exact && (
-        <Alert severity={calibrating ? 'warning' : 'info'} icon={false} sx={{ mb: 1.5, alignItems: 'flex-start' }}>
-          <Box>
-            {calibrating ? 'Touche la phrase que tu entends en ce moment.'
-              : calibrated ? `Texte calé à la main (décalage ${offsetMs! >= 0 ? '+' : '−'}${formatClock(Math.abs(offsetMs!) / 1000)}). Recale-le si une publicité le fait dériver.`
-              : `Texte non synchronisé : l’audio diffusé dure ${formatClock(player.mediaDuration)}, celui qui a été transcrit ${formatClock(episode.durationSec ?? 0)} (publicités insérées).`}
-          </Box>
-          <Button size="small" variant={calibrating ? 'text' : 'outlined'} color="inherit" onClick={() => setCalibrating((c) => !c)} sx={{ mt: 1, minHeight: 34 }}>
-            {calibrating ? 'Annuler' : calibrated ? 'Recaler' : 'Caler le texte'}
-          </Button>
-        </Alert>
-      )}
-      <Stack spacing={0.25}>
-        {segments.map((s, i) => {
-          const on = i === active;
-          const label = speakerLabel(s.speaker);
-          const showLabel = label && (i === 0 || segments[i - 1]!.speaker !== s.speaker);
-          const dim = synced && follow && player.playing && !on;
-          return (
-            <ButtonBase key={s.id} ref={on ? activeRef : undefined} onClick={() => goTo(s.startMs)}
-              aria-current={on ? 'true' : undefined}
-              sx={{
-                position: 'relative', display: 'block', textAlign: 'left', borderRadius: 3, pl: 2, pr: 1.25, py: 0.9, width: '100%',
-                bgcolor: on ? t.amberSoft : calibrating ? alpha(t.ink, 0.03) : 'transparent', transition: 'background-color .3s',
-                '&::before': { content: '""', position: 'absolute', left: 4, top: 10, bottom: 10, width: 3, borderRadius: 2, bgcolor: on ? 'secondary.main' : 'transparent', transition: 'background-color .3s' },
-                '&:hover': { bgcolor: on ? t.amberSoft : 'action.hover' },
-              }}>
-              {showLabel && (
-                <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', mb: 0.25, letterSpacing: '0.02em', color: speakerColor(s.speaker!, theme.palette.mode === 'dark') }}>
-                  {label}
-                </Typography>
-              )}
-              <Typography component="span" sx={{
-                fontFamily: fonts.reading, fontSize: '1.08rem', lineHeight: 1.72,
-                color: dim ? 'text.secondary' : 'text.primary', transition: 'color .3s',
-              }}>
-                {s.text}
-              </Typography>
-              {synced && (
-                <Typography component="span" variant="caption" color="text.disabled" sx={{ ml: 1, fontVariantNumeric: 'tabular-nums' }}>
-                  {formatClock((s.startMs + shift) / 1000)}
-                </Typography>
-              )}
-            </ButtonBase>
-          );
-        })}
-      </Stack>
-    </Box>
-  );
+  return <div>
+    <div className="mb-2 flex flex-wrap items-center justify-between gap-y-1">
+      <p className="m-0 text-[11px] font-semibold uppercase tracking-[.08em] text-muted-foreground">Transcription fournie par l’émission</p>
+      {synced && <label className="flex min-h-11 items-center gap-2 text-xs font-medium">
+        <Switch checked={follow} onChange={setFollow} label="Suivre la lecture" />Suivre la lecture
+      </label>}
+    </div>
+    {isCurrent && player.mediaDuration > 0 && !exact && <div className={cn('mb-3 rounded-xl border px-3 py-2.5 text-sm leading-snug',
+      calibrating ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-sky-200 bg-sky-50 text-sky-900')}>
+      <p className="m-0">{calibrating ? 'Touche la phrase que tu entends en ce moment.'
+        : calibrated ? `Texte calé à la main (décalage ${offsetMs! >= 0 ? '+' : '−'}${formatClock(Math.abs(offsetMs!) / 1000)}). Recale-le si une publicité le fait dériver.`
+        : `Texte non synchronisé : l’audio diffusé dure ${formatClock(player.mediaDuration)}, celui qui a été transcrit ${formatClock(episode.durationSec ?? 0)} (publicités insérées).`}</p>
+      <Button size="sm" variant={calibrating ? 'ghost' : 'outline'} className="mt-2" onClick={() => setCalibrating((c) => !c)}>
+        {calibrating ? 'Annuler' : calibrated ? 'Recaler' : 'Caler le texte'}
+      </Button>
+    </div>}
+    <div className="flex flex-col gap-0.5">
+      {segments.map((s, i) => {
+        const on = i === active;
+        const label = speakerLabel(s.speaker);
+        const showLabel = label && (i === 0 || segments[i - 1]!.speaker !== s.speaker);
+        const dim = synced && follow && player.playing && !on;
+        return <button key={s.id} type="button" ref={on ? activeRef : undefined} onClick={() => goTo(s.startMs)} aria-current={on ? 'true' : undefined}
+          className={cn('relative block w-full rounded-xl py-2 pl-4 pr-2.5 text-left transition-colors duration-300',
+            'before:absolute before:bottom-2.5 before:left-1 before:top-2.5 before:w-[3px] before:rounded-full before:transition-colors',
+            on ? 'bg-article-soft before:bg-article' : calibrating ? 'bg-zinc-50 hover:bg-muted before:bg-transparent' : 'hover:bg-muted before:bg-transparent')}>
+          {showLabel && <span className="mb-0.5 block text-xs font-bold tracking-wide" style={{ color: speakerColor(s.speaker!) }}>{label}</span>}
+          <span className={cn('font-reading text-[1.08rem] leading-[1.72] transition-colors duration-300', dim ? 'text-muted-foreground' : 'text-foreground')}>{s.text}</span>
+          {synced && <span className="ml-2 text-xs tabular-nums text-zinc-400">{formatClock((s.startMs + shift) / 1000)}</span>}
+        </button>;
+      })}
+    </div>
+  </div>;
 }

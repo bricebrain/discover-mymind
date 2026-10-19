@@ -1,5 +1,4 @@
-import CloudOffOutlinedIcon from '@mui/icons-material/CloudOffOutlined';
-import { Box, Button, Typography } from '@mui/material';
+import { CloudOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -18,9 +17,9 @@ export function useOnline() {
 export function OfflineBanner() {
   const online = useOnline();
   if (online) return null;
-  return <Box role="status" sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 0.75, bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider' }}>
-    <CloudOffOutlinedIcon fontSize="small" color="action" />
-    <Typography variant="body2" sx={{ flex: 1 }}>Hors ligne : les versions téléchargées restent disponibles.</Typography>
-    <Button size="small" component={Link} to="/library?view=downloads">Téléchargements</Button>
-  </Box>;
+  return <div role="status" className="flex items-center gap-2 border-t border-border/70 bg-muted px-4 py-1.5 text-sm">
+    <CloudOff className="size-4 shrink-0 text-muted-foreground" />
+    <span className="flex-1">Hors ligne : les versions téléchargées restent disponibles.</span>
+    <Link to="/library?view=downloads" className="shrink-0 font-semibold text-primary no-underline">Téléchargements</Link>
+  </div>;
 }

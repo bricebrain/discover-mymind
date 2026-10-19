@@ -1,56 +1,47 @@
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
-import EditNoteIcon from '@mui/icons-material/EditNote';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import {
-  Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, LinearProgress, MenuItem,
-  Stack, TextField, Typography,
-} from '@mui/material';
+import { ArrowLeft, ExternalLink, NotebookPen, Sparkles } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Field, Notice, Select, Sheet, Spinner } from '@/components/ui/kit';
 import { useArticle, useArticleActions, type Article } from '../api/articles';
 import { formatWhen } from '../api/episodes';
-import { fonts } from '../app/theme';
 import { PreparedEpisode } from '../components/PreparedEpisode';
+import { PublisherThumb } from '../explorer/FeedCards';
+import { LEVEL_OPTIONS } from '../queue/PrepareDialog';
 import type { PrepareOptions } from '../queue/types';
-import { readingTime } from './ArticleCard';
+import { readingTime } from './readingTime';
 
 type Coverage = PrepareOptions['coverage'];
 const COVERAGE: Record<Coverage, { label: string; minutes: number | null }> = {
   essentials: { label: 'L’essentiel · 4 min', minutes: 4 }, condensed: { label: 'Condensé · 8 min', minutes: 8 }, full: { label: 'Intégral', minutes: null },
 };
+const COVERAGE_OPTIONS = (Object.keys(COVERAGE) as Coverage[]).map((c) => [c, COVERAGE[c].label] as const);
 
 function PrepareArticleDialog({ article, onClose }: { article: Article; onClose: () => void }) {
   const { toNote } = useArticleActions(article.id);
   const [coverage, setCoverage] = useState<Coverage>('essentials');
   const [level, setLevel] = useState<PrepareOptions['level']>('B1');
   const [done, setDone] = useState<string | null>(null);
-  return <Dialog open onClose={toNote.isPending ? undefined : onClose} fullWidth maxWidth="xs">
-    <DialogTitle>Préparer en anglais</DialogTitle>
-    <DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
-      <Typography variant="body2">{article.title}</Typography>
-      {done ? <Alert severity="success">
-        Préparation lancée. L’article est aussi enregistré dans My Mind ; la version anglaise apparaîtra ici et sous la note.
-        {' '}<Button size="small" component={Link} to={`/mind?n=${done}`}>Ouvrir la note</Button>
-      </Alert> : <>
-        <TextField select label="Version" value={coverage} onChange={(e) => setCoverage(e.target.value as Coverage)}>
-          {(Object.keys(COVERAGE) as Coverage[]).map((c) => <MenuItem key={c} value={c}>{COVERAGE[c].label}</MenuItem>)}
-        </TextField>
-        <TextField select label="Niveau d’anglais" value={level} onChange={(e) => setLevel(e.target.value as PrepareOptions['level'])}>
-          {(['A2', 'B1', 'B2', 'C1', 'original'] as const).map((l) => <MenuItem key={l} value={l}>{l === 'original' ? 'Anglais non simplifié' : l}</MenuItem>)}
-        </TextField>
-        <Typography variant="caption" color="text.secondary">L’Atelier adapte le texte à ton niveau et en fait une version audio, attribuée à {article.publisher}.</Typography>
-      </>}
-      {toNote.isError && <Alert severity="error">{toNote.error.message}</Alert>}
-    </Stack></DialogContent>
-    <DialogActions>
-      <Button onClick={onClose} disabled={toNote.isPending}>{done ? 'Fermer' : 'Annuler'}</Button>
-      {!done && <Button variant="contained" disabled={toNote.isPending} onClick={() => toNote.mutate(
-        { coverage, level, style: 'narration', targetMinutes: COVERAGE[coverage].minutes },
-        { onSuccess: (r) => setDone(r.noteId) },
-      )}>{toNote.isPending ? 'Envoi…' : 'Mettre à préparer'}</Button>}
-    </DialogActions>
-  </Dialog>;
+  return <Sheet title="Préparer en anglais" onClose={onClose} locked={toNote.isPending} footer={<>
+    <Button variant="ghost" onClick={onClose} disabled={toNote.isPending}>{done ? 'Fermer' : 'Annuler'}</Button>
+    {!done && <Button disabled={toNote.isPending} onClick={() => toNote.mutate(
+      { coverage, level, style: 'narration', targetMinutes: COVERAGE[coverage].minutes },
+      { onSuccess: (r) => setDone(r.noteId) },
+    )}>{toNote.isPending ? 'Envoi…' : 'Mettre à préparer'}</Button>}
+  </>}>
+    <p className="m-0 text-[15px] font-semibold leading-snug">{article.title}</p>
+    {done ? <Notice tone="success" action={<Button asChild size="sm" variant="ghost"><Link to={`/mind?n=${done}`} className="no-underline">Ouvrir la note</Link></Button>}>
+      Préparation lancée. L’article est aussi enregistré dans My Mind ; la version anglaise apparaîtra ici et sous la note.
+    </Notice> : <>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Version"><Select value={coverage} options={COVERAGE_OPTIONS} onChange={setCoverage} /></Field>
+        <Field label="Niveau d’anglais"><Select value={level} options={LEVEL_OPTIONS} onChange={setLevel} /></Field>
+      </div>
+      <p className="m-0 text-xs leading-relaxed text-muted-foreground">L’Atelier adapte le texte à ton niveau et en fait une version audio, attribuée à {article.publisher}.</p>
+    </>}
+    {toNote.isError && <Notice tone="error">{toNote.error.message}</Notice>}
+  </Sheet>;
 }
 
 /** Lecture d'un article : texte (flux ou récupéré par l'Atelier), enregistrement dans My Mind, préparation en anglais. */
@@ -66,43 +57,45 @@ export function ArticleDetail({ id, onBack }: { id: string; onBack?: () => void 
     if (a && !a.contentText && a.contentStatus === 'none' && asked.current !== a.id) { asked.current = a.id; fetchText.mutate(); }
   }); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (query.isPending) return <Box sx={{ p: 4, textAlign: 'center' }}><CircularProgress size={26} /></Box>;
-  if (query.isError || !a) return <Alert severity="warning" sx={{ m: 2 }}>Article introuvable.</Alert>;
+  if (query.isPending) return <div className="grid place-items-center p-10"><Spinner /></div>;
+  if (query.isError || !a) return <Notice tone="warning" className="m-4">Article introuvable.</Notice>;
   const paragraphs = (a.contentText ?? '').split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
   const time = readingTime(a.contentText?.length ?? null);
+  const noText = !a.contentText && !a.summary;
 
-  return <Box sx={{ px: 2, pt: onBack ? 1 : 3, pb: 6, maxWidth: 720, mx: 'auto', animation: 'riseIn .25s ease-out' }}>
-    {onBack && <IconButton onClick={onBack} aria-label="Retour aux articles" edge="start" sx={{ mb: 0.5 }}><ArrowBackIcon /></IconButton>}
-    <Typography variant="overline" color="secondary" sx={{ fontWeight: 700 }}>{a.publisher}</Typography>
-    <Typography component="h1" sx={{ fontFamily: fonts.display, fontSize: { xs: '1.75rem', sm: '2.1rem' }, fontWeight: 600, lineHeight: 1.15, mt: 0.5 }}>{a.title}</Typography>
-    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-      {[a.author, formatWhen(a.publishedAt), time].filter(Boolean).join(' · ')}
-    </Typography>
-    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ my: 2 }}>
-      <Button variant="contained" startIcon={<AutoAwesomeOutlinedIcon />} onClick={() => setPreparing(true)} disabled={!a.contentText && !a.summary}>
-        {a.contentId ? 'Préparer une autre version' : 'Préparer en anglais'}
+  return <motion.article initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
+    className={`mx-auto max-w-[720px] px-4 pb-12 ${onBack ? 'pt-2' : 'pt-6'}`}>
+    {onBack && <Button variant="ghost" size="icon" onClick={onBack} aria-label="Retour aux articles" className="-ml-2 mb-1"><ArrowLeft className="size-5" /></Button>}
+    <div className="flex items-center gap-3">
+      <PublisherThumb publisher={a.publisher} />
+      <div className="min-w-0">
+        <p className="m-0 text-[13px] font-bold uppercase tracking-[.06em] text-article">{a.publisher}</p>
+        <p className="m-0 text-[13px] text-muted-foreground">{[a.author, formatWhen(a.publishedAt), time].filter(Boolean).join(' · ')}</p>
+      </div>
+    </div>
+    <h1 className="m-0 mt-3 font-display text-[1.9rem] font-normal leading-[1.12] tracking-tight sm:text-[2.2rem]">{a.title}</h1>
+    <div className="my-4 flex flex-wrap gap-2">
+      <Button onClick={() => setPreparing(true)} disabled={noText}><Sparkles className="size-4" />{a.contentId ? 'Préparer une autre version' : 'Préparer en anglais'}</Button>
+      <Button variant="outline" disabled={toNote.isPending || noText} onClick={() => toNote.mutate(undefined, { onSuccess: (r) => navigate(`/mind?n=${r.noteId}`) })}>
+        <NotebookPen className="size-4 text-primary" />{a.reflectionId ? 'Ouvrir dans My Mind' : 'Enregistrer dans My Mind'}
       </Button>
-      <Button variant="outlined" startIcon={<EditNoteIcon />} disabled={toNote.isPending || (!a.contentText && !a.summary)}
-        onClick={() => toNote.mutate(undefined, { onSuccess: (r) => navigate(`/mind?n=${r.noteId}`) })}>
-        {a.reflectionId ? 'Ouvrir dans My Mind' : 'Enregistrer dans My Mind'}
-      </Button>
-      <Button component="a" href={a.url} target="_blank" rel="noopener noreferrer" endIcon={<OpenInNewIcon />}>Lire sur le site</Button>
-    </Stack>
-    {toNote.isError && <Alert severity="error" sx={{ mb: 2 }}>{toNote.error.message}</Alert>}
-    {a.contentId && <Box sx={{ mb: 3 }}><PreparedEpisode contentId={a.contentId} about={null} /></Box>}
+      <Button asChild variant="ghost"><a href={a.url} target="_blank" rel="noopener noreferrer" className="no-underline">Lire sur le site<ExternalLink className="size-4" /></a></Button>
+    </div>
+    {toNote.isError && <Notice tone="error" className="mb-3">{toNote.error.message}</Notice>}
+    {a.contentId && <div className="mb-6"><PreparedEpisode contentId={a.contentId} about={null} /></div>}
 
-    {a.contentStatus === 'pending' && <Stack spacing={0.75} sx={{ mb: 2 }} role="status">
-      <Typography variant="body2" color="text.secondary">L’Atelier récupère le texte complet de l’article…</Typography>
-      <LinearProgress sx={{ borderRadius: 1 }} />
-    </Stack>}
-    {a.contentStatus === 'partial' && <Alert severity="warning" variant="outlined" sx={{ mb: 2 }}>Texte partiel : le site n’a pas tout fourni. La fin est sur le site.</Alert>}
-    {a.contentStatus === 'unavailable' && !a.contentText && <Alert severity="warning" variant="outlined" sx={{ mb: 2 }}
-      action={<Button color="inherit" size="small" onClick={() => fetchText.mutate()}>Réessayer</Button>}>Texte complet inaccessible depuis le site. Le résumé est affiché.</Alert>}
+    {a.contentStatus === 'pending' && <div className="mb-4" role="status">
+      <p className="m-0 mb-1.5 text-sm text-muted-foreground">L’Atelier récupère le texte complet de l’article…</p>
+      <div className="h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full w-1/3 animate-pulse rounded-full bg-primary" /></div>
+    </div>}
+    {a.contentStatus === 'partial' && <Notice tone="warning" className="mb-4">Texte partiel : le site n’a pas tout fourni. La fin est sur le site.</Notice>}
+    {a.contentStatus === 'unavailable' && !a.contentText && <Notice tone="warning" className="mb-4"
+      action={<Button size="sm" variant="ghost" onClick={() => fetchText.mutate()}>Réessayer</Button>}>Texte complet inaccessible depuis le site. Le résumé est affiché.</Notice>}
 
-    <Box sx={{ fontFamily: fonts.reading, fontSize: '1.08rem', lineHeight: 1.8 }} lang={a.language}>
-      {paragraphs.length ? paragraphs.map((p, i) => <Typography key={i} component="p" sx={{ font: 'inherit', mb: 2, whiteSpace: 'pre-line' }}>{p}</Typography>)
-        : a.summary && <Typography component="p" sx={{ font: 'inherit', color: 'text.secondary' }}>{a.summary}</Typography>}
-    </Box>
+    <div className="font-reading text-[1.08rem] leading-[1.8]" lang={a.language}>
+      {paragraphs.length ? paragraphs.map((p, i) => <p key={i} className="m-0 mb-4 whitespace-pre-line">{p}</p>)
+        : a.summary && <p className="m-0 text-muted-foreground">{a.summary}</p>}
+    </div>
     {preparing && <PrepareArticleDialog article={a} onClose={() => setPreparing(false)} />}
-  </Box>;
+  </motion.article>;
 }

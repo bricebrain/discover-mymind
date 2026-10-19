@@ -1,10 +1,10 @@
-import CloudDoneOutlinedIcon from '@mui/icons-material/CloudDoneOutlined';
-import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
-import { Alert, Box, Button, LinearProgress, Stack, Typography } from '@mui/material';
+import { CloudCheck, Download } from 'lucide-react';
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Notice } from '@/components/ui/kit';
 import type { ContentDetail, ContentVariant } from '../api/contents';
-import { downloadable, formatBytes, offline, removeDownload, startDownload, useDownload } from './index';
 import { usePlayer } from '../player/PlayerProvider';
+import { downloadable, formatBytes, offline, removeDownload, startDownload, useDownload } from './index';
 
 /** Téléchargement explicite de la version affichée : progression, annulation, état, mise à jour et suppression. */
 export function DownloadButton({ detail, variant }: { detail: ContentDetail; variant: ContentVariant }) {
@@ -19,42 +19,31 @@ export function DownloadButton({ detail, variant }: { detail: ContentDetail; var
   };
 
   if (!downloadable(variant)) {
-    return <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-      Diffusée par l’éditeur : cette version n’est pas téléchargeable.
-    </Typography>;
+    return <p className="m-0 mt-2 text-xs text-muted-foreground">Diffusée par l’éditeur : cette version n’est pas téléchargeable.</p>;
   }
   if (active) {
     const pct = active.total ? Math.round((active.received / active.total) * 100) : null;
-    return <Box sx={{ mt: 1.5 }} role="status">
-      <Stack direction="row" alignItems="center" spacing={1}>
-        <Typography variant="body2" sx={{ flex: 1 }}>
-          Téléchargement… {pct !== null ? `${pct} %` : ''} {active.received ? `· ${formatBytes(active.received)}` : ''}
-        </Typography>
-        <Button size="small" onClick={() => offline.cancel(key)}>Annuler</Button>
-      </Stack>
-      <LinearProgress variant={pct === null ? 'indeterminate' : 'determinate'} value={pct ?? 0} sx={{ borderRadius: 1 }} />
-    </Box>;
+    return <div className="mt-3" role="status">
+      <div className="flex items-center gap-2">
+        <span className="flex-1 text-sm">Téléchargement… {pct !== null ? `${pct} %` : ''} {active.received ? `· ${formatBytes(active.received)}` : ''}</span>
+        <Button size="sm" variant="ghost" onClick={() => offline.cancel(key)}>Annuler</Button>
+      </div>
+      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+        <div className={pct === null ? 'h-full w-1/3 animate-pulse bg-primary' : 'h-full bg-primary transition-[width]'} style={pct === null ? undefined : { width: `${pct}%` }} />
+      </div>
+    </div>;
   }
-  return <Box sx={{ mt: 1.5 }}>
-    {record?.status === 'complete' ? (
-      <Stack direction="row" alignItems="center" spacing={1} useFlexGap flexWrap="wrap">
-        <CloudDoneOutlinedIcon fontSize="small" color={outdated ? 'warning' : 'success'} />
-        <Typography variant="body2" sx={{ flex: 1 }}>
-          {outdated ? 'Téléchargée depuis une ancienne publication' : 'Disponible hors ligne'} · {formatBytes(record.audioBytes + record.textBytes)}
-        </Typography>
-        {outdated && <Button size="small" onClick={start}>Mettre à jour</Button>}
-        <Button size="small" color="inherit" sx={{ color: 'text.secondary' }} onClick={() => void removeDownload(key, player)}>Supprimer le téléchargement</Button>
-      </Stack>
-    ) : (
-      <Stack direction="row" alignItems="center" spacing={1} useFlexGap flexWrap="wrap">
-        <Button size="small" variant="outlined" startIcon={<DownloadOutlinedIcon />} onClick={start}>
-          {record && record.status !== 'downloading' ? 'Réessayer le téléchargement' : 'Télécharger pour l’écoute hors ligne'}
-        </Button>
-        {variant.audio && <Typography variant="caption" color="text.secondary">Audio et transcription de cette version</Typography>}
-      </Stack>
-    )}
-    {(error || (record && record.status !== 'complete' && record.error)) && (
-      <Alert severity="warning" sx={{ mt: 1 }}>{error ?? record?.error}</Alert>
-    )}
-  </Box>;
+  return <div className="mt-3">
+    {record?.status === 'complete' ? <div className="flex flex-wrap items-center gap-2">
+      <CloudCheck className={outdated ? 'size-4 text-amber-700' : 'size-4 text-emerald-700'} />
+      <span className="flex-1 text-sm">{outdated ? 'Téléchargée depuis une ancienne publication' : 'Disponible hors ligne'} · {formatBytes(record.audioBytes + record.textBytes)}</span>
+      {outdated && <Button size="sm" variant="ghost" className="text-primary" onClick={start}>Mettre à jour</Button>}
+      <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => void removeDownload(key, player)}>Supprimer le téléchargement</Button>
+    </div> : <div className="flex flex-wrap items-center gap-2">
+      <Button size="sm" variant="outline" onClick={start}><Download className="size-4" />
+        {record && record.status !== 'downloading' ? 'Réessayer le téléchargement' : 'Télécharger pour l’écoute hors ligne'}</Button>
+      {variant.audio && <span className="text-xs text-muted-foreground">Audio et transcription de cette version</span>}
+    </div>}
+    {(error || (record && record.status !== 'complete' && record.error)) && <Notice tone="warning" className="mt-2">{error ?? record?.error}</Notice>}
+  </div>;
 }
