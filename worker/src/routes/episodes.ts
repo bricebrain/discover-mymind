@@ -1,6 +1,7 @@
 import type { Env } from '../env';
 import { apiError, HttpError, json, readJson } from '../http';
 import { CATEGORIES } from './shows';
+import { levelSuggestion } from '../levels/suggestion';
 
 const EPISODE_COLUMNS = `s.source_type AS sourceType, e.video_id AS videoId, e.id, e.title, e.description, e.published_at AS publishedAt, e.duration_sec AS durationSec,
   e.audio_url AS audioUrl, COALESCE(e.image_url, s.image_url) AS imageUrl, e.transcript_type AS transcriptType,
@@ -92,8 +93,8 @@ export async function explorer(req: Request, env: Env): Promise<Response> {
 /** GET /api/episodes/:id */
 export async function detail(env: Env, id: string): Promise<Response> {
   const e = await env.DB.prepare(`SELECT ${EPISODE_COLUMNS} FROM episodes e JOIN shows s ON s.id = e.show_id ${PROGRESS_JOIN} WHERE e.id = ?`)
-    .bind(id).first();
-  return e ? json({ episode: e }) : apiError(404, 'not_found', 'Épisode inconnu.');
+    .bind(id).first<Record<string, unknown> & { showId: string }>();
+  return e ? json({ episode: { ...e, levelSuggestion: await levelSuggestion(env, e.showId) } }) : apiError(404, 'not_found', 'Épisode inconnu.');
 }
 
 /** POST /api/episodes/:id/state — { state: seen | saved | dismissed | new } */
