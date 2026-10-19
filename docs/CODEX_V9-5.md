@@ -2,7 +2,7 @@
 
 ## État du chantier
 
-Première phase livrée : export à annoter. **Calibration non terminée : les annotations de l’utilisateur sont attendues.** Aucun seuil proposé ni appliqué à ce stade. Le chantier suivant n’est pas commencé.
+Export et analyse des 363 annotations livrés. **Accord sur le compromis des seuils encore attendu.** Proposition restrictive : même langue 0,75 ; entre langues 0,79 ; zone de doute 0,60 conservée ; juge désactivé. Elle obtient 93,8 % de précision sur les paires annotées regroupées, mais seulement 18,1 % de rappel et perd les 15 positifs entre langues. Aucun réglage appliqué. Voir `docs/calibration/V9-5-ANALYSE.md`. Le chantier suivant n’est pas commencé.
 
 Worktrees :
 
@@ -13,6 +13,8 @@ Worktrees :
 
 - `docs/calibration/V9-5-paires-a-annoter.csv` : format natif du script existant, UTF-8 avec BOM, séparateur virgule, 13 colonnes ; dernière colonne vide.
 - `docs/calibration/V9-5-NOTICE.md` : règles d’annotation et de restitution.
+- `docs/calibration/V9-5-paires-annotees.csv` : réponses reçues, associées par identifiants aux textes et scores originaux après vérification des altérations de tableur.
+- `docs/calibration/V9-5-ANALYSE.md` : couverture, contrôles, évaluation native, simulation du regroupement réel et proposition exacte soumise à accord.
 - Le présent compte rendu.
 
 Le brief impose l’utilisation de `discover_related_calibrer.py` et son contrat CSV ; le fichier n’a pas été reconstruit dans un autre format de tableur.
@@ -72,3 +74,11 @@ Les premiers lancements Worker/Atelier ont rencontré le refus sandbox d’ouvri
 ## Production
 
 Aucun changement de configuration réelle, aucun appel payant, aucune synchronisation ni publication. Aucun déploiement, aucune migration, aucun redémarrage de l’Atelier.
+
+## Retour utilisateur — 20 octobre 2026
+
+Les 363 réponses ont été reçues : 83 `oui`, 280 `non`. Aucune annotation manquante ni invalide. Le CSV normalisé conserve les réponses telles quelles et restaure les autres champs depuis l’original (accents altérés, apostrophe initiale retirée, scores arrondis).
+
+L’évaluateur natif propose 0,74 / 0,76 ; la simulation des groupes complets montre que ces valeurs ne suffisent pas : 12 faux regroupements sur 39 paires prédites positives. L’option restrictive 0,75 / 0,79 réduit ce nombre à 1 sur 16, au prix de 68 événements annotés manqués sur 83. Les réglages seuls ne résolvent pas la cohérence transitive des groupes.
+
+Les mêmes suites obligatoires ont été relancées pour cette deuxième phase : **1 160 tests passent**, TypeScript, lint et builds requis réussis. Aucun changement de code applicatif. L’utilisateur doit maintenant décider s’il accepte l’option restrictive ou préfère un changement distinct du regroupement avant application.
