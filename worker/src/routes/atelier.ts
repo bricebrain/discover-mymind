@@ -34,6 +34,10 @@ export async function handleAtelier(req: Request, env: Env, path: string): Promi
   }
   // L'Atelier parcourt les podcasts et lance lui-même les préparations, sans passer par le téléphone.
   if (path === '/atelier/shows' && req.method === 'GET') return shows.list(env);
+  // Réglages de préparation automatique depuis l'Atelier (mêmes règles que la PWA).
+  const showSettings = path.match(/^\/atelier\/shows\/([a-z0-9-]{1,64})$/);
+  if (showSettings?.[1] && req.method === 'PATCH') return shows.update(req, env, showSettings[1]);
+  if (path === '/atelier/settings/auto-prepare' && (req.method === 'GET' || req.method === 'PUT')) return shows.autoPrepareSetting(req, env);
   if (path === '/atelier/episodes' && req.method === 'GET') return episodes.explorer(req,env);
   const prep = path.match(/^\/atelier\/episodes\/([0-9a-f]{20})\/prepare$/);
   if (prep?.[1] && req.method === 'POST') return enqueue(req,env,prep[1]);

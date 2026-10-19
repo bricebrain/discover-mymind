@@ -1,4 +1,5 @@
 import { AddShowDialog } from '../shows/AddShowDialog';
+import { AutoPrepareCard, AutoPrepareChip } from '../shows/AutoPrepare';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -44,6 +45,7 @@ export function ShowsPage() {
         {count} / {max} sources actives. Vérification à tour de rôle, environ toutes les 30 à 60 minutes.
       </Typography>
 
+      {shows.data && <AutoPrepareCard enabled={shows.data.autoPrepareEnabled} shows={shows.data.shows} />}
       {shows.isPending && <Box sx={{ p: 4, textAlign: 'center' }}><CircularProgress size={28} /></Box>}
       {(update.isError || remove.isError) && <Alert severity="warning">{errorText(update.error ?? remove.error)}</Alert>}
       {shows.isError && <Alert severity="warning">{errorText(shows.error)}</Alert>}
@@ -82,8 +84,10 @@ export function ShowsPage() {
                           {s.lastError && <ErrorOutlineIcon color="warning" sx={{ fontSize: 16 }} />}
                           <span>{status(s)}</span>
                         </Stack>}
+                        secondaryTypographyProps={{ component: 'div' }}
                       />
                     </ListItem>
+                    {s.sourceType === 'podcast' && <Box sx={{ pl: 9, pr: 2, pb: 1.25, mt: -1 }}><AutoPrepareChip show={s} /></Box>}
                   </Box>
                 ))}
               </List>

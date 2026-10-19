@@ -82,6 +82,7 @@ async function handleData(req: Request, env: Env, path: string, m: string): Prom
     return contents.media(req,env,content[1],content[2],content[3]!);
   }
   if (path === '/api/shows' && m === 'GET') return shows.list(env);
+  if (path === '/api/settings/auto-prepare' && (m === 'GET' || m === 'PUT')) return shows.autoPrepareSetting(req, env);
   if (path === '/api/shows' && m === 'POST') return shows.create(req, env);
   if (path === '/api/shows/resolve' && m === 'POST') return shows.resolve(req);
   if (path === '/api/shows/preview' && m === 'POST') return shows.preview(req);

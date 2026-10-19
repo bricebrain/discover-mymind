@@ -1,4 +1,5 @@
 import { channelInput, resolveChannel, validateChannelFeed } from '../youtube/channels';
+import { autoPrepareEnabled, setAutoPrepareEnabled } from '../queue/automatic';
 import { channelFeedUrl, parseYoutubeFeed } from '../youtube/feed';
 import { USER_AGENT } from '../collector';
 import type { Env } from '../env';
@@ -198,7 +199,7 @@ export async function create(req: Request, env: Env): Promise<Response> {
 }
 
 const SHOW_COLUMNS = `s.source_type AS sourceType, s.channel_id AS channelId, s.id, s.title, s.publisher, s.feed_url AS feedUrl, s.language, s.category, s.image_url AS imageUrl,
-  s.title_filter_json AS titleFilterJson, s.auto_prepare AS autoPrepare, s.enabled, s.last_success_at AS lastSuccessAt,
+  s.title_filter_json AS titleFilterJson, s.auto_prepare AS autoPrepare, s.auto_preset AS autoPreset, s.auto_level AS autoLevel, s.enabled, s.last_success_at AS lastSuccessAt,
   s.last_attempt_at AS lastAttemptAt, s.last_error AS lastError, s.consecutive_failures AS consecutiveFailures,
   s.next_check_at AS nextCheckAt,
   (SELECT COUNT(*) FROM episodes e WHERE e.show_id = s.id) AS episodeCount`;
@@ -223,12 +224,22 @@ async function getShow(env: Env, id: string) {
 /** GET /api/shows */
 export async function list(env: Env): Promise<Response> {
   const { results } = await env.DB.prepare(`SELECT ${SHOW_COLUMNS} FROM shows s ORDER BY s.category, s.title`).all<ShowOut>();
-  return json({ shows: results.map(showOut), max: MAX_SHOWS, categories: CATEGORIES });
+  return json({ shows: results.map(showOut), max: MAX_SHOWS, categories: CATEGORIES, autoPrepareEnabled: await autoPrepareEnabled(env) });
+}
+
+/** GET / PUT /api/settings/auto-prepare — interrupteur général des préparations automatiques. */
+export async function autoPrepareSetting(req: Request, env: Env): Promise<Response> {
+  if (req.method === 'PUT') {
+    const b = await readJson<Record<string, unknown>>(req, 256);
+    if (typeof b.enabled !== 'boolean') throw new HttpError(400, 'invalid_body', 'enabled : booléen attendu.');
+    await setAutoPrepareEnabled(env, b.enabled);
+  }
+  return json({ enabled: await autoPrepareEnabled(env) });
 }
 
 /** PATCH /api/shows/:id — enabled, category, language, titleFilter. */
 export async function update(req: Request, env: Env, id: string): Promise<Response> {
-  const existing = await env.DB.prepare('SELECT enabled FROM shows WHERE id = ?').bind(id).first<{ enabled: number }>();
+  const existing = await env.DB.prepare('SELECT enabled, source_type FROM shows WHERE id = ?').bind(id).first<{ enabled: number; source_type: string }>();
   if (!existing) return apiError(404, 'not_found', 'Émission inconnue.');
   const b = await readJson<Record<string, unknown>>(req, 4096);
   const sets: string[] = [];
@@ -256,6 +267,23 @@ export async function update(req: Request, env: Env, id: string): Promise<Respon
     const f = validTitleFilter(b.titleFilter);
     sets.push('title_filter_json = ?');
     values.push(f && f.length ? JSON.stringify(f) : null);
+  }
+  // Préparation automatique par émission (podcasts seulement) : formule et niveau.
+  if ('autoPrepare' in b) {
+    if (typeof b.autoPrepare !== 'boolean') throw new HttpError(400, 'invalid_body', 'autoPrepare : booléen attendu.');
+    if (b.autoPrepare && existing.source_type === 'youtube') throw new HttpError(422, 'auto_prepare_unsupported', 'La préparation automatique concerne les podcasts.');
+    sets.push('auto_prepare = ?');
+    values.push(b.autoPrepare ? 1 : 0);
+  }
+  if ('autoPreset' in b) {
+    if (b.autoPreset !== 'essentials4' && b.autoPreset !== 'condensed8') throw new HttpError(400, 'invalid_body', 'Formule : essentials4 ou condensed8.');
+    sets.push('auto_preset = ?');
+    values.push(b.autoPreset);
+  }
+  if ('autoLevel' in b) {
+    if (!['A2', 'B1', 'B2', 'C1', 'original'].includes(String(b.autoLevel))) throw new HttpError(400, 'invalid_body', 'Niveau invalide.');
+    sets.push('auto_level = ?');
+    values.push(b.autoLevel);
   }
   if (sets.length === 0) throw new HttpError(400, 'invalid_body', 'Rien à modifier.');
   await env.DB.prepare(`UPDATE shows SET ${sets.join(', ')} WHERE id = ?`).bind(...values, id).run();

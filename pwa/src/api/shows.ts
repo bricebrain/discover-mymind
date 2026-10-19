@@ -14,11 +14,22 @@ export interface Show {
   imageUrl: string | null;
   titleFilter: string[] | null;
   enabled: boolean;
+  /** Préparation automatique du dernier épisode (podcasts) : formule et niveau. */
+  autoPrepare: boolean;
+  autoPreset: AutoPreset;
+  autoLevel: AutoLevel;
   lastSuccessAt: string | null;
   lastError: string | null;
   consecutiveFailures: number;
   episodeCount: number;
 }
+
+export type AutoPreset = 'essentials4' | 'condensed8';
+export type AutoLevel = 'A2' | 'B1' | 'B2' | 'C1' | 'original';
+export const AUTO_PRESETS: Record<AutoPreset, { label: string; cost: string }> = {
+  essentials4: { label: 'L’essentiel · 4 min', cost: '≈ 0,09 USD de voix Deepgram par épisode' },
+  condensed8: { label: 'Condensé · 8 min', cost: '≈ 0,19 USD de voix Deepgram par épisode' },
+};
 
 export interface Candidate {
   appleId: number;
@@ -59,7 +70,7 @@ export interface NewShow {
 }
 
 export function useShows() {
-  return useQuery({ queryKey: ['shows'], queryFn: () => api<{ shows: Show[]; max: number }>('/api/shows') });
+  return useQuery({ queryKey: ['shows'], queryFn: () => api<{ shows: Show[]; max: number; autoPrepareEnabled: boolean }>('/api/shows') });
 }
 
 export function useResolveShow() {
@@ -86,7 +97,8 @@ export function useCreateShow() {
 export function useUpdateShow() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...patch }: { id: string; enabled?: boolean; category?: Category; titleFilter?: string[] }) =>
+    mutationFn: ({ id, ...patch }: { id: string; enabled?: boolean; category?: Category; titleFilter?: string[];
+      autoPrepare?: boolean; autoPreset?: AutoPreset; autoLevel?: AutoLevel }) =>
       api<{ show: Show }>(`/api/shows/${id}`, { method: 'PATCH', body: patch }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['shows'] });
@@ -103,5 +115,14 @@ export function useDeleteShow() {
       void qc.invalidateQueries({ queryKey: ['shows'] });
       void qc.invalidateQueries({ queryKey: ['explorer'] });
     },
+  });
+}
+
+/** Interrupteur général des préparations automatiques. */
+export function useAutoPrepareSetting() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (enabled: boolean) => api<{ enabled: boolean }>('/api/settings/auto-prepare', { method: 'PUT', body: { enabled } }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['shows'] }),
   });
 }
