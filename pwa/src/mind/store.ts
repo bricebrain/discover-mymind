@@ -64,6 +64,10 @@ export interface NoteSummary {
   linkCount: number;
   origin?: NoteOrigin;
   sourceName?: string | null;
+  kind?: string;
+  questionState?: 'to_explore' | 'thinking' | 'deepened' | null;
+  /** Recherche serveur : extrait avec les mots trouvés (segments de texte, jamais de HTML). */
+  highlights?: { text: string; highlighted: boolean }[];
   /** Seulement sur cet appareil (pas encore synchronisée). */
   localOnly?: boolean;
 }
@@ -108,9 +112,9 @@ export async function dirtyDrafts(): Promise<Draft[]> {
   }
 }
 
-export function newDraft(links: NoteLink[] = []): Draft {
+export function newDraft(links: NoteLink[] = [], origin: NoteOrigin = 'personal'): Draft {
   return {
-    id: crypto.randomUUID(), title: '', body: '', links, createdAt: new Date().toISOString(),
+    id: crypto.randomUUID(), title: '', body: '', links, origin, createdAt: new Date().toISOString(),
     baseUpdatedAt: null, dirty: true, localUpdatedAt: Date.now(),
   };
 }
