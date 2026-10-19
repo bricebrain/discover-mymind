@@ -3,7 +3,7 @@ import { HttpError, json, noContent } from '../http';
 import { manifest } from '../publications/store';
 import type { Publication } from '../publications/types';
 
-async function visible(env: Env, id: string, revision?: string | null): Promise<Publication> {
+export async function visible(env: Env, id: string, revision?: string | null): Promise<Publication> {
   const p = await env.DB.prepare(`SELECT p.* FROM contents c JOIN publications p ON p.content_id=c.id
     WHERE c.id=? AND c.deleted_at IS NULL AND
     ((? IS NULL AND p.id=c.current_publication_id AND p.status='ready') OR
@@ -38,7 +38,7 @@ export async function detail(env: Env, id: string) {
   const statuses = await env.DB.prepare('SELECT variant_key,timing_status FROM variants WHERE publication_id=?').bind(p.id).all<{ variant_key: string; timing_status: string }>();
   return json({ content: m.content, publicationId: p.id, variants: m.variants.map((v) => {
     const base = `/api/contents/${id}/variants/${v.key}`;
-    return { ...v, segmentsFile: undefined, segmentsUrl: `${base}/segments?publication=${p.id}`,
+    return { ...v, quiz: undefined, segmentsFile: undefined, segmentsUrl: `${base}/segments?publication=${p.id}`,
       timingStatus: statuses.results.find((s) => s.variant_key === v.key)?.timing_status,
       audio: v.audio ? { ...v.audio, file: undefined, url: v.audio.source === 'r2' ? `${base}/audio?publication=${p.id}` : v.audio.url,
         sha256: v.audio.file ? m.files[v.audio.file]?.sha256 : undefined } : null };
@@ -85,6 +85,7 @@ export async function remove(env: Env, id: string) {
       revision=revision||':deleted:'||?,commit_token=NULL,updated_at=? WHERE content_id=? AND revision NOT LIKE '%:deleted:%'`).bind(now,now,id),
     env.DB.prepare('UPDATE episodes SET content_id=NULL WHERE content_id=?').bind(id),
     env.DB.prepare('UPDATE reflections SET english_content_id=NULL WHERE english_content_id=?').bind(id),
+    env.DB.prepare('DELETE FROM quiz_answers WHERE publication_id IN (SELECT id FROM publications WHERE content_id=?)').bind(id),
     env.DB.prepare("DELETE FROM listening_progress WHERE target_type='variant' AND substr(target_id,1,?)=?").bind(id.length+1,id+':'),
     env.DB.prepare("DELETE FROM reflection_links WHERE target_type='content' AND target_id=?").bind(id),
     env.DB.prepare("DELETE FROM prepare_queue WHERE content_id=? AND status='done'").bind(id),
