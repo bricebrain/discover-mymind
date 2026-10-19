@@ -10,7 +10,7 @@ Rédigés par Claude Opus le 19 octobre 2026. Lire d'abord `docs/PLAN_PARTAGE_CO
    Dépendances : `npm install` dans `pwa/` et `worker/` du worktree (`.npmrc` : legacy-peer-deps).
 2. **Aucun déploiement, aucune migration en production, aucune génération payante** (Gemini, OpenAI, Deepgram). Claude Opus
    relit, fusionne et déploie.
-3. **Migrations** : 0014 est réservée par Opus. Si E en a besoin, utiliser **0015** et le signaler.
+3. **Migrations** : 0014 et 0015 sont prises par Opus. Si E en a besoin, utiliser **0016** et le signaler.
 4. **`convert/` (Atelier Python)** : dépôt séparé contenant du travail personnel non commité (vocabulaire : `interface.html`,
    `convertisseur_web.py`, `bundles.py`, `vocabulaire*`, `README.md`, `.gitignore`…). **Ne jamais** faire `git add .`,
    `git add -A`, `reset`, `checkout --`, `stash` ni nettoyage global. Ajouter fichier par fichier, uniquement les vôtres.
