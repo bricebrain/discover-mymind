@@ -10,6 +10,7 @@ import { PreparedEpisode } from '../components/PreparedEpisode';
 import { PublisherThumb } from '../explorer/FeedCards';
 import { LEVEL_OPTIONS } from '../queue/PrepareDialog';
 import type { PrepareOptions } from '../queue/types';
+import { RelatedList } from '../related/RelatedList';
 import { readingTime } from './readingTime';
 
 type Coverage = PrepareOptions['coverage'];
@@ -96,6 +97,7 @@ export function ArticleDetail({ id, onBack }: { id: string; onBack?: () => void 
       {paragraphs.length ? paragraphs.map((p, i) => <p key={i} className="m-0 mb-4 whitespace-pre-line">{p}</p>)
         : a.summary && <p className="m-0 text-muted-foreground">{a.summary}</p>}
     </div>
+    <div className="mt-8"><RelatedList type="article" id={a.id} /></div>
     {preparing && <PrepareArticleDialog article={a} onClose={() => setPreparing(false)} />}
   </motion.article>;
 }

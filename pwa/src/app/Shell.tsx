@@ -2,6 +2,7 @@ import { BookOpen, Compass, Lightbulb, Radio, Settings } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { SelectionScope } from '../selection/SelectionScope';
 import { MiniPlayer } from '../player/MiniPlayer';
 import { OfflineBanner } from '../offline/OfflineBanner';
 
@@ -24,10 +25,10 @@ export function Shell() {
   const active = TABS.findIndex((t) => (t.path === '/' ? pathname === '/' : pathname.startsWith(t.path)));
   // Titre de l'écran dans la barre du haut (les écrans de détail gardent « Discover » et leur propre titre).
   const title = pathname === '/' ? 'Explorer' : pathname.startsWith('/mind') ? 'My Mind' : pathname === '/library' ? 'Bibliothèque'
-    : pathname === '/shows' ? 'Abonnements' : pathname === '/settings' ? 'Réglages' : pathname === '/week' ? 'Ma semaine' : 'Discover';
+    : pathname === '/shows' ? 'Abonnements' : pathname === '/settings' ? 'Réglages' : pathname === '/week' ? 'Ma semaine' : pathname === '/vocabulary' ? 'Mots gardés' : 'Discover';
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background font-sans text-foreground">
+    <SelectionScope><div className="flex min-h-dvh flex-col bg-background font-sans text-foreground">
       <header className="sticky top-0 z-[1100] border-b border-border/70 bg-background/80 pt-[env(safe-area-inset-top)] backdrop-blur-xl backdrop-saturate-150">
         <div className="flex h-[52px] items-center gap-2 px-4">
           <Link to="/" className="flex min-w-0 flex-1 items-center gap-2 text-foreground no-underline">
@@ -75,6 +76,6 @@ export function Shell() {
           })}
         </div>
       </nav>
-    </div>
+    </div></SelectionScope>
   );
 }

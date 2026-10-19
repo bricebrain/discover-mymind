@@ -1,6 +1,5 @@
 /** Crée le dossier, puis ouvre ses options ; aucune préparation lancée implicitement. */
 import { useState } from 'react';
-import { Notice } from '../components/ui/kit';
 import { useDossierMutations, type Dossier } from '../api/dossiers';
 import { DossierPrepareDialog } from '../dossiers/DossierPrepareDialog';
 import { SelectionBar } from './SelectionBar';
@@ -17,8 +16,7 @@ export function CreateDossierFromSelection() {
     });
   }
   return <>
-    <SelectionBar onCreate={submit} busy={create.isPending} />
-    {selection.active && create.isError && <Notice tone="error">{create.error.message}</Notice>}
+    <SelectionBar onCreate={submit} busy={create.isPending} error={create.error?.message} />
     {dossier && <DossierPrepareDialog dossier={dossier} onClose={() => setDossier(null)} />}
   </>;
 }

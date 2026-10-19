@@ -13,6 +13,7 @@ import { trackOf } from '../player/trackOf';
 import { useNewNote } from '../pages/MindPage';
 import { PreparationPanel } from '../queue/PreparationPanel';
 import { TranscriptView } from '../transcript/TranscriptView';
+import { RelatedList } from '../related/RelatedList';
 import { PreparedEpisode } from './PreparedEpisode';
 
 /** Onglets soulignés (Transcription / À propos), barre active animée. */
@@ -117,13 +118,14 @@ export function EpisodeDetail({ id, onBack }: { id: string; onBack?: () => void 
     </header>
 
     <div className="mx-auto max-w-[720px] px-4">
-      {episode.contentId ? <PreparedEpisode contentId={episode.contentId} about={about} /> : <>
+      {episode.contentId ? <PreparedEpisode showId={episode.showId} contentId={episode.contentId} about={about} /> : <>
         {episode.transcriptType && <UnderlineTabs id={`ep-${episode.id}`} value={tab} onChange={setTab}
           options={[['transcript', 'Transcription'], ['about', 'À propos']] as const} />}
         {episode.transcriptType && tab === 'transcript'
           ? <TranscriptView episode={episode} onPlay={listen} />
           : about ?? <p className="text-muted-foreground">Pas de présentation pour cet épisode.</p>}
       </>}
+      <div className="mt-8"><RelatedList type="episode" id={episode.id} /></div>
     </div>
   </motion.article>;
 }

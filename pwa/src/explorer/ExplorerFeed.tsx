@@ -5,6 +5,10 @@ import { useMediaQuery, WIDE } from '@/lib/useMediaQuery';
 import { useArticles } from '../api/articles';
 import { useExplorer, type ExplorerFilters } from '../api/episodes';
 import { ArticleDetail } from '../articles/ArticleDetail';
+import { EventGroupCard } from '../related/EventGroupCard';
+import { useExplorerEvents } from '../related/useExplorerEvents';
+import { DossierPrepareDialog } from '../dossiers/DossierPrepareDialog';
+import { Notice } from '../components/ui/kit';
 import { Button } from '@/components/ui/button';
 import { dayLabel } from './dayLabel';
 import { EpisodeDetail } from '../components/EpisodeDetail';
@@ -19,6 +23,7 @@ import { mergeFeed } from './feed';
 export function ExplorerFeed({ filters, withEpisodes, withArticles, showResume, header, empty }: {
   filters: ExplorerFilters; withEpisodes: boolean; withArticles: boolean; showResume: boolean; header: ReactNode; empty: string;
 }) {
+  const events = useExplorerEvents();
   const wide = useMediaQuery(WIDE);
   const [params, setParams] = useSearchParams();
   const player = usePlayer();
@@ -57,6 +62,8 @@ export function ExplorerFeed({ filters, withEpisodes, withArticles, showResume, 
     {pending && <div className="grid place-items-center py-12"><Loader2 className="size-6 animate-spin text-muted-foreground" /></div>}
     {error && <p className="m-2 rounded-xl bg-article-soft p-3 text-sm text-article">{error.message}</p>}
     {!pending && !error && !items.length && <p className="px-4 py-16 text-center font-reading text-[1.05rem] text-muted-foreground">{empty}</p>}
+    {events.query.isError && <Notice tone="warning">Les événements liés n’ont pas pu être chargés.</Notice>}
+    {events.create.isError && <Notice tone="error">{events.create.error.message}</Notice>}
     <div className="flex flex-col gap-2">
       {items.map((item, index) => {
         const day = dayLabel(item.date || null);
@@ -64,6 +71,9 @@ export function ExplorerFeed({ filters, withEpisodes, withArticles, showResume, 
         lastDay = day;
         return <Fragment key={item.key}>
           {showDay && <h2 className="px-1 pb-0.5 pt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{day}</h2>}
+          {showDay && events.byDay.has(day) && <div className={events.create.isPending ? 'pointer-events-none opacity-60' : ''}>
+            <EventGroupCard group={events.byDay.get(day)!} onCreateDossier={events.prepare} onDismiss={() => events.dismiss(events.byDay.get(day)!.groupId)} />
+          </div>}
           {item.kind === 'episode'
             ? <EpisodeFeedCard episode={item.episode} index={index} selected={item.episode.id === selectedEpisode} onOpen={() => open('e', item.episode.id)} />
             : <ArticleFeedCard article={item.article} index={index} selected={item.article.id === selectedArticle} onOpen={() => open('a', item.article.id)} />}
@@ -77,7 +87,8 @@ export function ExplorerFeed({ filters, withEpisodes, withArticles, showResume, 
 
   const detail = selectedEpisode ? <EpisodeDetail id={selectedEpisode} onBack={wide ? undefined : close} />
     : selectedArticle ? <ArticleDetail id={selectedArticle} onBack={wide ? undefined : close} /> : null;
-  if (!wide) return detail ?? list;
+  const preparing = events.dossier && <DossierPrepareDialog dossier={events.dossier} onClose={events.close} />;
+  if (!wide) return <>{detail ?? list}{preparing}</>;
   return <div className="grid grid-cols-[minmax(320px,5fr)_6fr]"
     style={{ height: 'calc(100dvh - 52px - 64px - var(--player-h, 0px) - env(safe-area-inset-top) - env(safe-area-inset-bottom))' }}>
     <div className="overflow-y-auto border-r border-border/70">{list}</div>
@@ -87,5 +98,6 @@ export function ExplorerFeed({ filters, withEpisodes, withArticles, showResume, 
           <p className="mx-auto max-w-xs">Épisode, vidéo ou article : il s’affichera ici, pendant que le fil reste à portée.</p></div>
       </div>}
     </div>
+    {preparing}
   </div>;
 }

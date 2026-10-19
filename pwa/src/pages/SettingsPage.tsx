@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { CalendarDays, LogOut, Smartphone } from 'lucide-react';
+import { BookOpen, CalendarDays, LogOut, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Notice, SectionTitle, Spinner, cardCls } from '@/components/ui/kit';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,9 @@ export function SettingsPage() {
         <Link to="/week"><CalendarDays className="size-4" />Ma semaine</Link>
       </Button>
     </section>
+    <section aria-label="Vocabulaire" className="mt-3"><Button asChild variant="outline" className="w-full justify-start">
+      <Link to="/vocabulary"><BookOpen className="size-4" />Mots gardés</Link>
+    </Button></section>
     {auth.data?.authDisabled ? <>
       <SectionTitle className="mt-4">Connexion</SectionTitle>
       <Notice>La connexion est désactivée pour l’instant : l’app s’ouvre sans phrase secrète. Elle pourra être réactivée plus tard, sans rien perdre.</Notice>

@@ -7,6 +7,7 @@ import { useContent } from '../api/contents';
 import { unreviewed, VariantPills } from '../components/PreparedEpisode';
 import { DeleteContentButton } from '../content/DeleteContentButton';
 import { PlaybackControls } from '../content/VariantControls';
+import { VersionLearning } from '../content/VersionLearning';
 import { VariantTranscript } from '../content/VariantTranscript';
 import { useContentReader } from '../content/useContentReader';
 import { DossierSourcesList } from '../dossiers/DossierSourcesList';
@@ -38,6 +39,7 @@ export function ContentPage() {
       <DownloadButton detail={query.data} variant={variant} />
       <VariantTranscript key={`${query.data.publicationId}:${variant.key}`} detail={query.data} variant={variant}
         activePositionMs={reader.activePositionMs} verified={reader.verified} playing={reader.playing} onSeek={reader.play} />
+      <VersionLearning key={`${query.data.publicationId}:${variant.key}`} detail={query.data} variant={variant} verified={reader.verified} onSeek={reader.play} />
       <div className="mt-6"><DeleteContentButton id={id} title={query.data.content.title} onDeleted={() => navigate(libraryLocation, { replace: true })} /></div>
     </>}
   </motion.div>;

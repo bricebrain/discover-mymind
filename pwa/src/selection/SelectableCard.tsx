@@ -16,8 +16,9 @@ export function SelectableCard({ item, children }: { item: SelectionRef; childre
     selection.start(item);
     if (typeof navigator.vibrate === 'function') navigator.vibrate(20);
   }
-  return <div className="relative" onPointerDown={(e) => {
-    if (selection.active || e.button !== 0 || (e.target as HTMLElement).closest('button, input, select, textarea')) return;
+  return <div className={selection.active ? "group/selection relative pl-12" : "group/selection relative"} onPointerDown={(e) => {
+    const control = (e.target as HTMLElement).closest('button, input, select, textarea');
+    if (selection.active || e.button !== 0 || (control && !control.hasAttribute('data-selection-surface'))) return;
     held.current = false; origin.current = { x: e.clientX, y: e.clientY };
     timer.current = setTimeout(() => { held.current = true; start(); }, 500);
   }} onPointerMove={(e) => { if (Math.hypot(e.clientX - origin.current.x, e.clientY - origin.current.y) > 10) cancel(); }}
@@ -30,7 +31,7 @@ export function SelectableCard({ item, children }: { item: SelectionRef; childre
     }}>
     {children}
     <button type="button" data-selection-control aria-label={`Sélectionner ${item.title}`} aria-pressed={checked}
-      className="absolute right-2 top-2 flex size-11 items-center justify-center rounded-full border border-border bg-card shadow-sm"
+      className={`absolute left-0 top-2 flex size-11 items-center justify-center rounded-full border border-border bg-card shadow-sm ${selection.active ? "" : "pointer-events-none opacity-0 focus:pointer-events-auto focus:opacity-100"}`}
       onClick={() => selection.active ? selection.toggle(item) : start()}>
       <motion.span animate={{ scale: checked ? 1 : 0.8 }} className={checked ? 'text-primary' : 'text-muted-foreground'}>
         <Check aria-hidden className={`size-5 ${checked ? 'opacity-100' : 'opacity-30'}`} />

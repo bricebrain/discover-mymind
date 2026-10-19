@@ -1,12 +1,15 @@
-import { useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import type { MouseEvent as ReactMouseEvent } from 'react';
+import { BookOpen, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Notice, Spinner, Switch } from '@/components/ui/kit';
 import { cn } from '@/lib/utils';
 import type { ContentDetail, ContentVariant } from '../api/contents';
 import { SegmentSources, useDossierPassages } from '../dossiers/SegmentSources';
-import { OriginalButton, OriginalMenu, type OriginalMenuState } from '../listening/OriginalAccess';
+import { OriginalMenu } from '../listening/OriginalAccess';
 import { useOriginal } from '../listening/useOriginal';
 import { formatClock } from '../player/MiniPlayer';
+import { WordPickSheet } from '../vocabulary/WordPickSheet';
+import { usePassageActions } from './usePassageActions';
 import { useVariantTranscript } from './useVariantTranscript';
 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
@@ -25,14 +28,9 @@ export function VariantTranscript({ detail, variant, activePositionMs, verified,
   const passages = useDossierPassages(detail);
   // I3 : original de cette version, pour « Écouter l'original ici » ou lire le passage source.
   const original = useOriginal(detail, variant);
-  const [menu, setMenu] = useState<OriginalMenuState | null>(null);
-  // L'appui long ouvre le volet (Android : contextmenu) ; le clic qui suit ne doit pas déclencher le saut.
-  const swallowClick = useRef(false);
-  const openOriginalMenu = (state: OriginalMenuState) => {
-    swallowClick.current = true;
-    window.setTimeout(() => { swallowClick.current = false; }, 400);
-    setMenu(state);
-  };
+  const english = variant.language.split('-')[0] === 'en';
+  const actions = usePassageActions(english);
+  const selectedIndex = segments.data?.segments.findIndex((s) => s.id === actions.menu?.segment.id) ?? -1;
   if (segments.isPending) return <div className="grid place-items-center py-6"><Spinner label="Chargement de la transcription" /></div>;
   if (segments.isError) return <Notice tone="warning" action={<Button size="sm" variant="ghost" onClick={() => void segments.refetch()}>Réessayer</Button>}>{segments.error.message}</Notice>;
   if (!segments.data.segments.length) return <Notice>Aucun texte disponible pour cette version.</Notice>;
@@ -56,20 +54,23 @@ export function VariantTranscript({ detail, variant, activePositionMs, verified,
           {(s.speaker || s.startMs !== null) && <span className="mb-1 block text-xs text-muted-foreground">
             {s.speaker}{s.speaker && s.startMs !== null ? ' · ' : ''}{s.startMs !== null ? formatClock(s.startMs / 1000) : ''}
           </span>}
-          <span lang={variant.language} className="whitespace-pre-wrap font-reading text-[1.08rem] leading-[1.8]">{s.text}</span>
+          <span data-passage-text lang={variant.language} className="whitespace-pre-wrap font-reading text-[1.08rem] leading-[1.8]">{s.text}</span>
         </>;
         return <div key={s.id} ref={active ? reading.activeRef : undefined} aria-current={active ? 'true' : undefined}
-          onContextMenu={original.available && s.sourceSegments?.length
-            ? (e: ReactMouseEvent<HTMLDivElement>) => { e.preventDefault(); openOriginalMenu({ segment: s, anchor: e.currentTarget }); }
+          onPointerUp={(e) => actions.afterSelection(e.currentTarget, s)}
+          onKeyUp={(e) => { if (e.shiftKey) actions.afterSelection(e.currentTarget, s); }}
+          onContextMenu={english || (original.available && s.sourceSegments?.length)
+            ? (e: ReactMouseEvent<HTMLDivElement>) => { e.preventDefault(); actions.open({ segment: s, anchor: e.currentTarget }); }
             : undefined}
-          onClickCapture={original.available
-            ? (e: ReactMouseEvent<HTMLDivElement>) => { if (swallowClick.current) { e.preventDefault(); e.stopPropagation(); } }
-            : undefined}
+          onClickCapture={(e) => { if (actions.swallowClick()) { e.preventDefault(); e.stopPropagation(); } }}
           className={cn('scroll-my-24 rounded-xl border-l-[3px] p-3 transition-colors duration-300',
             active ? 'border-primary bg-primary-soft' : 'border-transparent')}>
           {navigable ? <button type="button" onClick={() => onSeek(s.startMs! / 1000)} title={`Écouter depuis ${formatClock(s.startMs! / 1000)}`}
-            className="block w-full rounded text-left">{text}</button> : <div>{text}</div>}
-          {original.available && <OriginalButton segment={s} onOpen={openOriginalMenu} />}
+            className="block w-full select-text rounded text-left">{text}</button> : <div>{text}</div>}
+          {(english || (original.available && !!s.sourceSegments?.length)) && <Button variant="ghost" size="icon" className="mt-1 text-muted-foreground"
+            aria-label={`Actions du passage ${index + 1}`} onClick={(e) => actions.open({ segment: s, anchor: e.currentTarget.parentElement! })}>
+            <MoreVertical className="size-4" />
+          </Button>}
           {passages && variant.kind !== 'source' && <SegmentSources segment={s} passages={passages} />}
           {reading.showFrench && <p lang="fr" className="m-0 mt-2 whitespace-pre-wrap font-reading leading-[1.7] text-muted-foreground">
             {reading.french.get(s.id) ?? (translated.isFetching ? '…' : 'Traduction non disponible pour ce passage.')}
@@ -77,6 +78,11 @@ export function VariantTranscript({ detail, variant, activePositionMs, verified,
         </div>;
       })}
     </div>
-    <OriginalMenu detail={detail} variant={variant} original={original} state={menu} onClose={() => setMenu(null)} />
+    <OriginalMenu detail={detail} variant={variant} original={original} state={actions.menu} onClose={actions.closeMenu}
+      extraActions={english && selectedIndex >= 0 ? <Button variant="outline" className="min-h-14 justify-start whitespace-normal text-left" onClick={() => actions.keepWord(selectedIndex)}>
+        <BookOpen className="size-5" />Garder un mot ou une expression
+      </Button> : undefined} />
+    {actions.pick && <WordPickSheet key={`${variant.key}:${actions.pick.index}`} word={actions.pick.word} sentence={actions.pick.segment.text}
+      contentId={detail.content.id} publicationId={detail.publicationId} variantKey={variant.key} segmentIndex={actions.pick.index} onClose={actions.closePick} />}
   </section>;
 }

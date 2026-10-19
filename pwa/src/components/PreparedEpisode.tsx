@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { useContent, type ContentVariant } from '../api/contents';
 import { DeleteContentButton } from '../content/DeleteContentButton';
 import { PlaybackControls } from '../content/VariantControls';
+import { VersionLearning } from '../content/VersionLearning';
 import { VariantTranscript } from '../content/VariantTranscript';
 import { useContentReader } from '../content/useContentReader';
 import { durationLabel, languageName, variantName } from '../content/variants';
@@ -41,7 +42,7 @@ export function VariantPills({ variants, value, onSelect }: { variants: ContentV
  * Versions préparées d'un épisode, directement dans son détail (Explorer ou Bibliothèque) :
  * pastilles de version, écoute de la version choisie, transcription synchronisée. Rien ne change de page.
  */
-export function PreparedEpisode({ contentId, about, onDeleted }: { contentId: string; about: ReactNode; onDeleted?: () => void }) {
+export function PreparedEpisode({ contentId, about, onDeleted, showId }: { contentId: string; about: ReactNode; onDeleted?: () => void; showId?: string }) {
   const query = useContent(contentId);
   const reader = useContentReader(query.data);
   const variant = reader.variant;
@@ -60,6 +61,7 @@ export function PreparedEpisode({ contentId, about, onDeleted }: { contentId: st
     <DownloadButton detail={query.data} variant={variant} />
     <VariantTranscript key={`${query.data.publicationId}:${variant.key}`} detail={query.data} variant={variant}
       activePositionMs={reader.activePositionMs} verified={reader.verified} playing={reader.playing} onSeek={reader.play} />
+    <VersionLearning key={`${query.data.publicationId}:${variant.key}`} detail={query.data} variant={variant} verified={reader.verified} onSeek={reader.play} showId={showId} />
     <div className="mt-4"><DeleteContentButton id={contentId} title={query.data.content.title} onDeleted={onDeleted} /></div>
     {about && <div className="mt-8"><p className={overline}>À propos de l’épisode</p>{about}</div>}
   </section>;

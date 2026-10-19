@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Notice, Spinner, cardCls } from '@/components/ui/kit';
 import { cn } from '@/lib/utils';
 import { usePreparedContents, type LibraryFilters } from '../api/contents';
+import { SelectableCard } from '../selection/SelectableCard';
 import { DeleteContentButton } from '../content/DeleteContentButton';
 
 const SOURCES = {
@@ -31,7 +32,7 @@ export function PreparedContents({ filters = {} }: { filters?: LibraryFilters })
     <div className="flex flex-col gap-2">
       {query.data?.pages.flatMap((p) => p.contents).map((c, i) => {
         const s = SOURCES[c.sourceType];
-        return <motion.div key={c.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 8) * 0.04 }}
+        return <SelectableCard key={c.id} item={{ type: 'content', id: c.id, title: c.title }}><motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 8) * 0.04 }}
           className={cn(cardCls, 'flex items-center')}>
           <Link state={{ libraryLocation: location.pathname + location.search }}
             to={c.sourceType === 'podcast' && /^podcast-[0-9a-f]{20}$/.test(c.id) ? `/?e=${c.id.slice(8)}` : `/library/${c.id}`}
@@ -46,7 +47,7 @@ export function PreparedContents({ filters = {} }: { filters?: LibraryFilters })
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
           </Link>
           <div className="pr-1"><DeleteContentButton id={c.id} title={c.title} compact /></div>
-        </motion.div>;
+        </motion.div></SelectableCard>;
       })}
     </div>
     {query.hasNextPage && <Button variant="outline" className="mt-3 w-full" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>Voir la suite</Button>}
