@@ -1,4 +1,5 @@
-import { LogOut, Smartphone } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { CalendarDays, LogOut, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Notice, SectionTitle, Spinner, cardCls } from '@/components/ui/kit';
 import { cn } from '@/lib/utils';
@@ -13,6 +14,11 @@ export function SettingsPage() {
   const auth = useSession();
   return <div className="mx-auto max-w-[720px] px-4 pb-8 pt-1">
     <h1 className="sr-only">Réglages</h1>
+    <section aria-label="Bilan hebdomadaire" className="mt-4">
+      <Button asChild variant="outline" className="w-full justify-start">
+        <Link to="/week"><CalendarDays className="size-4" />Ma semaine</Link>
+      </Button>
+    </section>
     {auth.data?.authDisabled ? <>
       <SectionTitle className="mt-4">Connexion</SectionTitle>
       <Notice>La connexion est désactivée pour l’instant : l’app s’ouvre sans phrase secrète. Elle pourra être réactivée plus tard, sans rien perdre.</Notice>
