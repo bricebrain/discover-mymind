@@ -13,7 +13,8 @@ INSERT INTO related_changes(type,id) SELECT 'article',id FROM articles;
 CREATE TRIGGER related_articles_insert AFTER INSERT ON articles BEGIN
  INSERT OR REPLACE INTO related_changes(type,id) VALUES ('article',NEW.id);
 END;
-CREATE TRIGGER related_articles_update AFTER UPDATE ON articles BEGIN
+CREATE TRIGGER related_articles_update AFTER UPDATE OF title,summary,content_text,published_at ON articles
+ WHEN NEW.title IS NOT OLD.title OR NEW.summary IS NOT OLD.summary OR NEW.content_text IS NOT OLD.content_text OR NEW.published_at IS NOT OLD.published_at BEGIN
  INSERT OR REPLACE INTO related_changes(type,id) VALUES ('article',NEW.id);
 END;
 CREATE TRIGGER related_articles_delete AFTER DELETE ON articles BEGIN
@@ -25,7 +26,8 @@ INSERT INTO related_changes(type,id) SELECT 'episode',id FROM episodes;
 CREATE TRIGGER related_episodes_insert AFTER INSERT ON episodes BEGIN
  INSERT OR REPLACE INTO related_changes(type,id) VALUES ('episode',NEW.id);
 END;
-CREATE TRIGGER related_episodes_update AFTER UPDATE ON episodes BEGIN
+CREATE TRIGGER related_episodes_update AFTER UPDATE OF title,description,published_at ON episodes
+ WHEN NEW.title IS NOT OLD.title OR NEW.description IS NOT OLD.description OR NEW.published_at IS NOT OLD.published_at BEGIN
  INSERT OR REPLACE INTO related_changes(type,id) VALUES ('episode',NEW.id);
 END;
 CREATE TRIGGER related_episodes_delete AFTER DELETE ON episodes BEGIN
@@ -37,7 +39,8 @@ INSERT INTO related_changes(type,id) SELECT 'reflection',id FROM reflections;
 CREATE TRIGGER related_reflections_insert AFTER INSERT ON reflections BEGIN
  INSERT OR REPLACE INTO related_changes(type,id) VALUES ('reflection',NEW.id);
 END;
-CREATE TRIGGER related_reflections_update AFTER UPDATE ON reflections BEGIN
+CREATE TRIGGER related_reflections_update AFTER UPDATE OF title,body_md,deleted_at,source_name ON reflections
+ WHEN NEW.title IS NOT OLD.title OR NEW.body_md IS NOT OLD.body_md OR NEW.deleted_at IS NOT OLD.deleted_at OR NEW.source_name IS NOT OLD.source_name BEGIN
  INSERT OR REPLACE INTO related_changes(type,id) VALUES ('reflection',NEW.id);
 DELETE FROM related_links WHERE ((source_type='reflection' AND source_id=NEW.id) OR (target_type='reflection' AND target_id=NEW.id)) AND NEW.deleted_at IS NOT NULL;
 DELETE FROM related_members WHERE type='reflection' AND id=NEW.id AND NEW.deleted_at IS NOT NULL;
@@ -47,5 +50,8 @@ CREATE TRIGGER related_reflections_delete AFTER DELETE ON reflections BEGIN
 DELETE FROM related_links WHERE ((source_type='reflection' AND source_id=OLD.id) OR (target_type='reflection' AND target_id=OLD.id));
 DELETE FROM related_members WHERE type='reflection' AND id=OLD.id;
 END;
-CREATE TRIGGER related_shows_update AFTER UPDATE ON shows BEGIN INSERT OR REPLACE INTO related_changes(type,id) SELECT 'episode',id FROM episodes WHERE show_id=NEW.id; END;
-CREATE TRIGGER related_article_sources_update AFTER UPDATE ON article_sources BEGIN INSERT OR REPLACE INTO related_changes(type,id) SELECT 'article',id FROM articles WHERE source_id=NEW.id; END;
+-- Le cron met à jour une émission chaque minute (dates de vérification) : seuls le titre et la langue comptent.
+CREATE TRIGGER related_shows_update AFTER UPDATE OF title,language ON shows
+ WHEN NEW.title IS NOT OLD.title OR NEW.language IS NOT OLD.language BEGIN INSERT OR REPLACE INTO related_changes(type,id) SELECT 'episode',id FROM episodes WHERE show_id=NEW.id; END;
+CREATE TRIGGER related_article_sources_update AFTER UPDATE OF publisher,language ON article_sources
+ WHEN NEW.publisher IS NOT OLD.publisher OR NEW.language IS NOT OLD.language BEGIN INSERT OR REPLACE INTO related_changes(type,id) SELECT 'article',id FROM articles WHERE source_id=NEW.id; END;
