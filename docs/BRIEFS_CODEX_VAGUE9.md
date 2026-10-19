@@ -11,8 +11,8 @@ fichiers d'Opus » de `BRIEFS_CODEX_VAGUE5.md` et `BRIEFS_CODEX_VAGUE8.md` **ne 
 - En production, côté serveur, sans interface encore : quiz (Q), retour de niveau (N), mots vers EnglishFluency (I1),
   rapprochement (R : `/api/related`, `/api/related/groups`), articles comme sources de dossier (D2). « Ma semaine » (C5) et le
   niveau suggéré dans Abonnements (L5) ont déjà leur interface.
-- Migrations Discover appliquées en production : jusqu'à **0024**. EnglishFluency : jusqu'à **0020** ; la migration de
-  suppression des tables SRT attend dans `englishfluency-worker/migrations-en-attente/` (voir § 5).
+- Migrations Discover appliquées en production : jusqu'à **0024**. EnglishFluency : jusqu'à **0020** ; la suppression des tables SRT
+  (approuvée) attend dans `englishfluency-worker/migrations-en-attente/` (chantier V9-7).
 - Atelier (`convert/`, branche `feat/lot1`) : tourne sur le Mac, port **53782**, lancé par
   `CONVERTISSEUR_PORT=53782 nohup /Library/Frameworks/Python.framework/Versions/3.15/bin/python3 -u convertisseur_web.py > <journal> 2>&1 &`
   depuis `convert/`. Rapprochement actif (bge-m3 via Ollama, cache `fileToImport/.discover-queue/related.sqlite`).
@@ -79,13 +79,20 @@ Lancer `convert/discover_related_calibrer.py` pour exporter un CSV de paires, le
   la branche fusionnée. En cas de doute, lister et demander.
 - Ne **rien** supprimer dans `convert/` lui-même, ni dans `discover-backups/`.
 
-## 4. Points qui attendent une décision de l'utilisateur (ne pas trancher seul)
+### V9-7 — Suppression des tables SRT d'EnglishFluency (approuvée)
+- Remettre `englishfluency-worker/migrations-en-attente/0018_remove_srt_library.sql` dans `englishfluency-worker/migrations/`
+  sous le numéro **0021** (`0021_remove_srt_library.sql` ; 0018 à 0020 ne sont pas libres côté historique), supprimer le dossier
+  `migrations-en-attente/`, et rétablir dans `test/securite.test.ts` la vérification « aucune table `srt_%` » retirée provisoirement.
+- Vérifier qu'aucun code (Worker ni `englishPwa/`) ne lit encore ces tables ; tests verts.
+- En production, avec l'accord de l'utilisateur pour ce lot : sauvegarde de la base `englishfluency` (§ 6, préfixe `ef-`),
+  `npx wrangler d1 migrations apply englishfluency --remote`, déploiement du Worker, vérification.
 
-- **Migration SRT d'EnglishFluency** (`englishfluency-worker/migrations-en-attente/0018_remove_srt_library.sql`) : efface
-  définitivement les tables `srt_*`. À appliquer seulement sur accord explicite, sous un numéro supérieur au dernier appliqué
-  (0021), après sauvegarde.
-- **`englishfluency-app/`** (ancienne app React Native, branche `docs/avancement-deepgram-pipeline`, ~60 fichiers modifiés non
-  commités) : demander s'il faut la garder, la commiter ou l'archiver ; ne rien modifier sans réponse.
+## 4. Décisions de l'utilisateur (20 octobre 2026) et points restants
+
+- **Suppression des tables SRT d'EnglishFluency : approuvée.** Voir le chantier V9-7. Elle reste une migration de production :
+  sauvegarde de la base `englishfluency` d'abord (§ 6), puis application.
+- **`englishfluency-app/` : hors projet.** L'ancienne app React Native n'est plus prise en compte : ne pas la lire, ne pas la
+  modifier, ne pas la commiter, ne pas la supprimer, et ne plus la mentionner dans les résumés.
 - **Déploiement d'EnglishPWA** : Vercel déploie la branche `main` de `bricebrain/englishpwa` à chaque push ; le dernier push
   (`32167a0`) n'a pas pu être vérifié (pas de CLI Vercel ni `gh` sur le Mac) : demander à l'utilisateur de vérifier sur Vercel.
 
