@@ -9,7 +9,7 @@ import { useDossier, useDossiers, type Dossier } from '../api/dossiers';
 import { DossierEditor } from './DossierEditor';
 import { DossierPrepareDialog } from './DossierPrepareDialog';
 
-export const SOURCE_TYPES = { episode: 'Épisode', content: 'Contenu préparé', reflection: 'Note' } as const;
+export const SOURCE_TYPES = { episode: 'Épisode', content: 'Contenu préparé', reflection: 'Note', article: 'Article' } as const;
 const STATUS = { pending: 'En file · ouvrir l’Atelier sur le Mac', leased: 'En préparation dans l’Atelier', done: 'Prêt', failed: 'Échec', cancelled: 'Annulé' } as const;
 const dateFmt = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
 

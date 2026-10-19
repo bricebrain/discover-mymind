@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "content": {
+    "id": "dossier-22222222-2222-4222-8222-222222222222",
+    "title": "Dossier épisode et article Explorer",
+    "originalLanguage": "en",
+    "sourceType": "dossier",
+    "rights": "personal_use",
+    "sourceRef": "dossier:22222222-2222-4222-8222-222222222222",
+    "sources": [
+      {
+        "id": "d1",
+        "type": "episode",
+        "ref": "0123456789abcdef0123",
+        "title": "Épisode",
+        "capturedAt": "2026-10-19T10:00:00.000Z",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "id": "d2",
+        "type": "article",
+        "ref": "aaaaaaaaaaaaaaaaaaaa",
+        "title": "The Guardian · Article Explorer",
+        "capturedAt": "2026-10-19T10:00:00.000Z",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    ]
+  },
+  "variants": [
+    {
+      "key": "en-source",
+      "kind": "source",
+      "language": "en",
+      "segmentsFile": "segments/en-source.json"
+    }
+  ],
+  "files": {
+    "segments/en-source.json": {
+      "sha256": "d473a60cdb055b4bf7ff4f7752dcf6c4552ecab1a6cad81e2df39d0ac9869642",
+      "size": 133,
+      "contentType": "application/json"
+    }
+  },
+  "removeVariants": []
+}

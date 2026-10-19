@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
 import type { QueueItem } from '../queue/types';
 
-export type DossierSourceType = 'episode' | 'content' | 'reflection';
+export type DossierSourceType = 'episode' | 'content' | 'reflection' | 'article';
 export interface DossierRef { type: DossierSourceType; id: string }
 export interface Dossier { id: string; title: string; version: number; sources: (DossierRef & { title?: string | null })[]; createdAt: string; updatedAt: string }
 export interface DossierRun { id: string; version: number; createdAt: string; status: QueueItem['status'] | null; contentId: string | null }

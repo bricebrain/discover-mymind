@@ -8,13 +8,14 @@ import podcastHttp from '../../contracts/fixtures/valid-podcast-http.json';
 import podcastEn from '../../contracts/fixtures/valid-podcast-en.json';
 import condensed from '../../contracts/fixtures/valid-condensed.json';
 import reflection from '../../contracts/fixtures/valid-reflection.json';
+import dossierArticle from '../../contracts/fixtures/valid-dossier-article.json';
 import dossier from '../../contracts/fixtures/valid-dossier.json';
 import { HttpError } from '../src/http';
 import type { Variant } from '../src/publications/types';
 import { validateManifest, validateSegments, canonicalJson } from '../src/publications/validation';
 
 describe('Contrat partagé TS/Python', () => {
-  for (const m of [deepgram,youtube,podcastFr,podcastEn,podcastHttp,reflection,condensed,dossier]) it(m.content.id, () => expect(validateManifest(m)).toEqual(m));
+  for (const m of [deepgram,youtube,podcastFr,podcastEn,podcastHttp,reflection,condensed,dossier,dossierArticle]) it(m.content.id, () => expect(validateManifest(m)).toEqual(m));
   for (const f of invalid) it(f.name, () => {
     try { validateManifest(f.manifest,'context' in f ? f.context : {}); expect.fail('Manifeste accepté'); }
     catch (e) { expect(e).toBeInstanceOf(HttpError); expect((e as HttpError).code).toBe(f.code); }

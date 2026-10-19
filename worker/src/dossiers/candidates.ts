@@ -8,7 +8,10 @@ export async function candidates(req:Request,env:Env) {
   SELECT 'episode' AS type,e.id,e.title,CASE WHEN e.video_id IS NULL THEN 'Podcast' ELSE 'YouTube' END AS label,e.created_at AS date
    FROM episodes e WHERE e.state<>'dismissed'
   UNION ALL SELECT 'reflection',id,COALESCE(title,substr(body_md,1,80),'Note My Mind'),CASE WHEN origin='article' THEN 'Article'||COALESCE(' · '||source_name,'') ELSE 'My Mind' END,updated_at
-   FROM reflections WHERE deleted_at IS NULL AND length(trim(body_md))>=20
+   FROM reflections r WHERE deleted_at IS NULL AND length(trim(body_md))>=20
+   AND NOT EXISTS (SELECT 1 FROM articles a WHERE a.reflection_id=r.id)
+  UNION ALL SELECT 'article',a.id,a.title,'Article · '||s.publisher,COALESCE(a.published_at,a.created_at)
+   FROM articles a JOIN article_sources s ON s.id=a.source_id
   UNION ALL SELECT 'content',c.id,c.title,'Contenu préparé',c.updated_at FROM contents c JOIN publications p ON p.id=c.current_publication_id
    WHERE c.deleted_at IS NULL AND p.status='ready' AND c.source_type<>'dossier'
  ) WHERE title LIKE ? ESCAPE '\\' ORDER BY date DESC,type,id LIMIT 31 OFFSET ?`).bind(pattern,offset).all();

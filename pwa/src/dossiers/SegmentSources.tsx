@@ -5,7 +5,7 @@ import { formatClock } from '../player/MiniPlayer';
 
 export interface SourcePassage { source: DossierSource; index: number; startMs: number | null }
 
-export const sourceLink = (s: DossierSource) => (s.type === 'episode' ? `/?e=${s.ref}` : s.type === 'reflection' ? `/mind?n=${s.ref}` : `/library/${s.ref}`);
+export const sourceLink = (s: DossierSource) => (s.type === 'article' ? `/?a=${s.ref}` : s.type === 'episode' ? `/?e=${s.ref}` : s.type === 'reflection' ? `/mind?n=${s.ref}` : `/library/${s.ref}`);
 
 /** Pour un dossier : passage source → (source, instant dans l'original), à partir de la variante source publiée. */
 export function useDossierPassages(detail: ContentDetail) {
