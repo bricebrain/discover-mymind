@@ -1,3 +1,4 @@
+import { articleStatement } from '../weekly/activity';
 import type { Env } from '../env';
 import { HttpError, json, readJson } from '../http';
 import { prepareOptions } from '../queue/options';
@@ -33,7 +34,11 @@ export async function list(req: Request, env: Env): Promise<Response> {
   return json({ articles: page, nextCursor: results.length > 30 && last ? btoa(`${last.publishedAt}|${last.id}`) : null, sources: sources.results });
 }
 
-export async function detail(env: Env, id: string) { return json({ article: await article(env, id) }); }
+export async function detail(env: Env, id: string) {
+  const data = await article(env, id);
+  await articleStatement(env, id, 'read').run();
+  return json({ article: data });
+}
 
 /** POST /api/articles/:id/fetch — texte complet demandé à l'Atelier (The Guardian ne le met pas dans son flux). */
 export async function requestFetch(env: Env, id: string): Promise<Response> {
@@ -63,6 +68,7 @@ export async function toNote(req: Request, env: Env, id: string): Promise<Respon
       env.DB.prepare('UPDATE articles SET reflection_id=? WHERE id=?').bind(noteId, id),
     ]);
   }
+  await articleStatement(env, id, 'saved').run();
   if (b.prepare === undefined) return json({ noteId }, 201);
   const options = prepareOptions(b.prepare, String(a.language), null);
   const queued = await insertQueue(env, 'reflection', noteId!, options);

@@ -11,7 +11,7 @@ function minutes(ms: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function noteMarkdown(r: NoteOut): string {
+export function noteMarkdown(r: NoteOut): string {
   const head = [
     `# ${r.title || 'Sans titre'}`, '',
     `_${r.kind} · créée le ${r.createdAt.slice(0, 10)} · modifiée le ${r.updatedAt.slice(0, 10)}${r.tags.length ? ` · ${r.tags.map((t) => `#${t}`).join(' ')}` : ''}_`, '',
