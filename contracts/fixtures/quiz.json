@@ -1,0 +1,35 @@
+[
+  {
+    "question": "What does the city plan to improve?",
+    "choices": [
+      "Public transport",
+      "Private gardens",
+      "Air travel"
+    ],
+    "correctChoice": 0,
+    "explanation": "The city plans to improve public transport.",
+    "segmentIndex": 0
+  },
+  {
+    "question": "Why will the city add buses?",
+    "choices": [
+      "To close the park",
+      "To reduce traffic",
+      "To build houses"
+    ],
+    "correctChoice": 1,
+    "explanation": "More buses should reduce traffic.",
+    "segmentIndex": 0
+  },
+  {
+    "question": "When will the new service start?",
+    "choices": [
+      "Next year",
+      "Yesterday",
+      "Next month"
+    ],
+    "correctChoice": 2,
+    "explanation": "The service will start next month.",
+    "segmentIndex": 0
+  }
+]

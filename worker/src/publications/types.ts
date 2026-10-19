@@ -5,6 +5,7 @@ export interface VariantAudio {
   timingSource: 'rss_srt' | 'rss_vtt' | 'macwhisper_srt' | 'kokoro' | 'deepgram' | 'none';
 }
 export interface Variant {
+  quiz?: import('../quiz/validation').QuizQuestion[];
   key: string; kind: 'source' | 'faithful_translation' | 'adaptation'; language: string;
   cefrLevel?: string | null; style?: 'narration' | 'dialogue'; derivedFrom?: string | null;
   coverage?: 'full' | 'condensed' | 'essentials';

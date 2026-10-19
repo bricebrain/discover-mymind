@@ -1,3 +1,4 @@
+import { validQuiz } from '../quiz/validation';
 import type { Env } from '../env';
 import { HttpError, json } from '../http';
 import { assertLease, assertRetained, assertSource, current, files, manifest, publication } from './store';
@@ -22,9 +23,11 @@ async function checkSegments(env: Env, m: Manifest, prepared: boolean) {
   if (sourceDoc.segments.some((s) => m.content.sourceType === 'dossier' ? !s.provenance || !dossierSources.has(s.provenance.sourceId) : !!s.provenance)) {
     throw new HttpError(422, 'invalid_provenance', 'Provenance des passages invalide.');
   }
+  const quizzes = new Map<string, string>();
   for (const v of m.variants) {
     if (v.key !== source.key) {
       const doc = validateSegments(await load(v), v, ids);
+      if (validQuiz(v.quiz,doc.segments.length)) quizzes.set(v.key,JSON.stringify(v.quiz));
       if (doc.segments.some((x) => x.provenance)) throw new HttpError(422, 'invalid_provenance', 'Provenance réservée à la source d’un dossier.');
       if (prepared && v.kind==='adaptation' && doc.segments.some((s) => !s.fr?.trim() ||
           (v.style==='narration' ? s.speaker!=='Narrator' : s.speaker!=='Host' && s.speaker!=='Guest'))) {
@@ -32,19 +35,20 @@ async function checkSegments(env: Env, m: Manifest, prepared: boolean) {
       }
     }
   }
+  return quizzes;
 }
 
-function insertVariant(env: Env, p: Publication, m: Manifest, v: Variant, index: number) {
+function insertVariant(env: Env, p: Publication, m: Manifest, v: Variant, index: number, quiz: string | null) {
   const a = v.audio;
   return env.DB.prepare(`INSERT INTO variants
     (publication_id,variant_key,content_id,kind,language,cefr_level,style,coverage,condensation_json,derived_from,
-     segments_path,audio_source,audio_path,audio_url,audio_sha256,audio_origin,duration_ms,timing_source,timing_status,evaluation_json,generation_json,sort_order)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
+     segments_path,audio_source,audio_path,audio_url,audio_sha256,audio_origin,duration_ms,timing_source,timing_status,evaluation_json,generation_json,sort_order,quiz_json)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
     p.id,v.key,p.content_id,v.kind,v.language,v.cefrLevel ?? null,v.style ?? null,v.coverage ?? 'full',
     v.condensation ? JSON.stringify(v.condensation) : null,v.derivedFrom ?? null,v.segmentsFile,a?.source ?? null,
     a?.file ?? null,a?.url ?? null,a?.file ? m.files[a.file]!.sha256 : null,a?.origin ?? null,a?.durationMs ?? null,
     a?.timingSource ?? 'none',!a || a.timingSource === 'none' ? 'none' : a.origin === 'original' ? 'unverified' : 'exact',
-    JSON.stringify(v.evaluation ?? {}),JSON.stringify(v.generation ?? {}),index,
+    JSON.stringify(v.evaluation ?? {}),JSON.stringify(v.generation ?? {}),index,quiz,
   );
 }
 
@@ -70,7 +74,7 @@ export async function commit(env: Env, id: string, requestToken?: string | null)
     await assertSource(env,m);
     const oldId = await current(env,p.content_id);
     await assertRetained(env,m,oldId);
-    await checkSegments(env,m,!!p.queue_item_id);
+    const quizzes = await checkSegments(env,m,!!p.queue_item_id);
     const c = m.content;
     const batch = [
       // Cette assertion est évaluée dans la transaction qui effectue la bascule.
@@ -79,7 +83,7 @@ export async function commit(env: Env, id: string, requestToken?: string | null)
         AND (SELECT current_publication_id FROM contents WHERE id=?) IS ?
         AND (? IS NULL OR EXISTS (SELECT 1 FROM prepare_queue WHERE id=? AND status='leased' AND lease_token=? AND lease_expires_at>?))
         THEN 1 ELSE 0 END`).bind(token,id,token,c.id,oldId,p.queue_item_id,p.queue_item_id,p.lease_token,new Date().toISOString()),
-      ...m.variants.map((v,i) => insertVariant(env,p,m,v,i)),
+      ...m.variants.map((v,i) => insertVariant(env,p,m,v,i,quizzes.get(v.key) ?? null)),
       env.DB.prepare(`UPDATE contents SET deleted_at=NULL,current_publication_id=?,title=?,original_language=?,source_type=?,source_ref=?,source_url=?,category=?,editorial=?,updated_at=?
         WHERE id=? AND (current_publication_id IS NULL OR (SELECT seq FROM publications WHERE id=current_publication_id) < ?)`)
         .bind(id,c.title,c.originalLanguage,c.sourceType,c.sourceRef ?? null,c.sourceUrl ?? null,c.category ?? null,c.editorial ?? 'news',now,c.id,p.seq),

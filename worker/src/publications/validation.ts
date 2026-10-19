@@ -1,3 +1,4 @@
+import { validQuiz } from '../quiz/validation';
 import { HttpError } from '../http';
 import { parseSafeUrl } from '../security/safeUrl';
 import manifestSchema from './manifest.generated.js';
@@ -16,6 +17,13 @@ function safeUrl(url: string, allowHttp = false) {
 
 export interface ValidationContext { currentVariants?: string[]; episodeAudioUrl?: string }
 export function validateManifest(input: unknown, context: ValidationContext = {}): Manifest {
+  // Extension facultative : un quiz mal formé ne bloque jamais le contenu.
+  input = structuredClone(input);
+  const variants = (input as { variants?: unknown } | null)?.variants;
+  if (Array.isArray(variants)) for (const v of variants) {
+    if (v && typeof v === 'object' && 'quiz' in v &&
+        (v.kind !== 'adaptation' || v.language !== 'en' || !validQuiz(v.quiz))) delete v.quiz;
+  }
   if (!manifestSchema(input)) {
     const issue = manifestSchema.errors?.[0];
     reject('invalid_manifest', `Manifeste invalide : ${issue?.instancePath ?? '/'} ${issue?.message ?? ''}`);
