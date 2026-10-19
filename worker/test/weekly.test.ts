@@ -48,6 +48,16 @@ describe('bilan et export hebdomadaire I8', () => {
     expect(md.headers.get('Content-Disposition')).toContain('discover-weekly-2026-W43.md');
     expect(await md.text()).toMatchSnapshot();
   });
+  it('garde une photo par note et par heure malgré l’enregistrement automatique', async () => {
+    await note();
+    const stmt = env.DB.prepare('UPDATE reflections SET body_md=?,updated_at=? WHERE id=?');
+    await env.DB.batch(Array.from({ length: 600 }, (_, i) =>
+      stmt.bind(`Version ${i}`, new Date(Date.parse(AT) + (i + 1) * 1200).toISOString(), ID)));
+    const rows = await env.DB.prepare('SELECT count(*) AS n FROM weekly_notes WHERE note_id=?').bind(ID).first<{ n: number }>();
+    expect(rows?.n).toBe(1);
+    expect((await summary()).metrics).toMatchObject({ notesCreated: 1, notesModified: 1 });
+    expect(await (await get('2026-W43', true)).text()).toContain('Version 599');
+  });
   it('compte les notes créées/modifiées, exclut la corbeille et conserve la bonne révision', async () => {
     await note();
     await note('2026-10-19T11:00:00.000Z', 'CORBEILLE', 'trash');

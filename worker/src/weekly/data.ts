@@ -17,8 +17,10 @@ interface Revision { snapshot: string; deletedAt: string | null }
 export async function loadWeek(env: Env, range: WeekRange) {
   const query = (sql: string, ...values: (string | number)[]) => env.DB.prepare(sql).bind(...values);
   const result = await env.DB.batch([
-    query(`SELECT snapshot,r.deleted_at AS deletedAt FROM weekly_notes n JOIN reflections r ON r.id=n.note_id
-      WHERE n.changed_at>=? AND n.changed_at<?
+    // Dernière photo de chaque note dans la semaine : la limite porte sur le nombre de notes, pas sur les révisions.
+    query(`SELECT n.snapshot,r.deleted_at AS deletedAt FROM weekly_notes n JOIN reflections r ON r.id=n.note_id
+      JOIN (SELECT note_id,max(changed_at) AS last FROM weekly_notes WHERE changed_at>=? AND changed_at<? GROUP BY note_id) x
+        ON x.note_id=n.note_id AND x.last=n.changed_at
       ORDER BY n.changed_at,n.note_id LIMIT ?`, range.start, range.end, LIMITS.noteRevisions + 1),
     query(`SELECT r.deleted_at AS deletedAt,l.reflection_id AS noteId,l.target_type AS targetType,l.target_id AS targetId,
       nullif(l.variant_key,'') AS variantKey,nullif(l.segment_id,'') AS segmentId,l.quote,l.target_title AS targetTitle,coalesce(e.audio_url,c.source_url) AS sourceUrl
