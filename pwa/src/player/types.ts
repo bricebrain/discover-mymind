@@ -21,10 +21,13 @@ export interface PlayerState {
   rate: number;
   error: string | null;
   mediaDuration: number;
+  /** Vrai quand la piste courante est arrivée au bout (minuterie « fin de l'épisode », enchaînement). */
+  ended: boolean;
 }
 export interface PlayerApi extends PlayerState {
   play: (track: Track, options?: PlayOptions) => void;
   toggle: () => void;
+  pause: () => void;
   seek: (seconds: number) => void;
   skip: (delta: number) => void;
   setRate: (rate: number) => void;
