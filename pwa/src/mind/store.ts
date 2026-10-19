@@ -32,9 +32,11 @@ export interface Note {
   origin?: NoteOrigin;
   sourceName?: string | null;
   sourceUrl?: string | null;
+  articleFetch?: ArticleFetchStatus | null;
 }
 
 export type NoteOrigin = 'personal' | 'article';
+export type ArticleFetchStatus = 'pending' | 'complete' | 'partial' | 'unavailable' | 'skipped';
 
 export interface Draft {
   id: string;

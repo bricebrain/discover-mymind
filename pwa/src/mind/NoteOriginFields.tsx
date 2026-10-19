@@ -1,7 +1,8 @@
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import { Alert, IconButton, Stack, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
+import { IconButton, Stack, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
+import type { ReactNode } from 'react';
 import { validArticleUrl } from './articleUrl';
 import type { Draft, NoteOrigin } from './store';
 
@@ -10,8 +11,8 @@ import type { Draft, NoteOrigin } from './store';
  * Origine d'une note : « Ma réflexion » ou « Article ». Un article garde son journal et son lien : les préparations
  * et les dossiers l'attribuent à sa publication, jamais à toi.
  */
-export function NoteOriginFields({ draft, onChange }: {
-  draft: Draft; onChange: (patch: Partial<Pick<Draft, 'origin' | 'sourceName' | 'sourceUrl'>>) => void;
+export function NoteOriginFields({ draft, onChange, children }: {
+  draft: Draft; onChange: (patch: Partial<Pick<Draft, 'origin' | 'sourceName' | 'sourceUrl'>>) => void; children?: ReactNode;
 }) {
   const origin: NoteOrigin = draft.origin ?? 'personal';
   const url = draft.sourceUrl ?? '';
@@ -29,8 +30,6 @@ export function NoteOriginFields({ draft, onChange }: {
         onChange={(e) => onChange({ sourceUrl: e.target.value })}
         InputProps={{ endAdornment: url && urlOk ? <Tooltip title="Ouvrir l’article"><IconButton size="small" component="a" href={url.trim()} target="_blank" rel="noopener noreferrer" aria-label="Ouvrir l’article"><OpenInNewIcon fontSize="small" /></IconButton></Tooltip> : undefined }} />
     </Stack>}
-    {origin === 'article' && url && urlOk && !draft.body.trim() && <Alert severity="info" variant="outlined">
-      Ouvre l’article avec le bouton du lien, copie son texte et colle-le ci-dessous : cookies, « Lire aussi » et crédits seront retirés automatiquement.
-    </Alert>}
+    {children}
   </Stack>;
 }

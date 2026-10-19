@@ -9,6 +9,7 @@ import { cancel, enqueue, enqueueSource, list, removeEntry, retry } from './queu
 import { remove as removeContent } from './contents';
 import * as episodes from './episodes';
 import * as shows from './shows';
+import * as articleFetch from './articleFetch';
 import { manifest } from '../publications/store';
 import type { Publication } from '../publications/types';
 
@@ -46,6 +47,10 @@ export async function handleAtelier(req: Request, env: Env, path: string): Promi
   const owned = path.match(/^\/atelier\/contents\/([a-z0-9-]{3,96})$/);
   if (owned?.[1] && req.method === 'DELETE') return removeContent(env,owned[1]);
   if (path === '/atelier/sources' && req.method === 'POST') return enqueueSource(req,env);
+  // Récupération du texte des notes Article (l'Atelier va chercher la page, le Worker n'écrit que dans une note vide).
+  if (path === '/atelier/article-fetches' && req.method === 'GET') return articleFetch.pending(env);
+  const fetched = path.match(/^\/atelier\/article-fetches\/([0-9a-f-]{36})$/);
+  if (fetched?.[1] && req.method === 'POST') return articleFetch.complete(req, env, fetched[1]);
   if (path === '/atelier/queue' && req.method === 'GET') return list(req,env);
   if (path === '/atelier/queue/lease' && req.method === 'POST') return leases.lease(req,env);
   const q = path.match(/^\/atelier\/queue\/([0-9a-f-]{36})\/(heartbeat|fail|release)$/);

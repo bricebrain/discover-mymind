@@ -21,6 +21,7 @@ interface Row {
   origin: string;
   source_name: string | null;
   source_url: string | null;
+  article_fetch: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -83,7 +84,7 @@ function out(r: Row, links: LinkRow[] = []) {
   return {
     id: r.id, title: r.title, body: r.body_md, kind: r.kind, questionState: r.question_state,
     tags: JSON.parse(r.tags_json) as string[], englishContentId: r.english_content_id,
-    origin: r.origin, sourceName: r.source_name, sourceUrl: r.source_url,
+    origin: r.origin, sourceName: r.source_name, sourceUrl: r.source_url, articleFetch: r.article_fetch,
     createdAt: r.created_at, updatedAt: r.updated_at, deletedAt: r.deleted_at,
     links: links.map((l) => ({
       targetType: l.target_type, targetId: l.target_id, variantKey: l.variant_key || null,

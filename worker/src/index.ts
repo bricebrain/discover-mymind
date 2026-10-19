@@ -15,6 +15,7 @@ import { route as dossierRoute } from './dossiers/routes';
 import { candidates } from './dossiers/candidates';
 import { expireExhausted } from './queue/store';
 import * as reflections from './routes/reflections';
+import * as articleFetch from './routes/articleFetch';
 import * as shows from './routes/shows';
 import { getTranscript } from './routes/transcripts';
 import { handleAtelier } from './routes/atelier';
@@ -101,6 +102,8 @@ async function handleData(req: Request, env: Env, path: string, m: string): Prom
   if (rf?.[1] && !rf[2] && m === 'PATCH') return reflections.update(req, env, rf[1]);
   if (rf?.[1] && !rf[2] && m === 'DELETE') return reflections.trash(env, rf[1]);
   if (rf?.[1] && rf[2] && m === 'POST') return reflections.restore(env, rf[1]);
+  const rfFetch = path.match(/^\/api\/reflections\/([0-9a-f-]{36})\/fetch$/);
+  if (rfFetch?.[1] && m === 'POST') return articleFetch.request(env, rfFetch[1]);
   const rfPrepare = path.match(/^\/api\/reflections\/([0-9a-f-]{36})\/prepare$/);
   if (rfPrepare?.[1] && m === 'POST') return queue.enqueueReflection(req,env,rfPrepare[1]);
   if (path === '/api/export' && m === 'GET') return reflections.exportAll(env);

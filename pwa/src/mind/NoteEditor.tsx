@@ -18,7 +18,8 @@ import { cleanPastedArticle, worthCleaning } from './cleanPaste';
 import { renderMarkdown } from './markdown';
 import { NoteOriginFields } from './NoteOriginFields';
 import { NotePreparation } from './NotePreparation';
-import { deleteDraft, draftFromNote, getDraft, pushDraft, putDraft, type Draft, type Note } from './store';
+import { ArticleFetch } from './ArticleFetch';
+import { deleteDraft, draftFromNote, getDraft, pushDraft, putDraft, type ArticleFetchStatus, type Draft, type Note } from './store';
 
 type Status = 'loading' | 'saved' | 'saving' | 'local' | 'offline' | 'conflict' | 'error' | 'missing';
 
@@ -44,6 +45,7 @@ export function NoteEditor({ id, onBack, onDeleted }: { id: string; onBack?: () 
   const [status, setStatus] = useState<Status>('loading');
   const [conflict, setConflict] = useState<Note | null>(null);
   const [englishContentId, setEnglishContentId] = useState<string | null>(null);
+  const [articleFetch, setArticleFetch] = useState<ArticleFetchStatus | null>(null);
   /** Dernier collage nettoyé : de quoi revenir au texte brut. */
   const [pasted, setPasted] = useState<{ raw: string; removed: number; joined: number } | null>(null);
   const [tab, setTab] = useState<'write' | 'preview'>('write');
@@ -96,6 +98,7 @@ export function NoteEditor({ id, onBack, onDeleted }: { id: string; onBack?: () 
       const server = await api<{ reflection: Note }>(`/api/reflections/${id}`).then((r) => r.reflection).catch(() => null);
       if (!alive) return;
       setEnglishContentId(server?.englishContentId ?? null);
+      setArticleFetch(server?.articleFetch ?? null);
       let d: Draft | null = null;
       if (local && (local.dirty || !server)) d = local;
       else if (server) {
@@ -166,6 +169,18 @@ export function NoteEditor({ id, onBack, onDeleted }: { id: string; onBack?: () 
     setStatus('saved');
   };
 
+  /** Texte de l'article récupéré par l'Atelier : appliqué seulement si rien n'a été écrit entre-temps. */
+  const applyFetched = async (note: Note) => {
+    const d = latest.current;
+    if (!d || d.id !== note.id || d.dirty || d.body.trim()) return;
+    const next = draftFromNote(note);
+    latest.current = next;
+    setDraft(next);
+    await putDraft(next);
+    setStatus('saved');
+    void qc.invalidateQueries({ queryKey: ['reflections'] });
+  };
+
   const remove = async () => {
     const d = latest.current;
     if (!d) return;
@@ -215,7 +230,9 @@ export function NoteEditor({ id, onBack, onDeleted }: { id: string; onBack?: () 
         sx={{ fontFamily: fonts.display, fontSize: '1.7rem', fontWeight: 600, lineHeight: 1.2, mb: 1 }}
       />
 
-      <NoteOriginFields draft={draft} onChange={edit} />
+      <NoteOriginFields draft={draft} onChange={edit}>
+        <ArticleFetch key={draft.id} draft={draft} synced={status === 'saved'} initial={articleFetch} onFilled={applyFetched} />
+      </NoteOriginFields>
 
       <Tabs value={tab} onChange={(_e, v: 'write' | 'preview') => setTab(v)} sx={{ mb: 1.5, minHeight: 36 }}>
         <Tab value="write" label="Écrire" sx={{ minHeight: 36 }} />
