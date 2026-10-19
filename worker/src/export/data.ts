@@ -104,4 +104,3 @@ export async function loadAppSettings(env: Env) {
   const values = new Map(results.map((r) => [r.key, r.value]));
   return { autoPrepareEnabled: values.get('auto_prepare_enabled') !== '0' };
 }
-

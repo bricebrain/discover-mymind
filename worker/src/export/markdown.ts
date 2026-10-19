@@ -99,4 +99,3 @@ export function markdownSections(data: MarkdownData): Record<string, string> {
   }
   return out;
 }
-
