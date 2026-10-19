@@ -9,6 +9,8 @@ import { alpha } from '@mui/material/styles';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { fonts } from '../app/theme';
+import { ListeningControls, ListeningStatus, ReturnToVersionButton } from '../listening/ListeningControls';
+import { useListeningAutomation } from '../listening/useListeningAutomation';
 import { SKIP_SECONDS, SPEEDS, usePlayer } from './PlayerProvider';
 
 export function formatClock(sec: number): string {
@@ -40,7 +42,10 @@ function PlayPause({ size = 'medium' }: { size?: 'medium' | 'large' }) {
 
 /** Mini-lecteur persistant : carte flottante au-dessus de la navigation ; un toucher ouvre le lecteur complet. */
 export function MiniPlayer() {
-  const { track, position, duration, error, stop } = usePlayer();
+  const player = usePlayer();
+  const { track, position, duration, error, stop } = player;
+  // Minuterie de sommeil et enchaînement (I5) : actifs tant que le lecteur existe.
+  useListeningAutomation(player);
   const [open, setOpen] = useState(false);
   if (!track) return null;
   const progress = duration > 0 ? Math.min(100, (position / duration) * 100) : 0;
@@ -60,7 +65,7 @@ export function MiniPlayer() {
               <Box sx={{ minWidth: 0 }}>
                 <Typography variant="body2" noWrap sx={{ fontWeight: 650 }}>{track.title}</Typography>
                 <Typography variant="caption" color={error ? 'error' : 'text.secondary'} noWrap component="div">
-                  {error ?? `${track.subtitle} · ${formatClock(position)} / ${formatClock(duration)}`}
+                  <ListeningStatus />{error ?? `${track.subtitle} · ${formatClock(position)} / ${formatClock(duration)}`}
                 </Typography>
               </Box>
             </ButtonBase>
@@ -104,6 +109,7 @@ function FullPlayer({ open, onClose }: { open: boolean; onClose: () => void }) {
             <Typography sx={{ fontFamily: fonts.display, fontSize: '1.35rem', fontWeight: 600, lineHeight: 1.25, mb: 0.5 }}>{track.title}</Typography>
             <Typography color="text.secondary" variant="body2">{track.subtitle}</Typography>
           </Box>
+          <ReturnToVersionButton onClose={onClose} />
           {track.targetType === 'variant' && <Button component={Link} onClick={onClose}
             to={`/library/${track.targetId.split(':')[0]}?v=${track.targetId.split(':')[1]}`}>Lire la transcription</Button>}
           {error && <Alert severity="error" sx={{ width: '100%' }}>{error}</Alert>}
@@ -137,11 +143,12 @@ function FullPlayer({ open, onClose }: { open: boolean; onClose: () => void }) {
                   bgcolor: on ? 'background.paper' : 'transparent', color: on ? 'text.primary' : 'text.secondary',
                   boxShadow: on ? '0 1px 4px rgba(0,0,0,0.12)' : 'none', transition: 'background-color .2s',
                 }}>
-                  {`${String(s).replace('.', ',')}×`}
-                </ButtonBase>
+              {`${String(s).replace('.', ',')}×`}
+              </ButtonBase>
               );
             })}
           </Box>
+          <ListeningControls />
         </Stack>
       </Box>
     </Drawer>

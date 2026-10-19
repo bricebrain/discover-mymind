@@ -44,7 +44,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   /** La sauvegarde attend l’application de la reprise ou du passage demandé. */
   const positionControl = useRef<AudioPosition | null>(null);
   const [state, setState] = useState<PlayerState>({
-    track: null, playing: false, buffering: false, position: 0, duration: 0, rate: readRate(), error: null, mediaDuration: 0,
+    track: null, playing: false, buffering: false, position: 0, duration: 0, rate: readRate(), error: null, mediaDuration: 0, ended: false,
   });
 
   if (!audioRef.current && typeof Audio !== 'undefined') {
@@ -100,6 +100,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     };
     const onEnded = () => {
       sync();
+      setState((s) => ({ ...s, ended: true }));
       save({ completed: true });
       void qc.invalidateQueries({ queryKey: ['explorer'] });
     };
@@ -114,7 +115,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     a.addEventListener('loadedmetadata', sync);
     const onSeeked = () => { sync(); if (a.paused) save(); };
     a.addEventListener('seeked', onSeeked);
-    const onPlay = () => { saveEnabled.current = true; sync(); };
+    const onPlay = () => { saveEnabled.current = true; setState((s) => ({ ...s, ended: false })); sync(); };
     a.addEventListener('play', onPlay);
     a.addEventListener('pause', onPause);
     a.addEventListener('ended', onEnded);
@@ -153,7 +154,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     a.pause();
     trackRef.current = track;
     saveEnabled.current = options.autoplay !== false;
-    setState((s) => ({ ...s, track, playing: false, buffering: options.autoplay !== false, position: 0, duration: track.durationSec ?? 0, mediaDuration: 0, error: null }));
+    setState((s) => ({ ...s, track, playing: false, buffering: options.autoplay !== false, position: 0, duration: track.durationSec ?? 0, mediaDuration: 0, error: null, ended: false }));
     a.src = track.src;
     a.playbackRate = readRate();
     a.defaultPlaybackRate = a.playbackRate;
@@ -174,6 +175,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       });
     }
   }, [save]);
+
+  const pause = useCallback(() => { audioRef.current?.pause(); }, []);
 
   const toggle = useCallback(() => {
     const a = audioRef.current;
@@ -217,7 +220,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     a.load();
     trackRef.current = null;
     saveEnabled.current = false;
-    setState((s) => ({ ...s, track: null, playing: false, buffering: false, position: 0, duration: 0, mediaDuration: 0, error: null }));
+    setState((s) => ({ ...s, track: null, playing: false, buffering: false, position: 0, duration: 0, mediaDuration: 0, error: null, ended: false }));
     if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
   }, [save]);
 
@@ -262,6 +265,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     document.documentElement.style.setProperty('--player-h', state.track ? '72px' : '0px');
   }, [state.track, state.playing]);
 
-  const value = useMemo<PlayerApi>(() => ({ ...state, play, toggle, seek, skip, setRate, stop }), [state, play, toggle, seek, skip, setRate, stop]);
+  const value = useMemo<PlayerApi>(() => ({ ...state, play, toggle, pause, seek, skip, setRate, stop }), [state, play, toggle, pause, seek, skip, setRate, stop]);
   return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;
 }
