@@ -1,7 +1,8 @@
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Tooltip, Typography } from '@mui/material';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { ConfirmSheet } from '@/components/ui/kit';
 import { api } from '../api/client';
 import { usePlayer } from '../player/PlayerProvider';
 
@@ -25,29 +26,21 @@ export function DeleteContentButton({ id, title, compact = false, onDeleted }: {
   const remove = useDeleteContent(id, () => { setOpen(false); onDeleted?.(); });
   return <>
     {compact ? (
-      <Tooltip title="Supprimer les versions préparées">
-        <IconButton aria-label={`Supprimer les versions préparées de ${title}`} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(true); }}>
-          <DeleteOutlineIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
+      <Button variant="ghost" size="icon" title="Supprimer les versions préparées" aria-label={`Supprimer les versions préparées de ${title}`}
+        className="text-muted-foreground" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(true); }}>
+        <Trash2 className="size-[18px]" />
+      </Button>
     ) : (
-      <Button size="small" color="inherit" startIcon={<DeleteOutlineIcon />} onClick={() => setOpen(true)} sx={{ color: 'text.secondary' }}>
-        Supprimer les versions préparées
+      <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setOpen(true)}>
+        <Trash2 className="size-4" />Supprimer les versions préparées
       </Button>
     )}
-    <Dialog open={open} onClose={remove.isPending ? undefined : () => setOpen(false)} maxWidth="xs" fullWidth>
-      <DialogTitle>Supprimer les versions préparées ?</DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>{title}</Typography>
-        <Typography variant="body2" color="text.secondary">
-          Les versions en anglais, leur audio et leur transcription seront effacés. L’épisode ou la note d’origine restent : tu pourras les préparer à nouveau.
-        </Typography>
-        {remove.isError && <Alert severity="error" sx={{ mt: 1.5 }}>{remove.error.message}</Alert>}
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setOpen(false)} disabled={remove.isPending}>Annuler</Button>
-        <Button color="error" variant="contained" disabled={remove.isPending} onClick={() => remove.mutate()}>{remove.isPending ? 'Suppression…' : 'Supprimer'}</Button>
-      </DialogActions>
-    </Dialog>
+    {open && <ConfirmSheet title="Supprimer les versions préparées ?" confirm={remove.isPending ? 'Suppression…' : 'Supprimer'}
+      busy={remove.isPending} error={remove.error?.message} onConfirm={() => remove.mutate()} onClose={() => setOpen(false)}>
+      <p className="m-0 text-[15px] font-semibold">{title}</p>
+      <p className="m-0 text-sm leading-relaxed text-muted-foreground">
+        Les versions en anglais, leur audio et leur transcription seront effacés. L’épisode ou la note d’origine restent : tu pourras les préparer à nouveau.
+      </p>
+    </ConfirmSheet>}
   </>;
 }

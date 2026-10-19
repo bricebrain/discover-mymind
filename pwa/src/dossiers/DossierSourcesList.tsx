@@ -1,19 +1,17 @@
-import { Box, Link as MuiLink, Typography } from '@mui/material';
 import { Link } from 'react-router-dom';
 import type { DossierSource } from '../api/contents';
+import { SOURCE_TYPES } from './DossiersPanel';
 import { sourceLink } from './SegmentSources';
-
-const TYPES = { episode: 'Épisode', content: 'Contenu préparé', reflection: 'Note' } as const;
 
 /** En tête d'une synthèse de dossier : les sources réellement traitées, dans l'ordre, avec un lien vers chacune. */
 export function DossierSourcesList({ sources }: { sources: DossierSource[] }) {
-  return <Box sx={{ mt: 1.5, p: 1.5, borderRadius: 3, bgcolor: 'action.hover' }}>
-    <Typography variant="overline" color="text.secondary">Synthèse de {sources.length} sources</Typography>
-    <Box component="ol" sx={{ pl: 2.5, m: 0 }}>
-      {sources.map((s) => <Typography component="li" variant="body2" key={s.id}>
-        <MuiLink component={Link} to={sourceLink(s)} underline="hover">{s.title}</MuiLink>
-        <Typography component="span" variant="caption" color="text.secondary"> · {TYPES[s.type]}</Typography>
-      </Typography>)}
-    </Box>
-  </Box>;
+  return <div className="mt-3 rounded-2xl bg-muted p-3.5 font-sans">
+    <p className="m-0 mb-1.5 text-[11px] font-semibold uppercase tracking-[.08em] text-muted-foreground">Synthèse de {sources.length} sources</p>
+    <ol className="m-0 flex flex-col gap-1 pl-5 text-sm">
+      {sources.map((s) => <li key={s.id}>
+        <Link to={sourceLink(s)} className="text-primary no-underline hover:underline">{s.title}</Link>
+        <span className="text-xs text-muted-foreground"> · {SOURCE_TYPES[s.type]}</span>
+      </li>)}
+    </ol>
+  </div>;
 }

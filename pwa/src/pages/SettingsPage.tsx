@@ -1,31 +1,25 @@
-import { ExportSection } from '../settings/ExportSection';
-import { NotificationSettings } from '../notifications/NotificationSettings';
-import LogoutIcon from '@mui/icons-material/Logout';
-import {
-  Alert, Box, Button, Chip, CircularProgress, Divider, List, ListItem, ListItemText, Paper, Stack, Typography,
-} from '@mui/material';
+import { LogOut, Smartphone } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Notice, SectionTitle, Spinner, cardCls } from '@/components/ui/kit';
+import { cn } from '@/lib/utils';
 import { useLogout, useRevokeOthers, useRevokeSession, useSession, useSessions } from '../api/auth';
+import { NotificationSettings } from '../notifications/NotificationSettings';
+import { ExportSection } from '../settings/ExportSection';
 
 const dateFmt = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
 const formatDate = (iso: string) => dateFmt.format(new Date(iso));
 
 export function SettingsPage() {
   const auth = useSession();
-  if (auth.data?.authDisabled) {
-    return (
-      <Box sx={{ px: 2, pt: 2.5, pb: 4, maxWidth: 720, mx: 'auto' }}>
-        <Typography variant="h1" component="h1" sx={{ mb: 3 }}>Réglages</Typography>
-        <Typography variant="h2" component="h2" sx={{ mb: 1 }}>Connexion</Typography>
-        <Alert severity="info">
-          La connexion est désactivée pour l’instant : l’app s’ouvre sans phrase secrète.
-          Elle pourra être réactivée plus tard, sans rien perdre.
-        </Alert>
-        <NotificationSettings />
-        <ExportSection />
-      </Box>
-    );
-  }
-  return <DevicesSettings />;
+  return <div className="mx-auto max-w-[720px] px-4 pb-8 pt-1">
+    <h1 className="sr-only">Réglages</h1>
+    {auth.data?.authDisabled ? <>
+      <SectionTitle className="mt-4">Connexion</SectionTitle>
+      <Notice>La connexion est désactivée pour l’instant : l’app s’ouvre sans phrase secrète. Elle pourra être réactivée plus tard, sans rien perdre.</Notice>
+    </> : <DevicesSettings />}
+    <NotificationSettings />
+    <ExportSection />
+  </div>;
 }
 
 function DevicesSettings() {
@@ -37,53 +31,29 @@ function DevicesSettings() {
   // L'appareil courant d'abord, puis les autres du plus récent au plus ancien.
   const ordered = sessions.data ? [...sessions.data].sort((a, b) => Number(b.current) - Number(a.current)) : [];
 
-  return (
-    <Box sx={{ px: 2, pt: 2, pb: 4, maxWidth: 720, mx: 'auto' }}>
-      <Typography variant="h1" component="h1" sx={{ mb: 3 }}>Réglages</Typography>
-
-      <Typography variant="h2" component="h2" sx={{ mb: 1 }}>Appareils connectés</Typography>
-      <Typography color="text.secondary" sx={{ mb: 2 }}>
-        Chaque appareil a sa propre session. Révoque celles que tu ne reconnais pas.
-      </Typography>
-
-      <Paper variant="outlined">
-        {sessions.isPending && <Box sx={{ p: 3, textAlign: 'center' }}><CircularProgress size={24} /></Box>}
-        {sessions.isError && <Alert severity="error">Impossible de charger les sessions.</Alert>}
-        <List disablePadding>
-          {ordered.map((s, i) => (
-            <Box key={s.id}>
-              {i > 0 && <Divider component="li" />}
-              <ListItem
-                sx={{ pr: s.current ? 2 : 14 }}
-                secondaryAction={!s.current && (
-                  <Button color="error" onClick={() => revoke.mutate(s.id)} disabled={revoke.isPending}>
-                    Révoquer
-                  </Button>
-                )}
-              >
-                <ListItemText
-                  primary={<Stack direction="row" spacing={1} alignItems="center">
-                    <span>{s.label ?? 'Appareil'}</span>
-                    {s.current && <Chip size="small" color="primary" label="Cet appareil" />}
-                  </Stack>}
-                  secondary={`Ouverte le ${formatDate(s.createdAt)} · vue le ${formatDate(s.lastSeenAt)}`}
-                />
-              </ListItem>
-            </Box>
-          ))}
-        </List>
-      </Paper>
-
-      <Stack spacing={1.5} sx={{ mt: 2 }}>
-        <Button variant="outlined" color="error" disabled={others === 0 || revokeOthers.isPending} onClick={() => revokeOthers.mutate()}>
-          Déconnecter les autres appareils{others > 0 ? ` (${others})` : ''}
-        </Button>
-        <Button variant="text" startIcon={<LogoutIcon />} onClick={() => logout.mutate()} disabled={logout.isPending}>
-          Se déconnecter de cet appareil
-        </Button>
-      </Stack>
-      <NotificationSettings />
-      <ExportSection />
-    </Box>
-  );
+  return <section>
+    <SectionTitle className="mt-4">Appareils connectés</SectionTitle>
+    <p className="mb-3 mt-0 text-sm leading-relaxed text-muted-foreground">Chaque appareil a sa propre session. Révoque celles que tu ne reconnais pas.</p>
+    <div className={cn(cardCls, 'divide-y divide-border/70 overflow-hidden')}>
+      {sessions.isPending && <div className="grid place-items-center p-5"><Spinner /></div>}
+      {sessions.isError && <Notice tone="error" className="m-3">Impossible de charger les sessions.</Notice>}
+      {ordered.map((s) => <div key={s.id} className="flex items-center gap-3 p-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-muted"><Smartphone className="size-[18px]" /></span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2 text-[15px] font-semibold">
+            <span className="truncate">{s.label ?? 'Appareil'}</span>
+            {s.current && <span className="shrink-0 rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">Cet appareil</span>}
+          </span>
+          <span className="block text-xs text-muted-foreground">Ouverte le {formatDate(s.createdAt)} · vue le {formatDate(s.lastSeenAt)}</span>
+        </span>
+        {!s.current && <Button variant="ghost" size="sm" className="text-red-700" onClick={() => revoke.mutate(s.id)} disabled={revoke.isPending}>Révoquer</Button>}
+      </div>)}
+    </div>
+    <div className="mt-3 flex flex-col gap-2">
+      <Button variant="outline" className="text-red-700" disabled={others === 0 || revokeOthers.isPending} onClick={() => revokeOthers.mutate()}>
+        Déconnecter les autres appareils{others > 0 ? ` (${others})` : ''}
+      </Button>
+      <Button variant="ghost" onClick={() => logout.mutate()} disabled={logout.isPending}><LogOut className="size-4" />Se déconnecter de cet appareil</Button>
+    </div>
+  </section>;
 }

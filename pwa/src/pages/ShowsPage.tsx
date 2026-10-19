@@ -1,18 +1,15 @@
-import { AddShowDialog } from '../shows/AddShowDialog';
-import { AutoPrepareCard, AutoPrepareChip } from '../shows/AutoPrepare';
-import AddIcon from '@mui/icons-material/Add';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import {
-  Alert, Avatar, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, List,
-  ListItem, ListItemAvatar, ListItemText, Paper, Stack, Switch, Typography,
-} from '@mui/material';
+import { AlertTriangle, Plus, Trash2 } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { ConfirmSheet, Notice, Spinner, Switch, cardCls } from '@/components/ui/kit';
+import { cn } from '@/lib/utils';
 import { ApiError } from '../api/client';
 import { CATEGORY_LABELS, formatWhen, type Category } from '../api/episodes';
 import { useDeleteShow, useShows, useUpdateShow, type Show } from '../api/shows';
+import { categoryColor } from '../app/theme';
+import { AddShowDialog } from '../shows/AddShowDialog';
+import { AutoPrepareCard, AutoPrepareChip } from '../shows/AutoPrepare';
 
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as Category[];
 const errorText = (e: unknown) => (e instanceof ApiError ? e.message : 'Une erreur est survenue.');
@@ -25,6 +22,30 @@ function status(show: Show): string {
   return `${show.episodeCount} ${unit}${show.episodeCount > 1 ? 's' : ''} · vérifiée ${formatWhen(show.lastSuccessAt)}`;
 }
 
+function ShowRow({ show, busy, onToggle, onDelete }: { show: Show; busy: boolean; onToggle: (v: boolean) => void; onDelete: () => void }) {
+  return <div className={cn('flex flex-col gap-2 p-3 transition-opacity', !show.enabled && 'opacity-60')}>
+    <div className="flex items-center gap-3">
+      {show.imageUrl
+        ? <img src={show.imageUrl} alt="" loading="lazy" className="size-12 shrink-0 rounded-xl bg-muted object-cover" />
+        : <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-muted font-display text-xl">{show.title.slice(0, 1)}</span>}
+      <span className="min-w-0 flex-1">
+        <span className="line-clamp-2 text-[15px] font-semibold leading-snug">{show.title}</span>
+        <span className="block truncate text-xs text-muted-foreground">
+          {show.sourceType === 'youtube' ? 'YouTube' : 'Podcast'} · {show.language.toUpperCase()}{show.titleFilter ? ` · filtre : ${show.titleFilter.join(', ')}` : ''}
+        </span>
+        <span className={cn('mt-0.5 flex items-center gap-1 text-xs', show.lastError ? 'text-amber-700' : 'text-muted-foreground')}>
+          {show.lastError && <AlertTriangle className="size-3.5 shrink-0" />}<span className="truncate">{status(show)}</span>
+        </span>
+      </span>
+      <Switch checked={show.enabled} disabled={busy} onChange={onToggle} label={`Suivre ${show.title}`} />
+      <Button variant="ghost" size="icon-sm" className="-mr-1 text-muted-foreground" aria-label={`Ne plus suivre ${show.title}`} onClick={onDelete}>
+        <Trash2 className="size-[18px]" />
+      </Button>
+    </div>
+    {show.sourceType === 'podcast' && <div className="pl-[60px]"><AutoPrepareChip show={show} /></div>}
+  </div>;
+}
+
 export function ShowsPage() {
   const shows = useShows();
   const update = useUpdateShow();
@@ -34,80 +55,39 @@ export function ShowsPage() {
   const count = shows.data?.shows.filter((s) => s.enabled).length ?? 0;
   const max = shows.data?.max ?? 50;
 
-  return (
-    <Box sx={{ px: 2, pt: 2, pb: 4, maxWidth: 760, mx: 'auto' }}>
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-        <IconButton component={Link} to="/" aria-label="Retour à Explorer" edge="start"><ArrowBackIcon /></IconButton>
-        <Typography variant="h1" component="h1" sx={{ flex: 1, fontSize: { xs: '1.6rem', sm: '2.1rem' } }}>Mes abonnements</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAdding(true)} disabled={count >= max}>Ajouter</Button>
-      </Stack>
-      <Typography color="text.secondary" sx={{ mb: 2 }}>
-        {count} / {max} sources actives. Vérification à tour de rôle, environ toutes les 30 à 60 minutes.
-      </Typography>
+  return <div className="mx-auto max-w-[760px] px-4 pb-8 pt-3">
+    <h1 className="sr-only">Mes abonnements</h1>
+    <div className="mb-4 flex items-center gap-3">
+      <p className="m-0 flex-1 text-[13px] leading-snug text-muted-foreground">
+        <span className="font-semibold text-foreground">{count} / {max}</span> sources actives. Vérification à tour de rôle, environ toutes les 30 à 60 minutes.
+      </p>
+      <Button onClick={() => setAdding(true)} disabled={count >= max}><Plus className="size-4" />Ajouter</Button>
+    </div>
 
-      {shows.data && <AutoPrepareCard enabled={shows.data.autoPrepareEnabled} shows={shows.data.shows} />}
-      {shows.isPending && <Box sx={{ p: 4, textAlign: 'center' }}><CircularProgress size={28} /></Box>}
-      {(update.isError || remove.isError) && <Alert severity="warning">{errorText(update.error ?? remove.error)}</Alert>}
-      {shows.isError && <Alert severity="warning">{errorText(shows.error)}</Alert>}
+    {shows.data && <AutoPrepareCard enabled={shows.data.autoPrepareEnabled} shows={shows.data.shows} />}
+    {shows.isPending && <div className="grid place-items-center p-8"><Spinner /></div>}
+    {(update.isError || remove.isError) && <Notice tone="warning" className="mb-3">{errorText(update.error ?? remove.error)}</Notice>}
+    {shows.isError && <Notice tone="warning">{errorText(shows.error)}</Notice>}
 
-      {CATEGORIES.map((cat) => {
-        const group = shows.data?.shows.filter((s) => s.category === cat) ?? [];
-        if (group.length === 0) return null;
-        return (
-          <Box key={cat} sx={{ mb: 3 }}>
-            <Typography variant="h3" component="h2" sx={{ mb: 1 }}>{CATEGORY_LABELS[cat]}</Typography>
-            <Paper variant="outlined">
-              <List disablePadding>
-                {group.map((s, i) => (
-                  <Box key={s.id}>
-                    {i > 0 && <Divider component="li" />}
-                    <ListItem
-                      sx={{ pr: 13 }}
-                      secondaryAction={
-                        <Stack direction="row" alignItems="center">
-                          <Switch
-                            checked={s.enabled}
-                            disabled={update.isPending}
-                            onChange={(e) => update.mutate({ id: s.id, enabled: e.target.checked })}
-                            inputProps={{ 'aria-label': `Suivre ${s.title}` }}
-                          />
-                          <IconButton aria-label={`Ne plus suivre ${s.title}`} onClick={() => setToDelete(s)}><DeleteOutlineIcon /></IconButton>
-                        </Stack>
-                      }
-                    >
-                      <ListItemAvatar>
-                        <Avatar variant="rounded" src={s.imageUrl ?? undefined} alt="" sx={{ borderRadius: 2 }}>{s.title.slice(0, 1)}</Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={<>{s.title} <Typography component="span" variant="caption" color="text.secondary">· {s.sourceType === 'youtube' ? 'YouTube' : 'Podcast'} · {s.language.toUpperCase()}{s.titleFilter ? ` · filtre : ${s.titleFilter.join(', ')}` : ''}</Typography></>}
-                        secondary={<Stack direction="row" spacing={0.5} alignItems="center" component="span">
-                          {s.lastError && <ErrorOutlineIcon color="warning" sx={{ fontSize: 16 }} />}
-                          <span>{status(s)}</span>
-                        </Stack>}
-                        secondaryTypographyProps={{ component: 'div' }}
-                      />
-                    </ListItem>
-                    {s.sourceType === 'podcast' && <Box sx={{ pl: 9, pr: 2, pb: 1.25, mt: -1 }}><AutoPrepareChip show={s} /></Box>}
-                  </Box>
-                ))}
-              </List>
-            </Paper>
-          </Box>
-        );
-      })}
+    {CATEGORIES.map((cat, gi) => {
+      const group = shows.data?.shows.filter((s) => s.category === cat) ?? [];
+      if (group.length === 0) return null;
+      return <motion.section key={cat} className="mb-5" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: gi * 0.05 }}>
+        <h2 className="mb-2 mt-0 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[.08em] text-muted-foreground">
+          <span className="size-2 rounded-full" style={{ background: categoryColor(cat, 'light') }} />{CATEGORY_LABELS[cat]}
+          <span className="font-normal normal-case tracking-normal">· {group.length}</span>
+        </h2>
+        <div className={cn(cardCls, 'divide-y divide-border/70 overflow-hidden')}>
+          {group.map((s) => <ShowRow key={s.id} show={s} busy={update.isPending}
+            onToggle={(enabled) => update.mutate({ id: s.id, enabled })} onDelete={() => setToDelete(s)} />)}
+        </div>
+      </motion.section>;
+    })}
 
-      {adding && <AddShowDialog onClose={() => setAdding(false)} />}
-
-      <Dialog open={!!toDelete} onClose={() => setToDelete(null)}>
-        <DialogTitle>Ne plus suivre {toDelete?.title} ?</DialogTitle>
-        <DialogContent>
-          <Typography>Ses contenus non sauvegardés disparaîtront d’Explorer. Les contenus sauvegardés ou préparés sont conservés.</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setToDelete(null)}>Annuler</Button>
-          <Button color="error" disabled={remove.isPending} onClick={() => { if (toDelete) remove.mutate(toDelete.id, { onSuccess: () => setToDelete(null) }); }}>Ne plus suivre</Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
-  );
+    {adding && <AddShowDialog onClose={() => setAdding(false)} />}
+    {toDelete && <ConfirmSheet title={`Ne plus suivre ${toDelete.title} ?`} confirm="Ne plus suivre" busy={remove.isPending}
+      onClose={() => setToDelete(null)} onConfirm={() => remove.mutate(toDelete.id, { onSuccess: () => setToDelete(null) })}>
+      <p className="m-0 text-sm leading-relaxed text-muted-foreground">Ses contenus non sauvegardés disparaîtront d’Explorer. Les contenus sauvegardés ou préparés sont conservés.</p>
+    </ConfirmSheet>}
+  </div>;
 }

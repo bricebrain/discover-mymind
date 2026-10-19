@@ -22,8 +22,9 @@ export const NAV_H = 64;
 export function Shell() {
   const { pathname } = useLocation();
   const active = TABS.findIndex((t) => (t.path === '/' ? pathname === '/' : pathname.startsWith(t.path)));
-  // Titre de l'écran dans la barre du haut (les écrans pas encore refaits gardent « Discover » et leur propre titre).
-  const title = pathname === '/' ? 'Explorer' : pathname.startsWith('/mind') ? 'My Mind' : 'Discover';
+  // Titre de l'écran dans la barre du haut (les écrans de détail gardent « Discover » et leur propre titre).
+  const title = pathname === '/' ? 'Explorer' : pathname.startsWith('/mind') ? 'My Mind' : pathname === '/library' ? 'Bibliothèque'
+    : pathname === '/shows' ? 'Abonnements' : pathname === '/settings' ? 'Réglages' : 'Discover';
 
   return (
     <div className="flex min-h-dvh flex-col bg-background font-sans text-foreground">

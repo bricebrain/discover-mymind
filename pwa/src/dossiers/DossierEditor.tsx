@@ -1,12 +1,9 @@
-import AddIcon from '@mui/icons-material/Add';
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import CloseIcon from '@mui/icons-material/Close';
-import {
-  Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, List, ListItem,
-  ListItemButton, ListItemText, Stack, TextField, Typography,
-} from '@mui/material';
+import { ArrowDown, ArrowUp, Plus, Search, X } from 'lucide-react';
+import { Reorder } from 'motion/react';
 import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Field, Notice, Sheet, Spinner, inputCls } from '@/components/ui/kit';
+import { cn } from '@/lib/utils';
 import {
   MAX_SOURCES, MIN_SOURCES, useDossierCandidates, useDossierMutations, type Dossier, type DossierCandidate, type DossierRef,
 } from '../api/dossiers';
@@ -44,47 +41,52 @@ export function DossierEditor({ dossier, onClose, onSaved }: { dossier?: Dossier
     else create.mutate(body, { onSuccess: done });
   };
 
-  return <Dialog open onClose={saving ? undefined : onClose} fullWidth maxWidth="sm" scroll="paper">
-    <DialogTitle>{dossier ? 'Modifier le dossier' : 'Nouveau dossier'}</DialogTitle>
-    <DialogContent dividers>
-      <Stack spacing={2}>
-        <TextField label="Sujet du dossier" value={title} onChange={(e) => setTitle(e.target.value)} inputProps={{ maxLength: 200 }} autoFocus={!dossier} />
-        <Box>
-          <Typography variant="overline" color="text.secondary">Sources choisies · {picked.length}/{MAX_SOURCES}</Typography>
-          {!picked.length && <Typography variant="body2" color="text.secondary">Choisis au moins {MIN_SOURCES} sources complémentaires : épisodes, vidéos, contenus préparés ou notes.</Typography>}
-          <List dense disablePadding>
-            {picked.map((p, i) => <ListItem key={key(p)} disableGutters secondaryAction={<Stack direction="row">
-              <IconButton size="small" aria-label="Monter" disabled={i === 0} onClick={() => move(i, -1)}><ArrowUpwardIcon fontSize="small" /></IconButton>
-              <IconButton size="small" aria-label="Descendre" disabled={i === picked.length - 1} onClick={() => move(i, 1)}><ArrowDownwardIcon fontSize="small" /></IconButton>
-              <IconButton size="small" aria-label={`Retirer ${p.title}`} onClick={() => setPicked((l) => l.filter((x) => key(x) !== key(p)))}><CloseIcon fontSize="small" /></IconButton>
-            </Stack>}>
-              <ListItemText primary={`${i + 1}. ${p.title}`} secondary={p.label || undefined} primaryTypographyProps={{ noWrap: true, sx: { pr: 13 } }} />
-            </ListItem>)}
-          </List>
-        </Box>
-        <TextField label="Chercher une source" size="small" value={search} onChange={(e) => setSearch(e.target.value)} inputProps={{ maxLength: 200 }}
-          helperText={full ? `${MAX_SOURCES} sources au maximum.` : 'Titre d’un épisode, d’une vidéo, d’un contenu préparé ou d’une note.'} />
-        {candidates.isPending && <CircularProgress size={20} />}
-        {candidates.isError && <Alert severity="warning">{candidates.error.message}</Alert>}
-        <List dense sx={{ maxHeight: 280, overflowY: 'auto', border: 1, borderColor: 'divider', borderRadius: 2 }}>
-          {candidates.data?.sources.map((c) => {
-            const chosen = picked.some((p) => key(p) === key(c));
-            return <ListItemButton key={key(c)} disabled={chosen || full} onClick={() => add(c)}>
-              <ListItemText primary={c.title} primaryTypographyProps={{ noWrap: true }} />
-              <Chip size="small" label={c.label} sx={{ ml: 1 }} />
-              {!chosen && <AddIcon fontSize="small" sx={{ ml: 1, color: 'text.secondary' }} />}
-            </ListItemButton>;
-          })}
-          {candidates.isSuccess && !candidates.data.sources.length && <ListItem><ListItemText secondary="Aucune source ne correspond." /></ListItem>}
-        </List>
-        {error && <Alert severity="error">{error.message}</Alert>}
-      </Stack>
-    </DialogContent>
-    <DialogActions>
-      <Button onClick={onClose} disabled={saving}>Annuler</Button>
-      <Button variant="contained" onClick={save} disabled={saving || !title.trim() || picked.length < MIN_SOURCES}>
-        {saving ? 'Enregistrement…' : 'Enregistrer'}
-      </Button>
-    </DialogActions>
-  </Dialog>;
+  return <Sheet wide title={dossier ? 'Modifier le dossier' : 'Nouveau dossier'} onClose={onClose} locked={saving} footer={<>
+    <Button variant="ghost" onClick={onClose} disabled={saving}>Annuler</Button>
+    <Button onClick={save} disabled={saving || !title.trim() || picked.length < MIN_SOURCES}>{saving ? 'Enregistrement…' : 'Enregistrer'}</Button>
+  </>}>
+    <Field label="Sujet du dossier">
+      <input className={inputCls} value={title} maxLength={200} autoFocus={!dossier} onChange={(e) => setTitle(e.target.value)} />
+    </Field>
+    <div>
+      <p className="m-0 mb-1.5 text-[13px] font-semibold">Sources choisies · {picked.length}/{MAX_SOURCES}</p>
+      {!picked.length && <p className="m-0 text-sm text-muted-foreground">Choisis au moins {MIN_SOURCES} sources complémentaires : épisodes, vidéos, contenus préparés ou notes.</p>}
+      <Reorder.Group data-vaul-no-drag axis="y" values={picked} onReorder={setPicked} className="m-0 flex list-none flex-col gap-1.5 p-0">
+        {picked.map((p, i) => <Reorder.Item key={key(p)} value={p}
+          className="flex cursor-grab touch-none items-center gap-2 rounded-xl border border-border bg-background py-1 pl-3 pr-1 active:cursor-grabbing">
+          <span className="grid size-5 shrink-0 place-items-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-800">{i + 1}</span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-medium">{p.title}</span>
+            {p.label && <span className="block text-xs text-muted-foreground">{p.label}</span>}
+          </span>
+          <Button variant="ghost" size="icon-sm" aria-label="Monter" disabled={i === 0} onClick={() => move(i, -1)}><ArrowUp className="size-4" /></Button>
+          <Button variant="ghost" size="icon-sm" aria-label="Descendre" disabled={i === picked.length - 1} onClick={() => move(i, 1)}><ArrowDown className="size-4" /></Button>
+          <Button variant="ghost" size="icon-sm" aria-label={`Retirer ${p.title}`} onClick={() => setPicked((l) => l.filter((x) => key(x) !== key(p)))}><X className="size-4" /></Button>
+        </Reorder.Item>)}
+      </Reorder.Group>
+    </div>
+    <Field label="Chercher une source" hint={full ? `${MAX_SOURCES} sources au maximum.` : 'Titre d’un épisode, d’une vidéo, d’un contenu préparé ou d’une note.'}>
+      <span className="relative block">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <input type="text" inputMode="search" className={cn(inputCls, 'pl-9')} value={search} maxLength={200} onChange={(e) => setSearch(e.target.value)} />
+      </span>
+    </Field>
+    {candidates.isPending && <Spinner />}
+    {candidates.isError && <Notice tone="warning">{candidates.error.message}</Notice>}
+    {candidates.data && <ul className="m-0 flex max-h-72 list-none flex-col overflow-y-auto rounded-xl border border-border p-1">
+      {candidates.data.sources.map((c) => {
+        const chosen = picked.some((p) => key(p) === key(c));
+        return <li key={key(c)}>
+          <button type="button" disabled={chosen || full} onClick={() => add(c)}
+            className="flex min-h-11 w-full items-center gap-2 rounded-lg px-2.5 text-left transition-colors hover:bg-muted disabled:opacity-45">
+            <span className="min-w-0 flex-1 truncate text-sm">{c.title}</span>
+            <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">{c.label}</span>
+            {!chosen && <Plus className="size-4 shrink-0 text-primary" />}
+          </button>
+        </li>;
+      })}
+      {!candidates.data.sources.length && <li className="px-2.5 py-2 text-sm text-muted-foreground">Aucune source ne correspond.</li>}
+    </ul>}
+    {error && <Notice tone="error">{error.message}</Notice>}
+  </Sheet>;
 }

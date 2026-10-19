@@ -1,7 +1,9 @@
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import { Alert, Box, Button, Card, CardActionArea, CardContent, IconButton, Stack, Tooltip, Typography } from '@mui/material';
+import { Download, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { ConfirmSheet, Notice, cardCls } from '@/components/ui/kit';
+import { cn } from '@/lib/utils';
 import { formatBytes, offline, removeDownload, useOffline } from './index';
 import { usePlayer } from '../player/PlayerProvider';
 
@@ -12,43 +14,49 @@ export function DownloadsList() {
   const { ready, records, active } = useOffline();
   const player = usePlayer();
   const [space, setSpace] = useState<{ downloads: number; usage: number | null; quota: number | null } | null>(null);
+  const [clearing, setClearing] = useState(false);
   useEffect(() => { void offline.usage().then(setSpace); }, [records]);
   const total = records.reduce((s, r) => s + r.audioBytes + r.textBytes, 0);
 
-  return <Box sx={{ pt: 1 }}>
-    <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-      {records.length ? `${records.length} version${records.length > 1 ? 's' : ''} · ${formatBytes(total)} sur cet appareil` : ''}
-      {space?.quota ? ` · espace libre estimé ${formatBytes(Math.max(0, space.quota - (space.usage ?? 0)))}` : ''}
-    </Typography>
-    {ready && !records.length && <Typography color="text.secondary">
+  return <section className="pt-1">
+    <p className="mb-3 mt-0 text-[13px] text-muted-foreground">
+      {[records.length ? `${records.length} version${records.length > 1 ? 's' : ''} · ${formatBytes(total)} sur cet appareil` : '',
+        space?.quota ? `espace libre estimé ${formatBytes(Math.max(0, space.quota - (space.usage ?? 0)))}` : ''].filter(Boolean).join(' · ')}
+    </p>
+    {ready && !records.length && <p className="text-sm leading-relaxed text-muted-foreground">
       Aucun téléchargement. Ouvre un contenu préparé et choisis « Télécharger pour l’écoute hors ligne » sous la version.
-    </Typography>}
-    <Stack spacing={1}>
+    </p>}
+    <div className="flex flex-col gap-2">
       {records.map((r) => {
         const progress = active[r.key];
-        return <Card variant="outlined" key={r.key} sx={{ display: 'flex', alignItems: 'center' }}>
-          <CardActionArea sx={{ flex: 1 }} component={Link} to={`/library/${r.contentId}?v=${encodeURIComponent(r.variantKey)}`}
-            disabled={r.status !== 'complete'}>
-            <CardContent>
-              <Typography fontWeight={600}>{r.title}</Typography>
-              <Typography variant="body2" color="text.secondary">
-                {r.label} · {r.status === 'complete' ? formatBytes(r.audioBytes + r.textBytes)
-                  : progress?.total ? `${STATUS.downloading} ${Math.round(progress.received / progress.total * 100)} %` : STATUS[r.status]}
-              </Typography>
-              {r.status !== 'complete' && r.error && <Typography variant="caption" color="warning.main">{r.error}</Typography>}
-            </CardContent>
-          </CardActionArea>
-          <Tooltip title="Supprimer le téléchargement">
-            <IconButton aria-label={`Supprimer le téléchargement de ${r.title}`} onClick={() => void removeDownload(r.key, player)} sx={{ mx: 0.5 }}>
-              <DeleteOutlineIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Card>;
+        const pct = progress?.total ? Math.round(progress.received / progress.total * 100) : null;
+        const body = <>
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary"><Download className="size-[18px]" /></span>
+          <span className="min-w-0 flex-1">
+            <span className="line-clamp-2 text-[15px] font-semibold leading-snug">{r.title}</span>
+            <span className="mt-0.5 block text-[13px] text-muted-foreground">
+              {r.label} · {r.status === 'complete' ? formatBytes(r.audioBytes + r.textBytes) : pct !== null ? `${STATUS.downloading} ${pct} %` : STATUS[r.status]}
+            </span>
+            {pct !== null && <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-muted"><span className="block h-full bg-primary transition-[width]" style={{ width: `${pct}%` }} /></span>}
+            {r.status !== 'complete' && r.error && <span className="mt-0.5 block text-xs text-amber-700">{r.error}</span>}
+          </span>
+        </>;
+        return <div key={r.key} className={cn(cardCls, 'flex items-center')}>
+          {r.status === 'complete'
+            ? <Link to={`/library/${r.contentId}?v=${encodeURIComponent(r.variantKey)}`} className="flex min-w-0 flex-1 items-center gap-3 p-3 text-foreground no-underline active:opacity-70">{body}</Link>
+            : <div className="flex min-w-0 flex-1 items-center gap-3 p-3">{body}</div>}
+          <Button variant="ghost" size="icon" className="mr-1 text-muted-foreground" title="Supprimer le téléchargement"
+            aria-label={`Supprimer le téléchargement de ${r.title}`} onClick={() => void removeDownload(r.key, player)}>
+            <Trash2 className="size-[18px]" />
+          </Button>
+        </div>;
       })}
-    </Stack>
-    {records.length > 1 && <Button color="inherit" sx={{ mt: 2, color: 'text.secondary' }} onClick={() => {
-      if (window.confirm('Supprimer tous les téléchargements de cet appareil ?')) void Promise.all(records.map((r) => removeDownload(r.key, player)));
-    }}>Tout supprimer</Button>}
-    {!navigator.onLine && <Alert severity="info" sx={{ mt: 2 }}>Hors ligne : seules les versions téléchargées s’ouvrent.</Alert>}
-  </Box>;
+    </div>
+    {records.length > 1 && <Button variant="ghost" size="sm" className="mt-3 text-muted-foreground" onClick={() => setClearing(true)}>Tout supprimer</Button>}
+    {!navigator.onLine && <Notice className="mt-3">Hors ligne : seules les versions téléchargées s’ouvrent.</Notice>}
+    {clearing && <ConfirmSheet title="Supprimer tous les téléchargements ?" confirm="Tout supprimer" onClose={() => setClearing(false)}
+      onConfirm={() => { void Promise.all(records.map((r) => removeDownload(r.key, player))); setClearing(false); }}>
+      <p className="m-0 text-sm leading-relaxed text-muted-foreground">Les versions restent dans Discover ; seules les copies de cet appareil sont effacées.</p>
+    </ConfirmSheet>}
+  </section>;
 }

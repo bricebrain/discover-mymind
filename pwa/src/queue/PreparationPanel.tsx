@@ -1,11 +1,26 @@
-import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
-import { Alert, Box, Button, CircularProgress, Stack, Typography } from '@mui/material';
-import { useState } from 'react';
+import { Sparkles } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Notice, Spinner, cardCls } from '@/components/ui/kit';
+import { cn } from '@/lib/utils';
 import type { Episode } from '../api/episodes';
 import { defaultOptions, optionsLabel, queueLabel } from './options';
 import { PrepareDialog } from './PrepareDialog';
+import type { QueueItem } from './types';
 import { usePreparation } from './usePreparation';
+
+const KINDS = { episode: 'Podcast', youtube: 'YouTube', reflection: 'My Mind', dossier: 'Dossier' } as const;
+const DOT: Record<QueueItem['status'], string> = {
+  pending: 'bg-amber-500', leased: 'bg-primary animate-pulse', done: 'bg-emerald-600', failed: 'bg-red-600', cancelled: 'bg-zinc-400',
+};
+
+function Action({ to, href, onClick, disabled, children, muted }: { to?: string; href?: string; onClick?: () => void; disabled?: boolean; children: ReactNode; muted?: boolean }) {
+  const cls = cn('h-9 px-3 text-[13px]', muted ? 'text-muted-foreground' : 'text-primary');
+  if (to) return <Button asChild variant="ghost" size="sm" className={cls}><Link to={to} className="no-underline">{children}</Link></Button>;
+  if (href) return <Button asChild variant="ghost" size="sm" className={cls}><a href={href} target="_blank" rel="noreferrer" className="no-underline">{children}</a></Button>;
+  return <Button variant="ghost" size="sm" className={cls} disabled={disabled} onClick={onClick}>{children}</Button>;
+}
 
 export function PreparationPanel({episode}: {episode?: Episode}) {
   const target = episode ? (episode.videoId ? {kind:'youtube' as const,id:episode.videoId} : {kind:'episode' as const,id:episode.id}) : undefined;
@@ -17,30 +32,34 @@ export function PreparationPanel({episode}: {episode?: Episode}) {
   // Dans le détail d'un épisode, une préparation terminée se voit déjà dans ses versions : seules les actives ou en échec s'affichent.
   const shown = episode ? (current && current.status!=='done' && current.status!=='cancelled' ? [current] : [])
     : items.filter((i) => i.status!=='cancelled').slice(0,20);
-  return <Box sx={{my:2}}>
-    {!episode && <Typography variant="h5" component="h2" sx={{mb:1}}>File de préparation</Typography>}
-    {query.isPending && <CircularProgress size={20} aria-label="Chargement des préparations" />}
-    {query.isError && <Alert severity="warning" action={<Button onClick={() => void query.refetch()}>Réessayer</Button>}>{query.error.message}</Alert>}
-    {episode && <Button startIcon={<AutoAwesomeOutlinedIcon />} variant="outlined" disabled={active || query.isPending || query.isError} onClick={() => setOpen(true)}>{episode.contentId ? 'Préparer une autre version' : 'Préparer en anglais'}</Button>}
-    {!episode && query.isSuccess && !shown.length && <Typography variant="body2" color="text.secondary">Ajoute un lien YouTube, ou choisis « Préparer en anglais » sur un épisode ou une note My Mind.</Typography>}
-    <Stack spacing={1} sx={{mt:1}}>{shown.map((item) => <Box key={item.id} sx={{p:1.5,border:1,borderColor:'divider',borderRadius:2}}>
-      {!episode && <Typography variant="body2" sx={{fontWeight:600}}>{item.title}</Typography>}
-      {!episode && <Typography variant="caption" color="text.secondary">{{ episode: 'Podcast', youtube: 'YouTube', reflection: 'My Mind', dossier: 'Dossier' }[item.kind]}</Typography>}
-      <Typography variant="body2">{queueLabel(item)}</Typography>
-      <Typography variant="caption" color="text.secondary">{optionsLabel(item.options)}</Typography>
-      {item.error && item.status==='failed' && <Typography variant="body2" color="error">{item.error}</Typography>}
-      <Stack direction="row" spacing={1}>
-        {!episode && item.kind==='episode' && <Button size="small" component={Link} to={`/?e=${item.ref}`}>Voir l’épisode</Button>}
-        {!episode && item.kind==='reflection' && <Button size="small" component={Link} to={`/mind?n=${item.ref}`}>Voir la note</Button>}
-        {!episode && item.kind==='youtube' && <Button size="small" href={`https://www.youtube.com/watch?v=${encodeURIComponent(item.ref)}`} target="_blank" rel="noreferrer">Voir la vidéo</Button>}
-        {['pending','leased'].includes(item.status) && <Button size="small" disabled={cancel.isPending} onClick={() => cancel.mutate(item.id)}>Annuler</Button>}
-        {item.status==='failed' && <Button size="small" disabled={retry.isPending || items.some((i) => i.ref===item.ref && (i.status==='pending' || i.status==='leased'))} onClick={() => retry.mutate(item.id)}>Réessayer</Button>}
-        {!episode && ['done','failed','cancelled'].includes(item.status) && <Button size="small" color="inherit" sx={{color:'text.secondary'}} disabled={remove.isPending} onClick={() => remove.mutate(item.id)}>Retirer de la liste</Button>}
-        {item.status==='done' && item.contentId && <Button size="small" component={Link} to={item.kind==='episode' ? `/?e=${item.ref}` : `/library/${item.contentId}`}>Écouter les versions</Button>}
-      </Stack>
-    </Box>)}</Stack>
-    {(cancel.isError || retry.isError || remove.isError) && <Alert severity="error">{cancel.error?.message ?? retry.error?.message ?? remove.error?.message}</Alert>}
+  return <section className="my-4">
+    {!episode && <h2 className="mb-2 mt-1 font-display text-[1.6rem] font-normal leading-tight">File de préparation</h2>}
+    {query.isPending && <Spinner label="Chargement des préparations" />}
+    {query.isError && <Notice tone="warning" action={<Button size="sm" variant="ghost" onClick={() => void query.refetch()}>Réessayer</Button>}>{query.error.message}</Notice>}
+    {episode && <Button variant="outline" disabled={active || query.isPending || query.isError} onClick={() => setOpen(true)}>
+      <Sparkles className="size-4 text-primary" />{episode.contentId ? 'Préparer une autre version' : 'Préparer en anglais'}
+    </Button>}
+    {!episode && query.isSuccess && !shown.length && <p className="text-sm leading-relaxed text-muted-foreground">Ajoute un lien YouTube, ou choisis « Préparer en anglais » sur un épisode ou une note My Mind.</p>}
+    <div className="mt-2 flex flex-col gap-2">{shown.map((item) => <div key={item.id} className={cn(cardCls, 'p-3')}>
+      {!episode && <div className="mb-1 flex items-center gap-2">
+        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">{KINDS[item.kind]}</span>
+      </div>}
+      {!episode && <p className="m-0 line-clamp-2 text-[15px] font-semibold leading-snug">{item.title}</p>}
+      <p className="m-0 mt-1 flex items-center gap-2 text-sm"><span className={cn('size-2 shrink-0 rounded-full', DOT[item.status])} />{queueLabel(item)}</p>
+      <p className="m-0 mt-0.5 text-xs text-muted-foreground">{optionsLabel(item.options)}</p>
+      {item.error && item.status==='failed' && <p className="m-0 mt-1 text-sm text-red-700">{item.error}</p>}
+      <div className="-mx-2 mt-1 flex flex-wrap">
+        {!episode && item.kind==='episode' && <Action to={`/?e=${item.ref}`}>Voir l’épisode</Action>}
+        {!episode && item.kind==='reflection' && <Action to={`/mind?n=${item.ref}`}>Voir la note</Action>}
+        {!episode && item.kind==='youtube' && <Action href={`https://www.youtube.com/watch?v=${encodeURIComponent(item.ref)}`}>Voir la vidéo</Action>}
+        {['pending','leased'].includes(item.status) && <Action disabled={cancel.isPending} onClick={() => cancel.mutate(item.id)}>Annuler</Action>}
+        {item.status==='failed' && <Action disabled={retry.isPending || items.some((i) => i.ref===item.ref && (i.status==='pending' || i.status==='leased'))} onClick={() => retry.mutate(item.id)}>Réessayer</Action>}
+        {item.status==='done' && item.contentId && <Action to={item.kind==='episode' ? `/?e=${item.ref}` : `/library/${item.contentId}`}>Écouter les versions</Action>}
+        {!episode && ['done','failed','cancelled'].includes(item.status) && <Action muted disabled={remove.isPending} onClick={() => remove.mutate(item.id)}>Retirer de la liste</Action>}
+      </div>
+    </div>)}</div>
+    {(cancel.isError || retry.isError || remove.isError) && <Notice tone="error" className="mt-2">{cancel.error?.message ?? retry.error?.message ?? remove.error?.message}</Notice>}
     {open && episode && target && <PrepareDialog key={episode.id} target={target} title={episode.title}
       initial={defaultOptions(episode.durationSec,episode.showId)} faithfulAllowed={episode.language==='fr'} onClose={() => setOpen(false)} />}
-  </Box>;
+  </section>;
 }
