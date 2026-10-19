@@ -1,3 +1,4 @@
+import { ARTICLE_TEXTS_READY, resolveArticleTexts } from '../dossiers/article-texts';
 import type { Env } from '../env';
 import { HttpError, json, readJson } from '../http';
 import { expireExhausted, queueOut, type QueueRow } from './store';
@@ -44,10 +45,12 @@ export async function lease(req: Request,env: Env) {
   }
   const now = new Date().toISOString(), expires = new Date(Date.now()+LEASE_MS).toISOString();
   await expireExhausted(env,now);
+  await resolveArticleTexts(env);
   const row = await env.DB.prepare(`UPDATE prepare_queue SET status='leased',lease_token=?,lease_owner=?,
     lease_expires_at=?,attempts=attempts+1,stage='download',updated_at=?
     WHERE id=(SELECT id FROM prepare_queue WHERE
       (status='pending' OR (status='leased' AND lease_expires_at<=?)) AND attempts<max_attempts
+      AND ${ARTICLE_TEXTS_READY}
       AND (?=0 OR COALESCE(stage,'')<>'source_ready')
       AND (?=1 OR COALESCE(stage,'')<>'review') AND (? IS NULL OR id=?)
       ORDER BY created_at,id LIMIT 1) RETURNING *`)

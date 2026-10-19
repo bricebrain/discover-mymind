@@ -85,7 +85,8 @@
                 "enum": [
                   "episode",
                   "content",
-                  "reflection"
+                  "reflection",
+                  "article"
                 ]
               },
               "ref": {

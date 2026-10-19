@@ -3,26 +3,26 @@ import { HttpError } from '../http';
 import { manifest } from '../publications/store';
 import type { Publication, Segments } from '../publications/types';
 
-export interface SourceRef { type: 'episode' | 'content' | 'reflection'; id: string }
+export interface SourceRef { type: 'episode' | 'content' | 'reflection' | 'article'; id: string }
 export interface Snapshot {
  id: string; type: SourceRef['type']; ref: string; title: string; language: string | null;
- kind: 'episode' | 'youtube' | 'reflection' | 'content'; capturedAt: string;
+ kind: 'episode' | 'youtube' | 'reflection' | 'content' | 'article'; capturedAt: string;
  audioUrl?: string; transcriptUrl?: string | null; transcriptType?: string | null;
  durationSec?: number | null; videoId?: string; url?: string; text?: string;
- origin?: string; sourceName?: string | null; sourceUrl?: string | null;
+ contentStatus?: string; publishedAt?: string | null; origin?: string; sourceName?: string | null; sourceUrl?: string | null;
  publicationId?: string; variantKey?: string; segments?: Segments['segments'];
 }
 export function references(value: unknown): SourceRef[] {
  if (!Array.isArray(value) || value.length < 2 || value.length > 6) throw new HttpError(422,'invalid_sources','Choisir de 2 à 6 sources.');
  const refs = value.map((v: Record<string,unknown>) => {
-  if (!v || !['episode','content','reflection'].includes(String(v.type)) || typeof v.id!=='string' ||
+  if (!v || !['episode','content','reflection','article'].includes(String(v.type)) || typeof v.id!=='string' ||
       !/^[a-z0-9-]{3,96}$/.test(v.id)) throw new HttpError(422,'invalid_sources','Référence source invalide.');
   return {type:v.type,id:v.id} as SourceRef;
  });
  if (new Set(refs.map(r=>r.type+':'+r.id)).size!==refs.length) throw new HttpError(422,'duplicate_source','Une source ne peut apparaître deux fois.');
  return refs;
 }
-export async function capture(env: Env, refs: SourceRef[]): Promise<Snapshot[]> {
+export async function capture(env: Env, refs: SourceRef[], launching = false): Promise<Snapshot[]> {
  const result: Snapshot[]=[];
  for (const [i,r] of refs.entries()) {
   const base={id:`d${i+1}`,type:r.type,ref:r.id,capturedAt:new Date().toISOString()};
@@ -33,6 +33,15 @@ export async function capture(env: Env, refs: SourceRef[]): Promise<Snapshot[]> 
      title:string;audioUrl:string;transcriptUrl:string|null;transcriptType:string|null;durationSec:number|null;videoId:string|null;language:string}>();
    if (!e) missing();
    result.push(e.videoId ? {...base,kind:'youtube',title:e.title,language:e.language,videoId:e.videoId,url:`https://www.youtube.com/watch?v=${e.videoId}`} : {...base,...e,kind:'episode',videoId:undefined});
+  } else if (r.type==='article') {
+   const a=await env.DB.prepare(`SELECT a.title,a.content_text AS text,a.content_status AS contentStatus,
+    a.url AS sourceUrl,a.published_at AS publishedAt,s.publisher AS sourceName,s.language
+    FROM articles a JOIN article_sources s ON s.id=a.source_id WHERE a.id=?`).bind(r.id).first<{
+     title:string;text:string|null;contentStatus:string;sourceUrl:string;publishedAt:string|null;sourceName:string;language:string}>();
+   if (!a) missing();
+   if (launching && a.contentStatus==='unavailable') throw new HttpError(422,'article_unavailable','Le texte complet de cet article est inaccessible. Retirer cet article du dossier.');
+   if (a.contentStatus==='complete' && !a.text?.trim()) missing();
+   result.push({...base,...a,text:a.contentStatus==='complete' ? a.text! : undefined,kind:'article',origin:'article'});
   } else if (r.type==='reflection') {
    const n=await env.DB.prepare('SELECT title,body_md AS text,origin,source_name AS sourceName,source_url AS sourceUrl FROM reflections WHERE id=? AND deleted_at IS NULL').bind(r.id).first<{title:string|null;text:string;origin:string;sourceName:string|null;sourceUrl:string|null}>();
    if (!n || n.text.trim().length<20) missing();
@@ -55,13 +64,24 @@ export async function capture(env: Env, refs: SourceRef[]): Promise<Snapshot[]> 
  }
  // Évite de traiter deux fois le même épisode via sa version préparée.
  const canonical=await Promise.all(result.map(async s=> {
+  if(s.type==='reflection') {
+   const a=await env.DB.prepare('SELECT id FROM articles WHERE reflection_id=? LIMIT 1').bind(s.ref).first<{id:string}>();
+   return a ? 'article:'+a.id : 'reflection:'+s.ref;
+  }
   if(s.type!=='content') return s.kind==='youtube' ? 'youtube:'+s.videoId : s.type+':'+s.ref;
   const c=await env.DB.prepare('SELECT source_ref FROM contents WHERE id=?').bind(s.ref).first<{source_ref:string|null}>();
+  if(c?.source_ref?.startsWith('reflection:')) {
+   const a=await env.DB.prepare('SELECT id FROM articles WHERE reflection_id=? LIMIT 1').bind(c.source_ref.slice(11)).first<{id:string}>();
+   if(a) return 'article:'+a.id;
+  }
   return c?.source_ref ?? 'content:'+s.ref;
  }));
- if(new Set(canonical).size!==result.length) throw new HttpError(422,'duplicate_source','Un épisode et sa version préparée comptent comme une seule source.');
+ if(new Set(canonical).size!==result.length) throw new HttpError(422,'duplicate_source','Une source et sa note ou version préparée comptent comme une seule source.');
+ checkSnapshotSize(result);
+ return result;
+}
+export function checkSnapshotSize(result: Snapshot[]) {
  if(JSON.stringify(result).length>700_000 || result.reduce((n,s)=>n+(s.text?.length??0)+(s.segments?.reduce((n,s)=>n+s.text.length,0)??0),0)>150_000)
   throw new HttpError(422,'source_too_large','Limiter les textes du dossier à 150 000 caractères.');
- return result;
 }
 function missing(): never {throw new HttpError(422,'source_missing','Une source est indisponible, vide ou supprimée.');}

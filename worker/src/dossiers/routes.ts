@@ -3,6 +3,7 @@ import { HttpError, json, readJson } from '../http';
 import { prepareOptions } from '../queue/options';
 import { insertQueue } from '../routes/queue';
 import { capture, references, type SourceRef } from './sources';
+import { articleTextRequests } from './article-texts';
 
 interface Dossier {id:string;title:string;version:number;sources_json:string;created_at:string;updated_at:string}
 const out=(d:Dossier)=>({id:d.id,title:d.title,version:d.version,sources:JSON.parse(d.sources_json) as SourceRef[],createdAt:d.created_at,updatedAt:d.updated_at});
@@ -12,7 +13,7 @@ async function withTitles(env:Env,dossiers:ReturnType<typeof out>[]) {
  const titles=new Map<string,string>();
  for(const ref of refs){
   const [type,id]=ref.split(':') as [SourceRef['type'],string];
-  const sql=type==='episode'?'SELECT title FROM episodes WHERE id=?':type==='reflection'?"SELECT COALESCE(title,substr(body_md,1,80)) AS title FROM reflections WHERE id=? AND deleted_at IS NULL":'SELECT title FROM contents WHERE id=? AND deleted_at IS NULL';
+  const sql=type==='article'?'SELECT title FROM articles WHERE id=?':type==='episode'?'SELECT title FROM episodes WHERE id=?':type==='reflection'?"SELECT COALESCE(title,substr(body_md,1,80)) AS title FROM reflections WHERE id=? AND deleted_at IS NULL":'SELECT title FROM contents WHERE id=? AND deleted_at IS NULL';
   const row=await env.DB.prepare(sql).bind(id).first<{title:string}>();
   if(row) titles.set(ref,row.title);
  }
@@ -29,7 +30,7 @@ export async function route(req:Request,env:Env,path:string):Promise<Response|nu
   return json({dossiers:await withTitles(env,rows.results.map(out))});
  }
  if(path==='/api/dossiers'&&req.method==='POST') {
-  const b=await readJson<Record<string,unknown>>(req,4096),refs=references(b.sources),t=title(b.title);
+  const b=await readJson<Record<string,unknown>>(req,4096),refs=references(b.sources),t=b.title===undefined ? 'Nouveau dossier' : title(b.title);
   await capture(env,refs); // Refuser immédiatement les sources non exploitables.
   const id=crypto.randomUUID(),now=new Date().toISOString();
   await env.DB.prepare('INSERT INTO dossiers(id,title,sources_json,created_at,updated_at) VALUES(?,?,?,?,?)').bind(id,t,JSON.stringify(refs),now,now).run();
@@ -59,9 +60,11 @@ export async function route(req:Request,env:Env,path:string):Promise<Response|nu
   const serialized=JSON.stringify(options);
   let run=await env.DB.prepare('SELECT id FROM dossier_runs WHERE dossier_id=? AND version=? AND options_json=?').bind(d.id,d.version,serialized).first<{id:string}>();
   if(!run) {
-   const snapshots=await capture(env,JSON.parse(d.sources_json));
-   await env.DB.prepare('INSERT OR IGNORE INTO dossier_runs(id,dossier_id,version,title,sources_json,options_json,created_at) VALUES(?,?,?,?,?,?,?)')
-    .bind(crypto.randomUUID(),d.id,d.version,d.title,JSON.stringify(snapshots),serialized,new Date().toISOString()).run();
+   const snapshots=await capture(env,JSON.parse(d.sources_json),true);
+   const runId=crypto.randomUUID();
+   await env.DB.batch([env.DB.prepare('INSERT OR IGNORE INTO dossier_runs(id,dossier_id,version,title,sources_json,options_json,created_at) VALUES(?,?,?,?,?,?,?)')
+    .bind(runId,d.id,d.version,d.title,JSON.stringify(snapshots),serialized,new Date().toISOString()),
+    ...articleTextRequests(env,snapshots,runId)]);
    run=await env.DB.prepare('SELECT id FROM dossier_runs WHERE dossier_id=? AND version=? AND options_json=?').bind(d.id,d.version,serialized).first<{id:string}>();
   }
   return insertQueue(env,'dossier',run!.id,options);

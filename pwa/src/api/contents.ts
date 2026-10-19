@@ -29,7 +29,7 @@ export interface ContentSegment {
 }
 export interface ContentSegments { schemaVersion: 1; variantKey: string; segments: ContentSegment[] }
 /** Source d'un dossier multisource (chantier A), telle que capturée pour l'exécution publiée. */
-export interface DossierSource { id: string; type: 'episode' | 'content' | 'reflection'; ref: string; title: string; capturedAt: string }
+export interface DossierSource { id: string; type: 'episode' | 'content' | 'reflection' | 'article'; ref: string; title: string; capturedAt: string }
 export interface ContentDetail { content: { id: string; title: string; sourceType?: ContentSourceType; sources?: DossierSource[] }; publicationId: string; variants: ContentVariant[] }
 
 export function usePreparedContents(filters: LibraryFilters = {}) {
