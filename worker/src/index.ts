@@ -7,6 +7,7 @@ import { apiError, HttpError, json, noContent, withSecurityHeaders } from './htt
 import { cleanupPublications } from './publications/cleanup';
 import * as quiz from './quiz/routes';
 import * as contents from './routes/contents';
+import { getSuggestion, saveFeedback } from './levels/routes';
 import { exportData } from './routes/export';
 import { collectNext } from './collector';
 import * as auth from './routes/auth';
@@ -85,6 +86,10 @@ async function handleData(req: Request, env: Env, path: string, m: string): Prom
     if (!quizPath[3] && m === 'GET') return quiz.get(req,env,quizPath[1],quizPath[2]);
     if (quizPath[3] && m === 'POST') return quiz.submit(req,env,quizPath[1],quizPath[2]);
   }
+  const feedback = path.match(/^\/api\/contents\/([a-z0-9-]{3,96})\/variants\/([a-z0-9-]{2,32})\/feedback$/);
+  if (feedback?.[1] && feedback[2] && m === 'POST') return saveFeedback(req, env, feedback[1], feedback[2]);
+  const suggestion = path.match(/^\/api\/shows\/([a-z0-9-]{1,64})\/level-suggestion$/);
+  if (suggestion?.[1] && m === 'GET') return getSuggestion(env, suggestion[1]);
   const content = path.match(/^\/api\/contents\/([a-z0-9-]{3,96})(?:\/variants\/([a-z0-9-]{2,32})\/(segments|audio))?$/);
   if (content?.[1] && !content[2] && m === 'DELETE') return contents.remove(env,content[1]);
   if (content?.[1] && m === 'GET') {
