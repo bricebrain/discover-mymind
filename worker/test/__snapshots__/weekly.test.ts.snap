@@ -1,0 +1,81 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`bilan et export hebdomadaire I8 > exporte seulement les champs autorisés et les sources des activités sélectionnées 1`] = `
+"# Discover — bilan 2026-W43
+
+Fuseau : Europe/Paris · du 2026-10-18T22:00:00.000Z au 2026-10-25T23:00:00.000Z (borne exclue).
+
+- Minutes écoutées (estimation par progression) : 1
+- Contenus terminés : 1
+- Notes créées : 1 ; modifiées : 0
+- Articles lus : 0 ; enregistrés : 0
+- Passages ou citations liés : 0
+- Préparations publiées : 0
+
+## Notes de la semaine
+
+# Note
+
+_idea · créée le 2026-10-19 · modifiée le 2026-10-19_
+
+Texte de la semaine.
+
+## Contenus écoutés
+
+- [Épisode de la semaine](<https://weekly.test/audio>) — episode:a1b2c3d4e5f6a7b8c9d0 · 1 min · terminé
+
+## Articles de la semaine
+
+_Aucun article._
+
+## Passages et citations de la semaine
+
+_Aucun passage ni citation._
+
+## Préparations publiées
+
+_Aucune préparation._
+
+## Mots appris
+
+_Non suivi (hors périmètre I8)._
+"
+`;
+
+exports[`bilan et export hebdomadaire I8 > rend une semaine vide et un Markdown stable 1`] = `
+"# Discover — bilan 2026-W43
+
+Fuseau : Europe/Paris · du 2026-10-18T22:00:00.000Z au 2026-10-25T23:00:00.000Z (borne exclue).
+
+- Minutes écoutées (estimation par progression) : 0
+- Contenus terminés : 0
+- Notes créées : 0 ; modifiées : 0
+- Articles lus : 0 ; enregistrés : 0
+- Passages ou citations liés : 0
+- Préparations publiées : 0
+
+## Notes de la semaine
+
+_Aucune note._
+
+## Contenus écoutés
+
+_Aucun contenu écouté._
+
+## Articles de la semaine
+
+_Aucun article._
+
+## Passages et citations de la semaine
+
+_Aucun passage ni citation._
+
+## Préparations publiées
+
+_Aucune préparation._
+
+## Mots appris
+
+_Non suivi (hors périmètre I8)._
+"
+`;

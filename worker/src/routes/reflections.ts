@@ -132,9 +132,9 @@ export async function restore(env: Env, rawId: string): Promise<Response> {
 /** Cron : purge des notes en corbeille depuis plus de 30 jours (par petits lots). */
 export async function purgeTrash(env: Env, now = Date.now()): Promise<number> {
   const r = await env.DB.prepare(
-    'DELETE FROM reflections WHERE id IN (SELECT id FROM reflections WHERE deleted_at IS NOT NULL AND deleted_at < ? LIMIT 50)',
-  ).bind(new Date(now - TRASH_RETENTION_MS).toISOString()).run();
-  return r.meta.changes;
+    'DELETE FROM reflections WHERE id IN (SELECT id FROM reflections WHERE deleted_at IS NOT NULL AND deleted_at < ? LIMIT 50) RETURNING id',
+  ).bind(new Date(now - TRASH_RETENTION_MS).toISOString()).all<{ id: string }>();
+  return r.results.length;
 }
 
 /** GET /api/export — notes (JSON + Markdown), liens, émissions, épisodes sauvegardés. */

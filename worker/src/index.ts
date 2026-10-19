@@ -8,6 +8,7 @@ import { cleanupPublications } from './publications/cleanup';
 import * as quiz from './quiz/routes';
 import * as contents from './routes/contents';
 import { getSuggestion, saveFeedback } from './levels/routes';
+import { weekly } from './weekly/routes';
 import { exportData } from './routes/export';
 import { collectNext } from './collector';
 import * as auth from './routes/auth';
@@ -127,6 +128,8 @@ async function handleData(req: Request, env: Env, path: string, m: string): Prom
   const rfPrepare = path.match(/^\/api\/reflections\/([0-9a-f-]{36})\/prepare$/);
   if (rfPrepare?.[1] && m === 'POST') return queue.enqueueReflection(req,env,rfPrepare[1]);
   // Export historique par défaut ; ?v=2 : export complet, ?v=2&format=markdown : document seul.
+  if (path === '/api/weekly' && m === 'GET') return weekly(req, env);
+  if (path === '/api/weekly/export' && m === 'GET') return weekly(req, env, true);
   if (path === '/api/export' && m === 'GET') return exportData(req, env);
 
   if (path === '/api/explorer' && m === 'GET') return episodes.explorer(req, env);
