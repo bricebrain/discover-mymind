@@ -10,6 +10,7 @@ import { useDeleteShow, useShows, useUpdateShow, type Show } from '../api/shows'
 import { categoryColor } from '../app/theme';
 import { AddShowDialog } from '../shows/AddShowDialog';
 import { AutoPrepareCard, AutoPrepareChip } from '../shows/AutoPrepare';
+import { LevelSuggestion } from '../shows/LevelSuggestion';
 
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as Category[];
 const errorText = (e: unknown) => (e instanceof ApiError ? e.message : 'Une erreur est survenue.');
@@ -42,7 +43,10 @@ function ShowRow({ show, busy, onToggle, onDelete }: { show: Show; busy: boolean
         <Trash2 className="size-[18px]" />
       </Button>
     </div>
-    {show.sourceType === 'podcast' && <div className="pl-[60px]"><AutoPrepareChip show={show} /></div>}
+    {show.sourceType === 'podcast' && <div className="pl-[60px]">
+      <AutoPrepareChip show={show} />
+      <LevelSuggestion show={show} busy={busy} />
+    </div>}
   </div>;
 }
 

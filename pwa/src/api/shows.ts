@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
 import type { Category } from './episodes';
+import { levelSuggestionKey } from '../levels/keys';
+import type { LevelSuggestion } from '../levels/types';
 
 export interface Show {
   sourceType: 'podcast' | 'youtube';
@@ -73,6 +75,13 @@ export function useShows() {
   return useQuery({ queryKey: ['shows'], queryFn: () => api<{ shows: Show[]; max: number; autoPrepareEnabled: boolean }>('/api/shows') });
 }
 
+export function useLevelSuggestion(showId: string) {
+  return useQuery({
+    queryKey: levelSuggestionKey(showId),
+    queryFn: () => api<{ levelSuggestion: LevelSuggestion }>(`/api/shows/${encodeURIComponent(showId)}/level-suggestion`),
+  });
+}
+
 export function useResolveShow() {
   return useMutation({ mutationFn: (input: string) => api<ResolveResult>('/api/shows/resolve', { method: 'POST', body: { input } }) });
 }
@@ -100,7 +109,8 @@ export function useUpdateShow() {
     mutationFn: ({ id, ...patch }: { id: string; enabled?: boolean; category?: Category; titleFilter?: string[];
       autoPrepare?: boolean; autoPreset?: AutoPreset; autoLevel?: AutoLevel }) =>
       api<{ show: Show }>(`/api/shows/${id}`, { method: 'PATCH', body: patch }),
-    onSuccess: () => {
+    onSuccess: (_data, { id }) => {
+      void qc.invalidateQueries({ queryKey: levelSuggestionKey(id) });
       void qc.invalidateQueries({ queryKey: ['shows'] });
       void qc.invalidateQueries({ queryKey: ['explorer'] });
     },
