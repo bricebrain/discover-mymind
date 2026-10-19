@@ -201,3 +201,11 @@ et point Time Travel noté à côté). Atelier : commit `065dd5e` dans `convert/
 Ordre proposé : préparations automatiques par émission → type « Article » et suite de C → onglet Articles → D.
 GLM 5.2 (agent avec accès au dépôt, comme Codex) : E, I3/I5, I9 selon des briefs à rédiger ; branches `glm/…`, migration 0014+
 réservée par Opus, aucun déploiement ni génération payante.
+
+## 11. Décision du 19 octobre 2026 : pas de préparation sans Mac
+
+Après lecture de l'étude `docs/CODEX_D_ETUDE.md` (offre Workers payante 5 USD/mois + Containers + transcription Deepgram),
+l'utilisateur **renonce au chantier D** : l'Atelier reste sur le Mac et reste le seul exécutant des préparations. Ne pas proposer
+d'infrastructure cloud de préparation sans nouvelle demande explicite. L'étude reste comme référence.
+État des autres chantiers : B, A, E, I3/I5, I9, C côté serveur (A2) et F livrés ; refonte de l'interface en cours par Opus
+(étapes 1 à 3 en production : socle, cadre, Explorer en un seul fil, thème clair uniquement).
