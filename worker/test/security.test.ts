@@ -14,7 +14,7 @@ describe('schéma', () => {
     ).all<{ name: string }>();
     expect(results.map((r) => r.name).sort()).toEqual([
       'app_settings', 'article_sources', 'articles', 'contents', 'dossier_runs', 'dossiers', 'episodes', 'level_feedback', 'listening_progress', 'login_attempts', 'prepare_queue', 'publication_files', 'publication_gc', 'publication_guards',
-      'publications', 'push_deliveries', 'push_subscriptions', 'queue_events', 'quiz_answers', 'reflection_links', 'reflections', 'search_index', 'sessions', 'shows', 'variants',
+      'publications', 'push_deliveries', 'push_subscriptions', 'queue_events', 'quiz_answers', 'reflection_links', 'reflections', 'search_index', 'sessions', 'shows', 'variants', 'vocabulary_picks',
       'weekly_articles', 'weekly_links', 'weekly_listening', 'weekly_notes', 'weekly_publications',
     ]);
   });
