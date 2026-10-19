@@ -98,6 +98,7 @@ async function handleData(req: Request, env: Env, path: string, m: string): Prom
   const pr = path.match(/^\/api\/progress\/(episode|variant)\/([^/]+)$/);
   if (pr?.[1] && pr[2] && m === 'GET') return progress.get(req, env, pr[1], decodeURIComponent(pr[2]));
 
+  if (path === '/api/reflections/search' && m === 'GET') return reflections.search(req, env);
   if (path === '/api/reflections' && m === 'GET') return reflections.list(req, env);
   if (path === '/api/reflections' && m === 'POST') return reflections.create(req, env);
   const rf = path.match(/^\/api\/reflections\/([0-9a-f-]{36})(\/restore)?$/);
