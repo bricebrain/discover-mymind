@@ -9,6 +9,7 @@ import { LoginPage } from '../pages/LoginPage';
 import { MindPage } from '../pages/MindPage';
 import { ShowsPage } from '../pages/ShowsPage';
 import { SettingsPage } from '../pages/SettingsPage';
+import { SharePage } from '../mind/SharePage';
 import { PreparationEventsProvider } from '../notifications/PreparationEventsProvider';
 import { PlayerProvider } from '../player/PlayerProvider';
 import { initOffline, isNetworkFailure, useOffline } from '../offline';
@@ -25,6 +26,7 @@ const router = createBrowserRouter([
       { path: '/library/:id', element: <ContentPage /> },
       { path: '/mind', element: <MindPage /> },
       { path: '/settings', element: <SettingsPage /> },
+      { path: '/share', element: <SharePage /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },

@@ -22,6 +22,8 @@ export default defineConfig({
         display: 'standalone',
         orientation: 'portrait',
         background_color: '#F6F2EA',
+        // « Partager vers Discover » depuis Chrome Android : titre, texte sélectionné, lien → une note My Mind.
+        share_target: { action: '/share', method: 'GET', params: { title: 'title', text: 'text', url: 'url' } },
         theme_color: '#0E6B61',
         icons: [
           { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },

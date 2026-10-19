@@ -1,7 +1,7 @@
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import { IconButton, Stack, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
+import { Alert, IconButton, Stack, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
 import { validArticleUrl } from './articleUrl';
 import type { Draft, NoteOrigin } from './store';
 
@@ -29,5 +29,8 @@ export function NoteOriginFields({ draft, onChange }: {
         onChange={(e) => onChange({ sourceUrl: e.target.value })}
         InputProps={{ endAdornment: url && urlOk ? <Tooltip title="Ouvrir l’article"><IconButton size="small" component="a" href={url.trim()} target="_blank" rel="noopener noreferrer" aria-label="Ouvrir l’article"><OpenInNewIcon fontSize="small" /></IconButton></Tooltip> : undefined }} />
     </Stack>}
+    {origin === 'article' && url && urlOk && !draft.body.trim() && <Alert severity="info" variant="outlined">
+      Ouvre l’article avec le bouton du lien, copie son texte et colle-le ci-dessous : cookies, « Lire aussi » et crédits seront retirés automatiquement.
+    </Alert>}
   </Stack>;
 }

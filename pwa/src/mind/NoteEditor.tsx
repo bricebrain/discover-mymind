@@ -7,13 +7,14 @@ import SyncIcon from '@mui/icons-material/Sync';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import {
   Alert, Box, Button, ButtonBase, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputBase,
-  Stack, Tab, Tabs, Tooltip, Typography,
+  Snackbar, Stack, Tab, Tabs, Tooltip, Typography,
 } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { fonts } from '../app/theme';
+import { cleanPastedArticle, worthCleaning } from './cleanPaste';
 import { renderMarkdown } from './markdown';
 import { NoteOriginFields } from './NoteOriginFields';
 import { NotePreparation } from './NotePreparation';
@@ -43,6 +44,8 @@ export function NoteEditor({ id, onBack, onDeleted }: { id: string; onBack?: () 
   const [status, setStatus] = useState<Status>('loading');
   const [conflict, setConflict] = useState<Note | null>(null);
   const [englishContentId, setEnglishContentId] = useState<string | null>(null);
+  /** Dernier collage nettoyé : de quoi revenir au texte brut. */
+  const [pasted, setPasted] = useState<{ raw: string; removed: number; joined: number } | null>(null);
   const [tab, setTab] = useState<'write' | 'preview'>('write');
   const latest = useRef<Draft | null>(null);
   const timers = useRef<{ push?: number }>({});
@@ -223,7 +226,19 @@ export function NoteEditor({ id, onBack, onDeleted }: { id: string; onBack?: () 
         <InputBase
           value={draft.body}
           onChange={(e) => edit({ body: e.target.value })}
-          placeholder={'Écris librement… (Markdown simple : # titre, - liste, **gras**)'}
+          onPaste={(e) => {
+            // Article collé depuis un site : cookies, « Lire aussi », crédits… retirés ; annulable.
+            const raw = e.clipboardData.getData('text/plain');
+            const cleaned = cleanPastedArticle(raw);
+            if (!worthCleaning(raw, cleaned)) return;
+            e.preventDefault();
+            const area = e.target as HTMLTextAreaElement;
+            const start = area.selectionStart ?? draft.body.length, end = area.selectionEnd ?? start;
+            const head = draft.body.slice(0, start), tail = draft.body.slice(end);
+            edit({ body: head + cleaned.text + tail });
+            setPasted({ raw: head + raw + tail, removed: cleaned.removedLines, joined: cleaned.joinedLines });
+          }}
+          placeholder={'Écris librement ou colle un article… (Markdown simple : # titre, - liste, **gras**)'}
           inputProps={{ 'aria-label': 'Texte de la note', maxLength: 100_000 }}
           multiline
           minRows={12}
@@ -245,6 +260,10 @@ export function NoteEditor({ id, onBack, onDeleted }: { id: string; onBack?: () 
       )}
 
       <NotePreparation id={draft.id} title={draft.title} body={draft.body} synced={status === 'saved'} englishContentId={englishContentId} />
+
+      <Snackbar open={!!pasted} autoHideDuration={9000} onClose={(_e, reason) => reason !== 'clickaway' && setPasted(null)}
+        message={pasted ? `Texte nettoyé : ${[pasted.removed ? `${pasted.removed} ligne${pasted.removed > 1 ? 's' : ''} parasite${pasted.removed > 1 ? 's' : ''} retirée${pasted.removed > 1 ? 's' : ''}` : '', pasted.joined ? `${pasted.joined} phrase${pasted.joined > 1 ? 's' : ''} recollée${pasted.joined > 1 ? 's' : ''}` : ''].filter(Boolean).join(', ')}.` : ''}
+        action={<Button color="inherit" size="small" onClick={() => { if (pasted) edit({ body: pasted.raw }); setPasted(null); }}>Garder l’original</Button>} />
 
       <Dialog open={!!conflict}>
         <DialogTitle>Cette note a été modifiée ailleurs</DialogTitle>
