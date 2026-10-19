@@ -1,6 +1,5 @@
-import { Radio } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { CATEGORY_LABELS, type Category } from '../api/episodes';
 import { useShows } from '../api/shows';
 import { categoryColor } from '../app/theme';
@@ -8,7 +7,6 @@ import { ExplorerFeed } from '../explorer/ExplorerFeed';
 import { cn } from '@/lib/utils';
 
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as Category[];
-const todayFmt = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 type Source = 'all' | 'podcast' | 'youtube' | 'article';
 const SOURCES: [Source, string][] = [['all', 'Tout'], ['podcast', 'Podcasts'], ['youtube', 'YouTube'], ['article', 'Articles']];
 
@@ -54,16 +52,9 @@ export function ExplorerPage() {
     setParams(next, { replace: true });
   };
 
+  // Titre et accès aux abonnements sont dans la barre du haut : le fil commence directement par les filtres.
   const header = <div className="mb-2">
-    <div className="mb-3 flex items-end gap-3">
-      <div className="flex-1">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{todayFmt.format(new Date())}</p>
-        <h1 className="font-display text-[2.6rem] leading-none tracking-tight text-foreground">Explorer</h1>
-      </div>
-      <Link to="/shows" className="mb-1 inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-[13px] font-semibold text-foreground no-underline active:scale-95">
-        <Radio className="size-4 text-primary" />Abonnements
-      </Link>
-    </div>
+    <h1 className="sr-only">Explorer</h1>
     <Segmented value={source} onChange={(s) => setParam('source', s === 'all' ? undefined : s)} />
     {source === 'youtube' && <select value={show ?? ''} onChange={(e) => setParam('show', e.target.value || undefined)} aria-label="Chaîne YouTube"
       className="mt-3 h-11 w-full rounded-xl border border-border bg-card px-3 text-sm text-foreground">

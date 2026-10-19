@@ -49,7 +49,7 @@ export function ExplorerFeed({ filters, withEpisodes, withArticles, showResume, 
   };
 
   let lastDay = '';
-  const list = <div className="mx-auto max-w-[760px] px-3 pb-8 pt-5">
+  const list = <div className="mx-auto max-w-[760px] px-3 pb-8 pt-3">
     <div className="px-1">{header}</div>
     {resume && <div className="mb-2 mt-1"><ResumeFeedCard episode={resume} /></div>}
     {pending && <div className="grid place-items-center py-12"><Loader2 className="size-6 animate-spin text-muted-foreground" /></div>}

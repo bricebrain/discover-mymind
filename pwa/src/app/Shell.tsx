@@ -1,4 +1,4 @@
-import { BookOpen, Compass, Lightbulb, Settings } from 'lucide-react';
+import { BookOpen, Compass, Lightbulb, Radio, Settings } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -22,15 +22,20 @@ export const NAV_H = 64;
 export function Shell() {
   const { pathname } = useLocation();
   const active = TABS.findIndex((t) => (t.path === '/' ? pathname === '/' : pathname.startsWith(t.path)));
+  // Titre de l'écran dans la barre du haut (les écrans pas encore refaits gardent « Discover » et leur propre titre).
+  const title = pathname === '/' ? 'Explorer' : 'Discover';
 
   return (
     <div className="flex min-h-dvh flex-col bg-background font-sans text-foreground">
       <header className="sticky top-0 z-[1100] border-b border-border/70 bg-background/80 pt-[env(safe-area-inset-top)] backdrop-blur-xl backdrop-saturate-150">
         <div className="flex h-[52px] items-center gap-2 px-4">
-          <Link to="/" className="flex flex-1 items-center gap-2 text-foreground no-underline">
-            <img src="/icons/icon.svg" alt="" className="size-[26px] rounded-md" />
-            <span className="font-display text-[1.6rem] leading-none tracking-tight">Discover</span>
+          <Link to="/" className="flex min-w-0 flex-1 items-center gap-2 text-foreground no-underline">
+            <img src="/icons/icon.svg" alt="" className="size-[26px] shrink-0 rounded-md" />
+            <span className="truncate font-display text-[1.75rem] leading-none tracking-tight">{title}</span>
           </Link>
+          {pathname === '/' && <Link to="/shows" className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-[13px] font-semibold text-foreground no-underline active:scale-95">
+            <Radio className="size-4 text-primary" />Abonnements
+          </Link>}
           <Link to="/settings" aria-label="Réglages" aria-current={pathname === '/settings' ? 'page' : undefined}
             className={cn('-mr-2 grid size-11 place-items-center rounded-full transition-colors hover:bg-muted active:scale-95',
               pathname === '/settings' ? 'text-primary' : 'text-foreground')}>
