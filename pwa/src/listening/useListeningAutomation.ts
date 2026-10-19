@@ -45,7 +45,7 @@ export function useListeningAutomation(player: Player) {
     endedHandled.current = true;
     const action = endOfTrackAction(sleepStore.getSnapshot(), readAutoplayNext(), Date.now());
     if (action === 'stop') { current.pause(); sleepStore.cancel(); return; }
-    if (action !== 'next') return;
+    if (action !== 'next' || (current.activeListening.available && current.activeListening.pauseAfterSegment)) return;
     const key = current.track?.targetType === 'variant'
       && recordsRef.current.some((r) => r.key === current.track?.targetId && r.audioRef === current.track.audioRef)
       ? current.track.targetId : null;

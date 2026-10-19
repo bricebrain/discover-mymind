@@ -36,9 +36,10 @@ export function useContentReader(detail: ContentDetail | undefined) {
     if (current && player.playing && positionSec === undefined) player.toggle();
     else player.play(track, positionSec === undefined ? undefined : { positionSec });
   };
-  return { variant, current, select, play, progress,
+  return { activeListening: current && verified ? player.activeListening : null, variant, current, select, play, progress,
     playing: current && player.playing, buffering: current && player.buffering,
     positionSec: current ? player.position : (progress.data?.completed ? 0 : (progress.data?.positionMs ?? 0) / 1000),
-    activePositionMs: current && verified ? player.position * 1000 : null,
+    // À la pause de fin, conserver le surlignage du passage écouté (bornes semi-ouvertes).
+    activePositionMs: current && verified ? Math.max(0, player.position * 1000 - (player.activeListening.pausedAtBoundary ? 0.1 : 0)) : null,
     verified, unavailableVersion: !!requested && !detail?.variants.some((v) => v.key === requested) };
 }

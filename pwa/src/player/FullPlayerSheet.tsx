@@ -2,6 +2,7 @@ import { ChevronDown, FileText, Loader2, Pause, Play, RotateCcw, RotateCw } from
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Drawer } from 'vaul';
+import { ActiveListeningControls } from '../listening/ActiveListeningControls';
 import { useContent } from '../api/contents';
 import { variantName, variantTrack, languageName } from '../content/variants';
 import { AutoplayNextToggle, ReturnToVersionButton, SleepButton } from '../listening/ListeningControls';
@@ -100,6 +101,7 @@ export function FullPlayerSheet({ open, onClose }: { open: boolean; onClose: () 
             <SleepButton />
           </div>
 
+          <ActiveListeningControls controls={player.activeListening} />
           {variant && <Link to={`/library/${variant[0]}?v=${variant[1]}`} onClick={onClose}
             className="flex h-11 items-center justify-center gap-2 rounded-full border border-border bg-card text-sm font-semibold text-foreground no-underline active:scale-[.98]">
             <FileText className="size-4" />Lire la transcription

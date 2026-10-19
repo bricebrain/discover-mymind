@@ -1,4 +1,7 @@
+import type { ContentSegment, ContentVariant } from '../api/contents';
+import type { ActiveListeningApi } from './ActiveListening';
 export interface Track {
+  segmentSource?: { publicationId: string; variant: ContentVariant };
   targetType: 'episode' | 'variant';
   targetId: string;
   /** URL officielle ou SHA-256 : une nouvelle référence remet la progression à zéro. */
@@ -25,6 +28,8 @@ export interface PlayerState {
   ended: boolean;
 }
 export interface PlayerApi extends PlayerState {
+  activeListening: ActiveListeningApi;
+  configureActiveListening: (target: string, segments: ContentSegment[], verified: boolean) => void;
   play: (track: Track, options?: PlayOptions) => void;
   toggle: () => void;
   pause: () => void;

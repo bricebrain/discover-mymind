@@ -2,6 +2,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { saveProgress } from '../offline';
 import { fetchProgress, progressKey } from '../api/progress';
+import { ActiveListeningBridge } from './ActiveListeningBridge';
+import { listeningKey, useActiveListening } from './useActiveListening';
 import { AudioPosition } from './AudioPosition';
 import { sameAudio, SPEEDS, SKIP_SECONDS, type Track, type PlayerApi, type PlayerState, type PlayOptions } from './types';
 export { SPEEDS, SKIP_SECONDS, type Track } from './types';
@@ -52,6 +54,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     audioRef.current.preload = 'metadata';
     positionControl.current = new AudioPosition(audioRef.current);
   }
+
+  const active = useActiveListening(audioRef.current, positionControl.current);
 
   /** Enregistre la position (keepalive : survit à la fermeture de l'app). */
   const save = useCallback((opts: { completed?: boolean; keepalive?: boolean } = {}) => {
@@ -143,13 +147,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const current = trackRef.current;
     const unchanged = sameAudio(current, track);
     if (unchanged && current?.src === track.src) {
-      if (options.positionSec !== undefined) positionControl.current?.seek(options.positionSec);
+      if (listeningKey(current) !== listeningKey(track)) {
+        active.setTrack(track);
+        trackRef.current = track;
+        setState((s) => ({ ...s, track }));
+      }
+      if (options.positionSec !== undefined) { active.beforeSeek(); positionControl.current?.seek(options.positionSec); }
       if (options.autoplay === false) a.pause();
       else void a.play().catch(() => {});
       return;
     }
     const positionSec = options.positionSec ?? (unchanged ? a.currentTime : undefined);
     if (current) save();
+    active.setTrack(track);
     positionControl.current?.reset();
     a.pause();
     trackRef.current = track;
@@ -174,7 +184,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         artwork: track.imageUrl ? [{ src: track.imageUrl, sizes: '512x512' }] : [{ src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' }],
       });
     }
-  }, [save]);
+  }, [save, active.setTrack, active.beforeSeek]);
 
   const pause = useCallback(() => { audioRef.current?.pause(); }, []);
 
@@ -188,10 +198,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const seek = useCallback((seconds: number) => {
     const a = audioRef.current;
     if (!a || !trackRef.current) return;
+    active.beforeSeek();
     saveEnabled.current = true;
     positionControl.current?.seek(seconds);
     setState((s) => ({ ...s, position: a.currentTime }));
-  }, []);
+  }, [active.beforeSeek]);
 
   const skip = useCallback((delta: number) => {
     const a = audioRef.current;
@@ -199,6 +210,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [seek]);
 
   const setRate = useCallback((rate: number) => {
+    active.cancelSlow();
     const a = audioRef.current;
     if (a) {
       a.playbackRate = rate;
@@ -208,12 +220,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(RATE_KEY, String(rate));
     } catch { /* stockage indisponible : la vitesse vaut pour cette session */ }
     setState((s) => ({ ...s, rate }));
-  }, []);
+  }, [active.cancelSlow]);
 
   const stop = useCallback(() => {
     const a = audioRef.current;
     if (!a) return;
     if (trackRef.current) save();
+    active.setTrack(null);
     positionControl.current?.reset();
     a.pause();
     a.removeAttribute('src');
@@ -222,7 +235,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     saveEnabled.current = false;
     setState((s) => ({ ...s, track: null, playing: false, buffering: false, position: 0, duration: 0, mediaDuration: 0, error: null, ended: false }));
     if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
-  }, [save]);
+  }, [save, active.setTrack]);
 
   // Déconnexion : le fournisseur est démonté, l'audio doit s'arrêter avec lui.
   useEffect(() => () => {
@@ -265,6 +278,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     document.documentElement.style.setProperty('--player-h', state.track ? '72px' : '0px');
   }, [state.track, state.playing]);
 
-  const value = useMemo<PlayerApi>(() => ({ ...state, play, toggle, pause, seek, skip, setRate, stop }), [state, play, toggle, pause, seek, skip, setRate, stop]);
-  return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;
+  const value = useMemo<PlayerApi>(() => ({ ...state, play, toggle, pause, seek, skip, setRate, stop, activeListening: active.controls, configureActiveListening: active.configure }), [state, play, toggle, pause, seek, skip, setRate, stop, active.controls, active.configure]);
+  return <PlayerContext.Provider value={value}><ActiveListeningBridge />{children}</PlayerContext.Provider>;
 }

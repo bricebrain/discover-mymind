@@ -22,7 +22,7 @@ export function variantLabel(v: ContentVariant): string {
 export function variantTrack(detail: ContentDetail, v: ContentVariant): Track | null {
   // Audio local seulement s'il a exactement la même empreinte que la version affichée.
   const local = v.audio?.sha256 ? offline.audioUrl(v.audio.sha256) : undefined;
-  return v.audio ? { targetType: 'variant', targetId: `${detail.content.id}:${v.key}`,
+  return v.audio ? { segmentSource: { publicationId: detail.publicationId, variant: v }, targetType: 'variant', targetId: `${detail.content.id}:${v.key}`,
     audioRef: v.audio.sha256 ?? v.audio.url, src: local ?? v.audio.url, title: detail.content.title,
     subtitle: `${variantName(v)} · ${languageName(v.language)}`, imageUrl: null, durationSec: v.audio.durationMs / 1000 } : null;
 }
