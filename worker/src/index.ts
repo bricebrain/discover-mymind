@@ -16,6 +16,8 @@ import { candidates } from './dossiers/candidates';
 import { expireExhausted } from './queue/store';
 import * as reflections from './routes/reflections';
 import * as articleFetch from './routes/articleFetch';
+import * as articles from './articles/routes';
+import { collectArticles } from './articles/collect';
 import * as shows from './routes/shows';
 import { getTranscript } from './routes/transcripts';
 import { handleAtelier } from './routes/atelier';
@@ -102,6 +104,11 @@ async function handleData(req: Request, env: Env, path: string, m: string): Prom
   if (rf?.[1] && !rf[2] && m === 'PATCH') return reflections.update(req, env, rf[1]);
   if (rf?.[1] && !rf[2] && m === 'DELETE') return reflections.trash(env, rf[1]);
   if (rf?.[1] && rf[2] && m === 'POST') return reflections.restore(env, rf[1]);
+  if (path === '/api/articles' && m === 'GET') return articles.list(req, env);
+  const art = path.match(/^\/api\/articles\/([0-9a-f]{20})(?:\/(fetch|note))?$/);
+  if (art?.[1] && !art[2] && m === 'GET') return articles.detail(env, art[1]);
+  if (art?.[1] && art[2] === 'fetch' && m === 'POST') return articles.requestFetch(env, art[1]);
+  if (art?.[1] && art[2] === 'note' && m === 'POST') return articles.toNote(req, env, art[1]);
   const rfFetch = path.match(/^\/api\/reflections\/([0-9a-f-]{36})\/fetch$/);
   if (rfFetch?.[1] && m === 'POST') return articleFetch.request(env, rfFetch[1]);
   const rfPrepare = path.match(/^\/api\/reflections\/([0-9a-f-]{36})\/prepare$/);
@@ -147,5 +154,10 @@ export default {
     // Corbeille de My Mind : une fois par heure suffit (minute 7).
     if (new Date().getUTCMinutes() === 7) await reflections.purgeTrash(env);
     if (new Date().getUTCMinutes() === 17) await cleanupPublications(env);
+    // Articles : une source vérifiée tous les quarts d'heure (chacune environ une fois par heure).
+    if (new Date().getUTCMinutes() % 15 === 3) {
+      const a = await collectArticles(env);
+      if (a.status !== 'idle') console.log(JSON.stringify({ event: 'collect_articles', ...a }));
+    }
   },
 } satisfies ExportedHandler<Env>;

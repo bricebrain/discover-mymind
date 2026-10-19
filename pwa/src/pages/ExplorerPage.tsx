@@ -6,6 +6,7 @@ import { CATEGORY_LABELS, type Category } from '../api/episodes';
 import { useShows } from '../api/shows';
 import { categoryColor } from '../app/theme';
 import { EpisodeBrowser } from '../components/EpisodeBrowser';
+import { ArticleBrowser, ArticlesStrip } from '../articles/ArticleBrowser';
 
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as Category[];
 const todayFmt = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -30,6 +31,7 @@ export function ExplorerPage() {
   const [params, setParams] = useSearchParams();
   const show = params.get('show') ?? undefined;
   const category = (params.get('cat') as Category | null) ?? undefined;
+  const articlesView = params.get('source') === 'article';
   const sourceType = params.get('source') === 'youtube' ? 'youtube' : params.get('source') === 'podcast' ? 'podcast' : undefined;
   const lang = (params.get('lang') as 'fr' | 'en' | null) ?? undefined;
 
@@ -38,7 +40,7 @@ export function ExplorerPage() {
     if (value) next.set(key, value);
     else next.delete(key);
     next.delete('e');
-    if (key === 'source') next.delete('show');
+    if (key === 'source') { next.delete('show'); next.delete('a'); }
     setParams(next, { replace: true });
   };
 
@@ -55,22 +57,24 @@ export function ExplorerPage() {
         </Button>
       </Stack>
       <Stack direction="row" spacing={0.75} sx={{ mb: 1.5 }} aria-label="Type de source">
-        <FilterChip label="Tout" active={!sourceType} onClick={() => setParam('source', undefined)} />
+        <FilterChip label="Tout" active={!sourceType && !articlesView} onClick={() => setParam('source', undefined)} />
         <FilterChip label="Podcasts" active={sourceType === 'podcast'} onClick={() => setParam('source', 'podcast')} />
         <FilterChip label="YouTube" active={sourceType === 'youtube'} onClick={() => setParam('source', 'youtube')} />
+        <FilterChip label="Articles" active={articlesView} onClick={() => setParam('source', 'article')} />
       </Stack>
+      {!sourceType && !articlesView && !category && <ArticlesStrip />}
       {sourceType === 'youtube' && <TextField select fullWidth size="small" label="Chaîne YouTube" value={show ?? ''}
         onChange={(e) => setParam('show', e.target.value || undefined)} sx={{ mb: 1.5 }}>
         <MenuItem value="">Toutes les chaînes</MenuItem>
         {(shows.data?.shows ?? []).filter((s) => s.sourceType === 'youtube' && s.enabled).map((s) => <MenuItem key={s.id} value={s.id}>{s.title}</MenuItem>)}
       </TextField>}
-      <Box sx={{ display: 'flex', gap: 0.75, overflowX: 'auto', pb: 1, mx: -1, px: 1, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
+      {!articlesView && <Box sx={{ display: 'flex', gap: 0.75, overflowX: 'auto', pb: 1, mx: -1, px: 1, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
         <FilterChip label="Tout" active={!category} onClick={() => setParam('cat', undefined)} />
         {CATEGORIES.map((c) => (
           <FilterChip key={c} label={CATEGORY_LABELS[c]} color={categoryColor(c, theme.palette.mode)} active={category === c}
             onClick={() => setParam('cat', category === c ? undefined : c)} />
         ))}
-      </Box>
+      </Box>}
       <Stack direction="row" spacing={2} sx={{ mt: 0.5, mb: 0.5 }} role="radiogroup" aria-label="Langue">
         {([['all', 'Toutes langues'], ['fr', 'Français'], ['en', 'Anglais']] as const).map(([v, l]) => {
           const on = (lang ?? 'all') === v;
@@ -85,6 +89,7 @@ export function ExplorerPage() {
     </>
   );
 
+  if (articlesView) return <ArticleBrowser filters={{ lang }} header={header} />;
   return (
     <EpisodeBrowser
       filters={{ category, lang, sourceType, show }}
