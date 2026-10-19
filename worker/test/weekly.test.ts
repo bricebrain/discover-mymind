@@ -48,6 +48,14 @@ describe('bilan et export hebdomadaire I8', () => {
     expect(md.headers.get('Content-Disposition')).toContain('discover-weekly-2026-W43.md');
     expect(await md.text()).toMatchSnapshot();
   });
+  it('liste les activités de la semaine sans le corps des notes', async () => {
+    await note(AT, 'Première ligne\nSuite privée');
+    await env.DB.prepare("UPDATE reflections SET title=NULL WHERE id=?").bind(ID).run();
+    const result = await summary() as unknown as { activities: { notes: { id: string; title: string }[]; listening: unknown[]; articles: unknown[]; publications: unknown[] } };
+    expect(result.activities.notes).toEqual([{ id: ID, title: expect.any(String) }]);
+    expect(JSON.stringify(result.activities)).not.toContain('Suite privée');
+    expect(result.activities).toMatchObject({ listening: [], articles: [], publications: [] });
+  });
   it('garde une photo par note et par heure malgré l’enregistrement automatique', async () => {
     await note();
     const stmt = env.DB.prepare('UPDATE reflections SET body_md=?,updated_at=? WHERE id=?');
