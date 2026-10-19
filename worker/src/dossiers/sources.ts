@@ -9,6 +9,7 @@ export interface Snapshot {
  kind: 'episode' | 'youtube' | 'reflection' | 'content'; capturedAt: string;
  audioUrl?: string; transcriptUrl?: string | null; transcriptType?: string | null;
  durationSec?: number | null; videoId?: string; url?: string; text?: string;
+ origin?: string; sourceName?: string | null; sourceUrl?: string | null;
  publicationId?: string; variantKey?: string; segments?: Segments['segments'];
 }
 export function references(value: unknown): SourceRef[] {
@@ -33,9 +34,10 @@ export async function capture(env: Env, refs: SourceRef[]): Promise<Snapshot[]> 
    if (!e) missing();
    result.push(e.videoId ? {...base,kind:'youtube',title:e.title,language:e.language,videoId:e.videoId,url:`https://www.youtube.com/watch?v=${e.videoId}`} : {...base,...e,kind:'episode',videoId:undefined});
   } else if (r.type==='reflection') {
-   const n=await env.DB.prepare('SELECT title,body_md AS text FROM reflections WHERE id=? AND deleted_at IS NULL').bind(r.id).first<{title:string|null;text:string}>();
+   const n=await env.DB.prepare('SELECT title,body_md AS text,origin,source_name AS sourceName,source_url AS sourceUrl FROM reflections WHERE id=? AND deleted_at IS NULL').bind(r.id).first<{title:string|null;text:string;origin:string;sourceName:string|null;sourceUrl:string|null}>();
    if (!n || n.text.trim().length<20) missing();
-   result.push({...base,kind:'reflection',title:n.title || 'Note My Mind',text:n.text,language:null});
+   // Un article garde sa publication : la synthèse l'attribue au journal, pas à l'utilisateur.
+   result.push({...base,kind:'reflection',title:n.title || 'Note My Mind',text:n.text,language:null,origin:n.origin,sourceName:n.sourceName,sourceUrl:n.sourceUrl});
   } else {
    const p=await env.DB.prepare(`SELECT p.* FROM publications p JOIN contents c ON c.current_publication_id=p.id
      WHERE c.id=? AND c.deleted_at IS NULL AND p.status='ready' AND c.source_type<>'dossier'`).bind(r.id).first<Publication>();

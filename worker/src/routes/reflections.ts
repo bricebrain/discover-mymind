@@ -18,6 +18,9 @@ interface Row {
   question_state: string | null;
   tags_json: string;
   english_content_id: string | null;
+  origin: string;
+  source_name: string | null;
+  source_url: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -52,6 +55,22 @@ function kind(v: unknown): string {
   return v;
 }
 
+/** Origine d'une note : réflexion personnelle ou article (attribué à sa publication). */
+function origin(v: unknown): 'personal' | 'article' {
+  if (v === undefined) return 'personal';
+  if (v !== 'personal' && v !== 'article') throw new HttpError(400, 'invalid_body', 'Origine : personal ou article.');
+  return v;
+}
+function sourceUrl(v: unknown): string | null {
+  if (v === undefined || v === null || v === '') return null;
+  if (typeof v !== 'string' || v.length > 2048) throw new HttpError(400, 'invalid_body', 'Lien : 2 048 caractères au plus.');
+  let url: URL;
+  try { url = new URL(v.trim()); } catch { throw new HttpError(400, 'invalid_body', 'Lien de l’article invalide.'); }
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new HttpError(400, 'invalid_body', 'Lien http(s) attendu.');
+  return url.toString();
+}
+const sourceName = (v: unknown) => (v === '' ? null : text(v, 'Journal', 120));
+
 function tags(v: unknown): string[] {
   if (v === undefined || v === null) return [];
   if (!Array.isArray(v) || v.length > 20 || v.some((t) => typeof t !== 'string' || t.trim() === '' || t.length > 40)) {
@@ -64,6 +83,7 @@ function out(r: Row, links: LinkRow[] = []) {
   return {
     id: r.id, title: r.title, body: r.body_md, kind: r.kind, questionState: r.question_state,
     tags: JSON.parse(r.tags_json) as string[], englishContentId: r.english_content_id,
+    origin: r.origin, sourceName: r.source_name, sourceUrl: r.source_url,
     createdAt: r.created_at, updatedAt: r.updated_at, deletedAt: r.deleted_at,
     links: links.map((l) => ({
       targetType: l.target_type, targetId: l.target_id, variantKey: l.variant_key || null,
@@ -85,7 +105,7 @@ async function load(env: Env, id: string) {
 export async function list(req: Request, env: Env): Promise<Response> {
   const trash = new URL(req.url).searchParams.get('trash') === '1';
   const { results } = await env.DB.prepare(
-    `SELECT r.id, r.title, substr(r.body_md, 1, 280) AS excerpt, r.kind, r.tags_json, r.created_at, r.updated_at, r.deleted_at,
+    `SELECT r.id, r.title, substr(r.body_md, 1, 280) AS excerpt, r.kind, r.origin, r.source_name AS sourceName, r.tags_json, r.created_at, r.updated_at, r.deleted_at,
             (SELECT target_title FROM reflection_links l WHERE l.reflection_id = r.id ORDER BY l.created_at LIMIT 1) AS firstLinkTitle,
             (SELECT COUNT(*) FROM reflection_links l WHERE l.reflection_id = r.id) AS linkCount
        FROM reflections r WHERE r.deleted_at IS ${trash ? 'NOT ' : ''}NULL ORDER BY r.updated_at DESC LIMIT 500`,
@@ -146,8 +166,9 @@ export async function create(req: Request, env: Env): Promise<Response> {
   const createdAt = typeof b.createdAt === 'string' && !Number.isNaN(Date.parse(b.createdAt)) && Date.parse(b.createdAt) <= Date.now() + 60_000
     ? new Date(b.createdAt).toISOString() : now;
   const stmts = [env.DB.prepare(
-    `INSERT INTO reflections (id, title, body_md, kind, tags_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(id, text(b.title, 'Titre', 200), text(b.body, 'Texte', MAX_BODY, false) ?? '', kind(b.kind), JSON.stringify(tags(b.tags)), createdAt, now)];
+    `INSERT INTO reflections (id, title, body_md, kind, tags_json, origin, source_name, source_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(id, text(b.title, 'Titre', 200), text(b.body, 'Texte', MAX_BODY, false) ?? '', kind(b.kind), JSON.stringify(tags(b.tags)),
+    origin(b.origin), sourceName(b.sourceName), sourceUrl(b.sourceUrl), createdAt, now)];
   stmts.push(...((await linkStatements(env, id, b.links, now)) ?? []).slice(1));
   await env.DB.batch(stmts);
   return json({ reflection: await load(env, id) }, 201);
@@ -169,6 +190,9 @@ export async function update(req: Request, env: Env, rawId: string): Promise<Res
   if ('body' in b) { sets.push('body_md = ?'); values.push(text(b.body, 'Texte', MAX_BODY, false)); }
   if ('kind' in b) { sets.push('kind = ?'); values.push(kind(b.kind)); }
   if ('tags' in b) { sets.push('tags_json = ?'); values.push(JSON.stringify(tags(b.tags))); }
+  if ('origin' in b) { sets.push('origin = ?'); values.push(origin(b.origin)); }
+  if ('sourceName' in b) { sets.push('source_name = ?'); values.push(sourceName(b.sourceName)); }
+  if ('sourceUrl' in b) { sets.push('source_url = ?'); values.push(sourceUrl(b.sourceUrl)); }
   const now = new Date().toISOString();
   const linkStmts = await linkStatements(env, id, b.links, now);
   // Compare-and-swap : la mise à jour n'a lieu que si personne n'a écrit entre-temps.
@@ -217,6 +241,7 @@ export async function exportAll(env: Env): Promise<Response> {
   const markdown = reflections.map((r) => [
     `# ${r.title || 'Sans titre'}`, '',
     `_${r.kind} · créée le ${r.createdAt.slice(0, 10)} · modifiée le ${r.updatedAt.slice(0, 10)}${r.tags.length ? ` · ${r.tags.map((t) => `#${t}`).join(' ')}` : ''}_`, '',
+    ...(r.origin === 'article' ? [`Article${r.sourceName ? ` · ${r.sourceName}` : ''}${r.sourceUrl ? ` · ${r.sourceUrl}` : ''}`, ''] : []),
     r.body, ...(r.links.length ? ['', '**Sources :**', ...r.links.map((l) => `- ${l.targetTitle}${l.quote ? ` — « ${l.quote} »` : ''}`)] : []),
   ].join('\n')).join('\n\n---\n\n');
   const date = new Date().toISOString().slice(0, 10);

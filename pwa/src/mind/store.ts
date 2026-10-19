@@ -1,5 +1,6 @@
 import { openDB, type IDBPDatabase } from 'idb';
 import { api, ApiError } from '../api/client';
+import { validArticleUrl } from './articleUrl';
 
 /**
  * My Mind côté appareil (lot 4) : chaque note est d'abord écrite dans IndexedDB (rien ne se perd
@@ -27,7 +28,13 @@ export interface Note {
   updatedAt: string;
   deletedAt: string | null;
   englishContentId?: string | null;
+  /** Réflexion personnelle ou article attribué à sa publication. */
+  origin?: NoteOrigin;
+  sourceName?: string | null;
+  sourceUrl?: string | null;
 }
+
+export type NoteOrigin = 'personal' | 'article';
 
 export interface Draft {
   id: string;
@@ -35,6 +42,10 @@ export interface Draft {
   body: string;
   links: NoteLink[];
   createdAt: string;
+  /** Facultatifs : les brouillons enregistrés avant cette version n'en ont pas (= réflexion personnelle). */
+  origin?: NoteOrigin;
+  sourceName?: string;
+  sourceUrl?: string;
   /** Version serveur de référence ; null = jamais envoyée. */
   baseUpdatedAt: string | null;
   /** Modifications locales pas encore acceptées par le serveur. */
@@ -49,6 +60,8 @@ export interface NoteSummary {
   updatedAt: string;
   firstLinkTitle: string | null;
   linkCount: number;
+  origin?: NoteOrigin;
+  sourceName?: string | null;
   /** Seulement sur cet appareil (pas encore synchronisée). */
   localOnly?: boolean;
 }
@@ -102,6 +115,7 @@ export function newDraft(links: NoteLink[] = []): Draft {
 
 export const draftFromNote = (n: Note): Draft => ({
   id: n.id, title: n.title ?? '', body: n.body, links: n.links, createdAt: n.createdAt,
+  origin: n.origin ?? 'personal', sourceName: n.sourceName ?? '', sourceUrl: n.sourceUrl ?? '',
   baseUpdatedAt: n.updatedAt, dirty: false, localUpdatedAt: Date.now(),
 });
 
@@ -115,7 +129,10 @@ const linksPayload = (links: NoteLink[]) => links.map(({ targetType, targetId, v
 
 /** Envoie un brouillon : création (idempotente) ou modification avec contrôle de version. */
 export async function pushDraft(d: Draft): Promise<PushResult> {
-  const fields = { title: d.title.trim() || null, body: d.body, links: linksPayload(d.links) };
+  const fields: Record<string, unknown> = { title: d.title.trim() || null, body: d.body, links: linksPayload(d.links),
+    origin: d.origin ?? 'personal', sourceName: d.sourceName?.trim() || null, sourceUrl: d.sourceUrl?.trim() || null };
+  // Un lien en cours de saisie n'est pas envoyé : le reste de la note se synchronise quand même.
+  if (!validArticleUrl(d.sourceUrl ?? '')) delete fields.sourceUrl;
   try {
     if (d.baseUpdatedAt === null) {
       const r = await api<{ reflection: Note }>('/api/reflections', { method: 'POST', body: { id: d.id, createdAt: d.createdAt, ...fields } });

@@ -15,6 +15,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { fonts } from '../app/theme';
 import { renderMarkdown } from './markdown';
+import { NoteOriginFields } from './NoteOriginFields';
 import { NotePreparation } from './NotePreparation';
 import { deleteDraft, draftFromNote, getDraft, pushDraft, putDraft, type Draft, type Note } from './store';
 
@@ -134,7 +135,7 @@ export function NoteEditor({ id, onBack, onDeleted }: { id: string; onBack?: () 
     };
   }, [id, push]);
 
-  const edit = (patch: Partial<Pick<Draft, 'title' | 'body'>>) => {
+  const edit = (patch: Partial<Pick<Draft, 'title' | 'body' | 'origin' | 'sourceName' | 'sourceUrl'>>) => {
     if (!latest.current) return;
     const next = { ...latest.current, ...patch, dirty: true, localUpdatedAt: Date.now() };
     latest.current = next;
@@ -210,6 +211,8 @@ export function NoteEditor({ id, onBack, onDeleted }: { id: string; onBack?: () 
         fullWidth
         sx={{ fontFamily: fonts.display, fontSize: '1.7rem', fontWeight: 600, lineHeight: 1.2, mb: 1 }}
       />
+
+      <NoteOriginFields draft={draft} onChange={edit} />
 
       <Tabs value={tab} onChange={(_e, v: 'write' | 'preview') => setTab(v)} sx={{ mb: 1.5, minHeight: 36 }}>
         <Tab value="write" label="Écrire" sx={{ minHeight: 36 }} />

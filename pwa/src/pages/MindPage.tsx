@@ -47,6 +47,7 @@ function NoteCard({ note, selected, onOpen }: { note: NoteSummary; selected: boo
         </Typography>
       )}
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75, color: 'text.secondary' }}>
+        {note.origin === 'article' && <Typography variant="caption" color="primary" sx={{ fontWeight: 650 }} noWrap>Article{note.sourceName ? ` · ${note.sourceName}` : ''}</Typography>}
         <Typography variant="caption">{note.localOnly ? 'Sur cet appareil' : formatWhen(note.updatedAt)}</Typography>
         {note.firstLinkTitle && (
           <Stack direction="row" spacing={0.5} alignItems="center" sx={{ minWidth: 0 }}>
