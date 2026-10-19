@@ -2,7 +2,7 @@
 
 ## État du chantier
 
-Export et analyse des 363 annotations livrés. **Accord sur le compromis des seuils encore attendu.** Proposition restrictive : même langue 0,75 ; entre langues 0,79 ; zone de doute 0,60 conservée ; juge désactivé. Elle obtient 93,8 % de précision sur les paires annotées regroupées, mais seulement 18,1 % de rappel et perd les 15 positifs entre langues. Aucun réglage appliqué. Voir `docs/calibration/V9-5-ANALYSE.md`. Le chantier suivant n’est pas commencé.
+Export, analyse des 363 annotations et correction de la cohérence des groupes livrés. **Accord sur les nouvelles valeurs encore attendu.** Proposition après correction : même langue **0,75** ; entre langues **0,75** ; zone de doute 0,60 conservée ; juge désactivé. Sur l’échantillon : 26 vrais rapprochements, aucun faux, dont les 15 positifs entre langues ; les 57 positifs exclus par les règles d’éditeur/texte restent écartés. Aucun réglage appliqué. Voir `docs/calibration/V9-5-COHERENCE.md`, qui remplace la proposition restrictive de l’analyse précédente. Le chantier suivant n’est pas commencé.
 
 Worktrees :
 
@@ -15,6 +15,7 @@ Worktrees :
 - `docs/calibration/V9-5-NOTICE.md` : règles d’annotation et de restitution.
 - `docs/calibration/V9-5-paires-annotees.csv` : réponses reçues, associées par identifiants aux textes et scores originaux après vérification des altérations de tableur.
 - `docs/calibration/V9-5-ANALYSE.md` : couverture, contrôles, évaluation native, simulation du regroupement réel et proposition exacte soumise à accord.
+- `docs/calibration/V9-5-COHERENCE.md` : correction autorisée par l’utilisateur, code et tests Atelier, comparaison avant/après et nouvelle proposition soumise à accord.
 - Le présent compte rendu.
 
 Le brief impose l’utilisation de `discover_related_calibrer.py` et son contrat CSV ; le fichier n’a pas été reconstruit dans un autre format de tableur.
@@ -82,3 +83,11 @@ Les 363 réponses ont été reçues : 83 `oui`, 280 `non`. Aucune annotation man
 L’évaluateur natif propose 0,74 / 0,76 ; la simulation des groupes complets montre que ces valeurs ne suffisent pas : 12 faux regroupements sur 39 paires prédites positives. L’option restrictive 0,75 / 0,79 réduit ce nombre à 1 sur 16, au prix de 68 événements annotés manqués sur 83. Les réglages seuls ne résolvent pas la cohérence transitive des groupes.
 
 Les mêmes suites obligatoires ont été relancées pour cette deuxième phase : **1 160 tests passent**, TypeScript, lint et builds requis réussis. Aucun changement de code applicatif. L’utilisateur doit maintenant décider s’il accepte l’option restrictive ou préfère un changement distinct du regroupement avant application.
+
+## Correction autorisée — 20 octobre 2026
+
+L’utilisateur a autorisé la correction du regroupement. Le worktree Atelier `codex/v9-5`, commit **`2fbd089`**, contient désormais `discover_related_groups.py`, son branchement dans `discover_related_similarity.py`, l’actualisation du diagnostic dans `discover_related_calibrer.py` et 19 tests dans `tests/test_discover_related_groups.py`.
+
+Chaque groupe exige un lien validé entre toutes ses paires ; des groupes distincts peuvent partager une source. La couverture conserve tous les liens validés, les voisins « Voir aussi » ne changent pas et les identités des anciens groupes sont retirées par le mécanisme de publication existant. La configuration et le processus réels de l’Atelier restent inchangés.
+
+La proposition devient 0,75 / 0,75 ; les valeurs et leur application nécessitent encore accord. Le bilan détaillé et les limites sont dans `docs/calibration/V9-5-COHERENCE.md`. Les suites obligatoires passent après correction : **1 179 tests**, dont **303 Atelier** ; TypeScript, lint et builds requis réussis.

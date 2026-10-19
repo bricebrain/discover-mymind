@@ -1,5 +1,7 @@
 # V9-5 — Résultats de calibration, 20 octobre 2026
 
+> Bilan historique avant correction. Après accord de l’utilisateur, l’algorithme a été corrigé ; la proposition actuelle est **0,75 / 0,75**, détaillée dans `V9-5-COHERENCE.md`. Les résultats ci-dessous décrivent l’ancien regroupement transitif.
+
 ## Conclusion et proposition soumise à accord
 
 Les annotations montrent que les valeurs actuelles par défaut (`same = 0,72`, `cross = 0,64`) regroupent trop largement les contenus. Relever les seuils améliore la précision, mais les composantes transitives peuvent encore réunir des faits différents. **Aucun réglage ne réunit ici une précision élevée et une bonne couverture.**
