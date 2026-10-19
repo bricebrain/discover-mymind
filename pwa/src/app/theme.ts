@@ -8,8 +8,8 @@ import type { Category } from '../api/episodes';
  * interface en Inter, lecture longue en Literata (polices auto-hébergées, CSP font-src 'self').
  */
 export const fonts = {
-  display: '"Fraunces Variable", ui-serif, Georgia, serif',
-  ui: '"Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+  display: '"Instrument Serif", ui-serif, Georgia, serif',
+  ui: '"Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
   reading: '"Literata Variable", ui-serif, "New York", Charter, Georgia, serif',
 } as const;
 
@@ -32,12 +32,12 @@ interface Tokens {
 
 export const tokensFor = (mode: PaletteMode): Tokens => (mode === 'light'
   ? {
-      bg: '#F6F2EA', surface: '#FFFDF8', raised: '#FFFFFF', ink: '#1E1B16', muted: '#615A50', faint: '#8F877B',
-      line: 'rgba(30,27,22,0.10)', accent: '#0E6B61', accentInk: '#FFFFFF', amber: '#B86E12', amberSoft: 'rgba(214,146,45,0.16)',
+      bg: '#FAFAF9', surface: '#FFFFFF', raised: '#FFFFFF', ink: '#18181B', muted: '#71717A', faint: '#A1A1AA',
+      line: '#E4E4E7', accent: '#0D5F56', accentInk: '#FFFFFF', amber: '#9A3412', amberSoft: '#FFF1E6',
     }
   : {
-      bg: '#13120F', surface: '#1C1A16', raised: '#25221D', ink: '#EEE8DD', muted: '#ADA597', faint: '#7E776B',
-      line: 'rgba(238,232,221,0.10)', accent: '#56D1C1', accentInk: '#06201C', amber: '#E8AE5C', amberSoft: 'rgba(232,174,92,0.16)',
+      bg: '#0C0C0E', surface: '#17171A', raised: '#1F1F23', ink: '#F4F4F5', muted: '#A1A1AA', faint: '#71717A',
+      line: '#2C2C31', accent: '#5EC9BB', accentInk: '#06201C', amber: '#FB923C', amberSoft: 'rgba(251,146,60,0.14)',
     });
 
 /** Couleur discrète par catégorie (pastille, puce). */
@@ -71,8 +71,8 @@ export function buildTheme(mode: PaletteMode) {
     shape: { borderRadius: 4 },
     typography: {
       fontFamily: fonts.ui,
-      h1: { fontFamily: fonts.display, fontSize: '2.1rem', fontWeight: 600, letterSpacing: '-0.02em', lineHeight: 1.1, fontVariationSettings: '"opsz" 72' },
-      h2: { fontFamily: fonts.display, fontSize: '1.45rem', fontWeight: 600, letterSpacing: '-0.015em', lineHeight: 1.2 },
+      h1: { fontFamily: fonts.display, fontSize: '2.5rem', fontWeight: 400, letterSpacing: '-0.01em', lineHeight: 1.05 },
+      h2: { fontFamily: fonts.display, fontSize: '1.7rem', fontWeight: 400, letterSpacing: '-0.005em', lineHeight: 1.15 },
       h3: { fontSize: '1.02rem', fontWeight: 650, letterSpacing: '-0.01em' },
       body1: { lineHeight: 1.55 },
       body2: { lineHeight: 1.5 },

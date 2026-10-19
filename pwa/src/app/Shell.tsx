@@ -1,65 +1,74 @@
-import AutoStoriesOutlinedIcon from '@mui/icons-material/AutoStoriesOutlined';
-import ExploreOutlinedIcon from '@mui/icons-material/ExploreOutlined';
-import PsychologyAltOutlinedIcon from '@mui/icons-material/PsychologyAltOutlined';
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
-import { BottomNavigation, BottomNavigationAction, Box, IconButton, Toolbar, Typography } from '@mui/material';
-import { alpha } from '@mui/material/styles';
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { BookOpen, Compass, Lightbulb, Settings } from 'lucide-react';
+import { motion } from 'motion/react';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import { MiniPlayer } from '../player/MiniPlayer';
 import { OfflineBanner } from '../offline/OfflineBanner';
-import { fonts } from './theme';
 
 export const TABS = [
-  { path: '/', label: 'Explorer', icon: <ExploreOutlinedIcon /> },
-  { path: '/library', label: 'Bibliothèque', icon: <AutoStoriesOutlinedIcon /> },
-  { path: '/mind', label: 'My Mind', icon: <PsychologyAltOutlinedIcon /> },
+  { path: '/', label: 'Explorer', icon: Compass },
+  { path: '/library', label: 'Bibliothèque', icon: BookOpen },
+  { path: '/mind', label: 'My Mind', icon: Lightbulb },
 ] as const;
 
 /** Hauteurs fixes du cadre, utilisées par les mises en page en deux colonnes. */
 export const APP_BAR_H = 52;
 export const NAV_H = 64;
 
-/** Cadre de l'app : barre du haut translucide, contenu, mini-lecteur flottant et navigation en bas. */
+/**
+ * Cadre de l'app (refonte Tailwind + shadcn/ui + Motion) : barre du haut translucide, contenu animé à chaque écran,
+ * mini-lecteur flottant et navigation du bas avec une pastille qui glisse vers l'onglet actif.
+ */
 export function Shell() {
   const { pathname } = useLocation();
-  const navigate = useNavigate();
   const active = TABS.findIndex((t) => (t.path === '/' ? pathname === '/' : pathname.startsWith(t.path)));
 
   return (
-    <Box sx={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
-      <Box component="header" sx={(t) => ({
-        position: 'sticky', top: 0, zIndex: t.zIndex.appBar, pt: 'env(safe-area-inset-top)',
-        bgcolor: alpha(t.palette.background.default, 0.82), backdropFilter: 'saturate(1.4) blur(14px)',
-        borderBottom: 1, borderColor: 'divider',
-      })}>
-        <Toolbar sx={{ minHeight: `${APP_BAR_H}px !important`, px: { xs: 2 } }}>
-          <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', textDecoration: 'none', flex: 1 }}>
-            <Box component="img" src="/icons/icon.svg" alt="" sx={{ width: 26, height: 26, borderRadius: 1.5 }} />
-            <Typography component="span" sx={{ fontFamily: fonts.display, fontWeight: 650, fontSize: '1.2rem', letterSpacing: '-0.01em' }}>
-              Discover
-            </Typography>
-          </Box>
-          <IconButton component={Link} to="/settings" aria-label="Réglages" edge="end" color={pathname === '/settings' ? 'primary' : 'default'}>
-            <SettingsOutlinedIcon />
-          </IconButton>
-        </Toolbar>
+    <div className="flex min-h-dvh flex-col bg-background font-sans text-foreground">
+      <header className="sticky top-0 z-[1100] border-b border-border/70 bg-background/80 pt-[env(safe-area-inset-top)] backdrop-blur-xl backdrop-saturate-150">
+        <div className="flex h-[52px] items-center gap-2 px-4">
+          <Link to="/" className="flex flex-1 items-center gap-2 text-foreground no-underline">
+            <img src="/icons/icon.svg" alt="" className="size-[26px] rounded-md" />
+            <span className="font-display text-[1.6rem] leading-none tracking-tight">Discover</span>
+          </Link>
+          <Link to="/settings" aria-label="Réglages" aria-current={pathname === '/settings' ? 'page' : undefined}
+            className={cn('-mr-2 grid size-11 place-items-center rounded-full transition-colors hover:bg-muted active:scale-95',
+              pathname === '/settings' ? 'text-primary' : 'text-foreground')}>
+            <Settings className="size-5" strokeWidth={2} />
+          </Link>
+        </div>
         <OfflineBanner />
-      </Box>
+      </header>
 
-      <Box component="main" sx={{ flex: 1, pb: `calc(${NAV_H}px + var(--player-h, 0px) + env(safe-area-inset-bottom))` }}>
-        <Outlet />
-      </Box>
+      <main className="flex-1" style={{ paddingBottom: `calc(${NAV_H}px + var(--player-h, 0px) + env(safe-area-inset-bottom))` }}>
+        {/* Entrée douce à chaque écran ; pas d'animation de sortie (l'ancien écran disparaît aussitôt, sans flash). */}
+        <motion.div key={pathname} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}>
+          <Outlet />
+        </motion.div>
+      </main>
 
-      <Box component="nav" aria-label="Navigation principale" sx={(t) => ({
-        position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: t.zIndex.appBar, pb: 'env(safe-area-inset-bottom)',
-        bgcolor: alpha(t.palette.background.default, 0.92), backdropFilter: 'saturate(1.4) blur(14px)',
-        borderTop: 1, borderColor: 'divider',
-      })}>
+      <nav aria-label="Navigation principale"
+        className="fixed inset-x-0 bottom-0 z-[1100] border-t border-border/70 bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl backdrop-saturate-150">
         <MiniPlayer />
-        <BottomNavigation showLabels value={active === -1 ? false : active} onChange={(_e, i: number) => navigate(TABS[i]!.path)}>
-          {TABS.map((t) => <BottomNavigationAction key={t.path} label={t.label} icon={t.icon} />)}
-        </BottomNavigation>
-      </Box>
-    </Box>
+        <div className="mx-auto grid h-16 max-w-[760px] grid-cols-3">
+          {TABS.map((t, i) => {
+            const on = i === active;
+            const Icon = t.icon;
+            return (
+              <NavLink key={t.path} to={t.path} end={t.path === '/'} aria-current={on ? 'page' : undefined}
+                className={cn('flex flex-col items-center justify-center gap-1 text-xs no-underline transition-colors active:scale-95',
+                  on ? 'font-semibold text-primary' : 'font-medium text-muted-foreground')}>
+                <span className="relative grid h-7 w-14 place-items-center">
+                  {on && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-full bg-primary-soft"
+                    transition={{ type: 'spring', stiffness: 520, damping: 38 }} />}
+                  <Icon className="relative size-[22px]" strokeWidth={on ? 2.2 : 1.9} />
+                </span>
+                {t.label}
+              </NavLink>
+            );
+          })}
+        </div>
+      </nav>
+    </div>
   );
 }

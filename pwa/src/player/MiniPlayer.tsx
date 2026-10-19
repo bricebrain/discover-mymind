@@ -1,4 +1,3 @@
-import CloseIcon from '@mui/icons-material/Close';
 import Forward10Icon from '@mui/icons-material/Forward10';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import PauseIcon from '@mui/icons-material/Pause';
@@ -8,6 +7,10 @@ import { Alert, Avatar, Box, Button, ButtonBase, CircularProgress, Drawer, IconB
 import { alpha } from '@mui/material/styles';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
+import { Loader2, Pause, Play, X } from 'lucide-react';
+import { motion } from 'motion/react';
+import { Button as UiButton } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { fonts } from '../app/theme';
 import { ListeningControls, ListeningStatus, ReturnToVersionButton } from '../listening/ListeningControls';
 import { useListeningAutomation } from '../listening/useListeningAutomation';
@@ -40,10 +43,10 @@ function PlayPause({ size = 'medium' }: { size?: 'medium' | 'large' }) {
   );
 }
 
-/** Mini-lecteur persistant : carte flottante au-dessus de la navigation ; un toucher ouvre le lecteur complet. */
+/** Mini-lecteur persistant : capsule sombre flottante au-dessus de la navigation ; un toucher ouvre le lecteur complet. */
 export function MiniPlayer() {
   const player = usePlayer();
-  const { track, position, duration, error, stop } = player;
+  const { track, position, duration, error, stop, playing, buffering, toggle } = player;
   // Minuterie de sommeil et enchaînement (I5) : actifs tant que le lecteur existe.
   useListeningAutomation(player);
   const [open, setOpen] = useState(false);
@@ -52,29 +55,33 @@ export function MiniPlayer() {
 
   return (
     <>
-      <Box sx={{ px: 1, pt: 1, maxWidth: 760, mx: 'auto' }}>
-        <Box sx={(t) => ({
-          position: 'relative', height: 64, borderRadius: 4, overflow: 'hidden', bgcolor: t.palette.mode === 'light' ? '#FFFFFF' : '#2A2620',
-          boxShadow: t.palette.mode === 'light' ? '0 6px 24px rgba(30,27,22,0.12), 0 1px 3px rgba(30,27,22,0.08)' : '0 6px 24px rgba(0,0,0,0.45)',
-          animation: 'riseIn .25s ease-out',
-        })}>
-          <Stack direction="row" alignItems="center" sx={{ height: '100%', pl: 1, pr: 0.5, gap: 0.5 }}>
-            <ButtonBase onClick={() => setOpen(true)} aria-label="Ouvrir le lecteur"
-              sx={{ flex: 1, minWidth: 0, justifyContent: 'flex-start', gap: 1.25, height: '100%', borderRadius: 3, textAlign: 'left' }}>
-              <Avatar variant="rounded" src={track.imageUrl ?? undefined} alt="" sx={{ width: 46, height: 46, borderRadius: 2.5 }} />
-              <Box sx={{ minWidth: 0 }}>
-                <Typography variant="body2" noWrap sx={{ fontWeight: 650 }}>{track.title}</Typography>
-                <Typography variant="caption" color={error ? 'error' : 'text.secondary'} noWrap component="div">
+      <div className="mx-auto max-w-[760px] px-2 pt-2">
+        <motion.div initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+          className="relative h-16 overflow-hidden rounded-2xl bg-dock text-dock-foreground shadow-[0_16px_40px_-14px_rgba(0,0,0,.45)]">
+          <div className="flex h-full items-center gap-1 pl-2 pr-1.5">
+            <button type="button" onClick={() => setOpen(true)} aria-label="Ouvrir le lecteur"
+              className="flex h-full min-w-0 flex-1 items-center gap-2.5 rounded-xl text-left active:scale-[.99]">
+              {track.imageUrl
+                ? <img src={track.imageUrl} alt="" className="size-11 shrink-0 rounded-xl object-cover" />
+                : <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary text-sm font-bold text-primary-foreground">{track.title.slice(0, 1)}</span>}
+              <span className="min-w-0">
+                <span className="block truncate text-[13.5px] font-semibold">{track.title}</span>
+                <span className={cn('block truncate text-xs', error ? 'text-red-300' : 'text-dock-foreground/65')}>
                   <ListeningStatus />{error ?? `${track.subtitle} · ${formatClock(position)} / ${formatClock(duration)}`}
-                </Typography>
-              </Box>
-            </ButtonBase>
-            <PlayPause />
-            <IconButton onClick={stop} aria-label="Fermer le lecteur" size="small" sx={{ color: 'text.secondary' }}><CloseIcon fontSize="small" /></IconButton>
-          </Stack>
-          <Box aria-hidden sx={{ position: 'absolute', left: 0, bottom: 0, height: 3, width: `${progress}%`, bgcolor: 'secondary.main', transition: 'width .3s linear' }} />
-        </Box>
-      </Box>
+                </span>
+              </span>
+            </button>
+            <UiButton variant="dock" size="icon-sm" onClick={toggle} aria-label={playing ? 'Pause' : 'Lecture'}>
+              {buffering && playing ? <Loader2 className="size-4 animate-spin" /> : playing ? <Pause className="size-4 fill-current" /> : <Play className="ml-0.5 size-4 fill-current" />}
+            </UiButton>
+            <button type="button" onClick={stop} aria-label="Fermer le lecteur"
+              className="grid size-10 place-items-center rounded-full text-dock-foreground/60 transition-colors hover:text-dock-foreground active:scale-95">
+              <X className="size-4" />
+            </button>
+          </div>
+          <div aria-hidden className="absolute bottom-0 left-0 h-[3px] bg-primary transition-[width] duration-300 ease-linear" style={{ width: `${progress}%` }} />
+        </motion.div>
+      </div>
       <FullPlayer open={open} onClose={() => setOpen(false)} />
     </>
   );
