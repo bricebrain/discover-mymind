@@ -15,6 +15,7 @@ import { PlayerProvider } from '../player/PlayerProvider';
 import { initOffline, isNetworkFailure, useOffline } from '../offline';
 import { Shell } from './Shell';
 import { buildTheme } from './theme';
+import { useAppearance } from '../settings/AppearanceProvider';
 
 const router = createBrowserRouter([
   {
@@ -64,8 +65,8 @@ function Gate() {
 }
 
 export function App() {
-  // Thème clair uniquement, quel que soit le réglage du téléphone.
-  const theme = useMemo(() => buildTheme('light'), []);
+  const { mode } = useAppearance();
+  const theme = useMemo(() => buildTheme(mode), [mode]);
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />

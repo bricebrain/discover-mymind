@@ -25,8 +25,26 @@
   --dock: rgba(24, 24, 27, 0.94);
   --dock-foreground: #fafafa;
 }
-/* Thème clair uniquement (choix de l’utilisateur, 19 octobre 2026), même si le téléphone est en mode sombre. */
 :root { color-scheme: light; }
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --background: #0c0c0e;
+  --foreground: #f4f4f5;
+  --card: #17171a;
+  --muted: #1f1f23;
+  --muted-foreground: #a1a1aa;
+  --border: #2c2c31;
+  --primary: #5ec9bb;
+  --primary-foreground: #06201c;
+  --primary-soft: #123630;
+  --article: #fb923c;
+  --article-soft: #352219;
+  --youtube: #fca5a5;
+  --youtube-soft: #3b1c20;
+  --dock: rgba(31, 31, 35, 0.96);
+  --dock-foreground: #f4f4f5;
+}
 
 @theme inline {
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
