@@ -1,3 +1,4 @@
+import { vocabularyRoute } from './vocabulary/routes';
 import { flushEvents,cleanupEvents } from './events/hub';
 import { identity } from './events/identity';
 import { notifications } from './events/subscriptions';
@@ -61,6 +62,7 @@ async function handleApi(req: Request, env: Env, path: string): Promise<Response
 
 /** Routes de données (émissions, épisodes, progression) : la session est vérifiée avant. */
 async function handleData(req: Request, env: Env, path: string, m: string): Promise<Response> {
+  if (path.startsWith('/api/vocabulary/')) { const r = await vocabularyRoute(req,env,path); if (r) return r; }
   if (path==='/api/dossier-sources' && m==='GET') return candidates(req,env);
   if (path.startsWith('/api/dossiers')) { const response=await dossierRoute(req,env,path); if(response) return response; }
   if (path === '/api/sources/youtube' && m === 'POST') return queue.enqueueYoutube(req,env);
