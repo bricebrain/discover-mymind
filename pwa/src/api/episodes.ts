@@ -53,8 +53,9 @@ function query(filters: ExplorerFilters, cursor?: string): string {
   return s ? `?${s}` : '';
 }
 
-export function useExplorer(filters: ExplorerFilters) {
+export function useExplorer(filters: ExplorerFilters, enabled = true) {
   return useInfiniteQuery({
+    enabled,
     queryKey: ['explorer', filters],
     queryFn: ({ pageParam }) => api<{ episodes: Episode[]; nextCursor: string | null }>(`/api/explorer${query(filters, pageParam)}`),
     initialPageParam: undefined as string | undefined,

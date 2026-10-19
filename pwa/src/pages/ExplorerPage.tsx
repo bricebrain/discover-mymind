@@ -1,101 +1,95 @@
-import PodcastsOutlinedIcon from '@mui/icons-material/PodcastsOutlined';
-import { Box, Button, ButtonBase, Stack, TextField, MenuItem, Typography, useTheme } from '@mui/material';
-import { alpha } from '@mui/material/styles';
+import { Radio } from 'lucide-react';
+import { motion } from 'motion/react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CATEGORY_LABELS, type Category } from '../api/episodes';
 import { useShows } from '../api/shows';
 import { categoryColor } from '../app/theme';
-import { EpisodeBrowser } from '../components/EpisodeBrowser';
-import { ArticleBrowser, ArticlesStrip } from '../articles/ArticleBrowser';
+import { ExplorerFeed } from '../explorer/ExplorerFeed';
+import { cn } from '@/lib/utils';
 
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as Category[];
 const todayFmt = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+type Source = 'all' | 'podcast' | 'youtube' | 'article';
+const SOURCES: [Source, string][] = [['all', 'Tout'], ['podcast', 'Podcasts'], ['youtube', 'YouTube'], ['article', 'Articles']];
 
-function FilterChip({ label, active, color, onClick }: { label: string; active: boolean; color?: string; onClick: () => void }) {
-  return (
-    <ButtonBase onClick={onClick} aria-pressed={active} sx={(t) => ({
-      flexShrink: 0, height: 34, px: 1.5, borderRadius: 999, gap: 0.75, fontWeight: 600, fontSize: '0.85rem',
-      border: 1, borderColor: active ? 'transparent' : 'divider',
-      bgcolor: active ? (color ? alpha(color, t.palette.mode === 'light' ? 0.14 : 0.22) : 'text.primary') : 'transparent',
-      color: active ? (color ?? t.palette.background.default) : 'text.primary', transition: 'background-color .2s',
-    })}>
-      {color && <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: color }} />}
-      {label}
-    </ButtonBase>
-  );
+/** Sélecteur segmenté de la maquette : la pastille blanche glisse vers le choix actif (Motion). */
+function Segmented({ value, onChange }: { value: Source; onChange: (s: Source) => void }) {
+  return <div role="tablist" aria-label="Type de contenu" className="grid h-10 grid-cols-4 rounded-xl bg-muted p-1">
+    {SOURCES.map(([id, label]) => {
+      const on = id === value;
+      return <button key={id} type="button" role="tab" aria-selected={on} onClick={() => onChange(id)}
+        className={cn('relative rounded-[9px] text-[13px] font-semibold transition-colors', on ? 'text-foreground' : 'text-muted-foreground')}>
+        {on && <motion.span layoutId="explorer-segment" className="absolute inset-0 rounded-[9px] bg-card shadow-[0_1px_2px_rgba(0,0,0,.08),0_0_0_1px_rgba(0,0,0,.04)]"
+          transition={{ type: 'spring', stiffness: 520, damping: 38 }} />}
+        <span className="relative">{label}</span>
+      </button>;
+    })}
+  </div>;
 }
 
+function Chip({ label, active, color, onClick }: { label: string; active: boolean; color?: string; onClick: () => void }) {
+  return <button type="button" onClick={onClick} aria-pressed={active}
+    className={cn('flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-semibold transition-colors active:scale-95',
+      active ? 'border-transparent bg-foreground text-background' : 'border-border bg-card text-foreground hover:bg-muted')}
+    style={active && color ? { background: `${color}1f`, color } : undefined}>
+    {color && <span className="size-2 rounded-full" style={{ background: color }} />}{label}
+  </button>;
+}
+
+/** Explorer : podcasts, vidéos YouTube et articles dans un même fil, filtrables par type, catégorie et langue. */
 export function ExplorerPage() {
-  const theme = useTheme();
   const shows = useShows();
   const [params, setParams] = useSearchParams();
+  const raw = params.get('source');
+  const source: Source = raw === 'podcast' || raw === 'youtube' || raw === 'article' ? raw : 'all';
   const show = params.get('show') ?? undefined;
   const category = (params.get('cat') as Category | null) ?? undefined;
-  const articlesView = params.get('source') === 'article';
-  const sourceType = params.get('source') === 'youtube' ? 'youtube' : params.get('source') === 'podcast' ? 'podcast' : undefined;
   const lang = (params.get('lang') as 'fr' | 'en' | null) ?? undefined;
 
   const setParam = (key: string, value: string | undefined) => {
     const next = new URLSearchParams(params);
-    if (value) next.set(key, value);
-    else next.delete(key);
-    next.delete('e');
-    if (key === 'source') { next.delete('show'); next.delete('a'); }
+    if (value) next.set(key, value); else next.delete(key);
+    next.delete('e'); next.delete('a');
+    if (key === 'source') next.delete('show');
     setParams(next, { replace: true });
   };
 
-  const today = todayFmt.format(new Date());
-  const header = (
-    <>
-      <Stack direction="row" alignItems="flex-end" sx={{ mb: 2 }}>
-        <Box sx={{ flex: 1 }}>
-          <Typography variant="overline" color="text.secondary">{today}</Typography>
-          <Typography variant="h1" component="h1">Explorer</Typography>
-        </Box>
-        <Button component={Link} to="/shows" startIcon={<PodcastsOutlinedIcon />} size="small" variant="outlined" sx={{ mb: 0.5 }}>
-          Abonnements
-        </Button>
-      </Stack>
-      <Stack direction="row" spacing={0.75} sx={{ mb: 1.5 }} aria-label="Type de source">
-        <FilterChip label="Tout" active={!sourceType && !articlesView} onClick={() => setParam('source', undefined)} />
-        <FilterChip label="Podcasts" active={sourceType === 'podcast'} onClick={() => setParam('source', 'podcast')} />
-        <FilterChip label="YouTube" active={sourceType === 'youtube'} onClick={() => setParam('source', 'youtube')} />
-        <FilterChip label="Articles" active={articlesView} onClick={() => setParam('source', 'article')} />
-      </Stack>
-      {!sourceType && !articlesView && !category && <ArticlesStrip />}
-      {sourceType === 'youtube' && <TextField select fullWidth size="small" label="Chaîne YouTube" value={show ?? ''}
-        onChange={(e) => setParam('show', e.target.value || undefined)} sx={{ mb: 1.5 }}>
-        <MenuItem value="">Toutes les chaînes</MenuItem>
-        {(shows.data?.shows ?? []).filter((s) => s.sourceType === 'youtube' && s.enabled).map((s) => <MenuItem key={s.id} value={s.id}>{s.title}</MenuItem>)}
-      </TextField>}
-      {!articlesView && <Box sx={{ display: 'flex', gap: 0.75, overflowX: 'auto', pb: 1, mx: -1, px: 1, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
-        <FilterChip label="Tout" active={!category} onClick={() => setParam('cat', undefined)} />
-        {CATEGORIES.map((c) => (
-          <FilterChip key={c} label={CATEGORY_LABELS[c]} color={categoryColor(c, theme.palette.mode)} active={category === c}
-            onClick={() => setParam('cat', category === c ? undefined : c)} />
-        ))}
-      </Box>}
-      <Stack direction="row" spacing={2} sx={{ mt: 0.5, mb: 0.5 }} role="radiogroup" aria-label="Langue">
-        {([['all', 'Toutes langues'], ['fr', 'Français'], ['en', 'Anglais']] as const).map(([v, l]) => {
-          const on = (lang ?? 'all') === v;
-          return (
-            <ButtonBase key={v} role="radio" aria-checked={on} onClick={() => setParam('lang', v === 'all' ? undefined : v)} sx={{
-              py: 0.5, fontSize: '0.85rem', fontWeight: on ? 700 : 500, color: on ? 'text.primary' : 'text.secondary',
-              borderBottom: 2, borderColor: on ? 'secondary.main' : 'transparent',
-            }}>{l}</ButtonBase>
-          );
-        })}
-      </Stack>
-    </>
-  );
+  const header = <div className="mb-2">
+    <div className="mb-3 flex items-end gap-3">
+      <div className="flex-1">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{todayFmt.format(new Date())}</p>
+        <h1 className="font-display text-[2.6rem] leading-none tracking-tight text-foreground">Explorer</h1>
+      </div>
+      <Link to="/shows" className="mb-1 inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-[13px] font-semibold text-foreground no-underline active:scale-95">
+        <Radio className="size-4 text-primary" />Abonnements
+      </Link>
+    </div>
+    <Segmented value={source} onChange={(s) => setParam('source', s === 'all' ? undefined : s)} />
+    {source === 'youtube' && <select value={show ?? ''} onChange={(e) => setParam('show', e.target.value || undefined)} aria-label="Chaîne YouTube"
+      className="mt-3 h-11 w-full rounded-xl border border-border bg-card px-3 text-sm text-foreground">
+      <option value="">Toutes les chaînes</option>
+      {(shows.data?.shows ?? []).filter((s) => s.sourceType === 'youtube' && s.enabled).map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
+    </select>}
+    {source !== 'article' && <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <Chip label="Tout" active={!category} onClick={() => setParam('cat', undefined)} />
+      {CATEGORIES.map((c) => <Chip key={c} label={CATEGORY_LABELS[c]} color={categoryColor(c, 'light')} active={category === c}
+        onClick={() => setParam('cat', category === c ? undefined : c)} />)}
+    </div>}
+    <div role="radiogroup" aria-label="Langue" className="mt-2 flex gap-4">
+      {([['all', 'Toutes langues'], ['fr', 'Français'], ['en', 'Anglais']] as const).map(([v, l]) => {
+        const on = (lang ?? 'all') === v;
+        return <button key={v} type="button" role="radio" aria-checked={on} onClick={() => setParam('lang', v === 'all' ? undefined : v)}
+          className={cn('border-b-2 py-1 text-[13px] transition-colors', on ? 'border-article font-bold text-foreground' : 'border-transparent font-medium text-muted-foreground')}>{l}</button>;
+      })}
+    </div>
+  </div>;
 
-  if (articlesView) return <ArticleBrowser filters={{ lang }} header={header} />;
-  return (
-    <EpisodeBrowser
-      filters={{ category, lang, sourceType, show }}
-      header={header}
-      showResume={!category && !lang && sourceType !== 'youtube'}
-      empty="Aucun contenu pour l’instant. Ajoute un podcast ou une chaîne YouTube dans Abonnements. Les sources sont vérifiées à tour de rôle."
-    />
-  );
+  return <ExplorerFeed
+    filters={{ category, lang, sourceType: source === 'podcast' || source === 'youtube' ? source : undefined, show }}
+    withEpisodes={source !== 'article'}
+    withArticles={(source === 'all' || source === 'article') && !category && !show}
+    showResume={(source === 'all' || source === 'podcast') && !category && !lang}
+    header={header}
+    empty={source === 'article' ? 'Les articles de The Guardian, The Conversation et ProPublica arrivent au fil de l’heure.'
+      : 'Aucun contenu pour l’instant. Ajoute un podcast ou une chaîne YouTube dans Abonnements.'} />;
 }

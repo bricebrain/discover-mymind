@@ -25,25 +25,8 @@
   --dock: rgba(24, 24, 27, 0.94);
   --dock-foreground: #fafafa;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0c0c0e;
-    --foreground: #f4f4f5;
-    --card: #17171a;
-    --muted: #232327;
-    --muted-foreground: #a1a1aa;
-    --border: #2c2c31;
-    --primary: #5ec9bb;
-    --primary-foreground: #06201c;
-    --primary-soft: rgba(94, 201, 187, 0.14);
-    --article: #fb923c;
-    --article-soft: rgba(251, 146, 60, 0.14);
-    --youtube: #f87171;
-    --youtube-soft: rgba(248, 113, 113, 0.14);
-    --dock: rgba(39, 39, 42, 0.96);
-    --dock-foreground: #fafafa;
-  }
-}
+/* Thème clair uniquement (choix de l’utilisateur, 19 octobre 2026), même si le téléphone est en mode sombre. */
+:root { color-scheme: light; }
 
 @theme inline {
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -67,6 +50,8 @@
   --radius-xl: 1rem;
   --radius-2xl: 1.25rem;
 }
+
+@keyframes eq { from { height: 3px; } to { height: 12px; } }
 
 @layer base {
   /* Instrument Serif n'existe qu'en graisse normale : pas de faux gras synthétisé par le navigateur. */

@@ -21,8 +21,9 @@ const query = (f: ArticleFilters, cursor?: string) => {
   return s ? `?${s}` : '';
 };
 
-export function useArticles(filters: ArticleFilters = {}) {
+export function useArticles(filters: ArticleFilters = {}, enabled = true) {
   return useInfiniteQuery({
+    enabled,
     queryKey: ['articles', filters],
     queryFn: ({ pageParam }) => api<{ articles: ArticleSummary[]; nextCursor: string | null; sources: ArticleSource[] }>(`/api/articles${query(filters, pageParam)}`),
     initialPageParam: undefined as string | undefined,

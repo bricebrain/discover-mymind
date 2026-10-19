@@ -1,4 +1,4 @@
-import { Alert, Box, Button, CircularProgress, CssBaseline, ThemeProvider, useMediaQuery } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, CssBaseline, ThemeProvider } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import { useSession } from '../api/auth';
@@ -63,11 +63,11 @@ function Gate() {
 }
 
 export function App() {
-  const dark = useMediaQuery('(prefers-color-scheme: dark)', { noSsr: true });
-  const theme = useMemo(() => buildTheme(dark ? 'dark' : 'light'), [dark]);
+  // Thème clair uniquement, quel que soit le réglage du téléphone.
+  const theme = useMemo(() => buildTheme('light'), []);
   return (
     <ThemeProvider theme={theme}>
-      <CssBaseline enableColorScheme />
+      <CssBaseline />
       <Gate />
     </ThemeProvider>
   );
