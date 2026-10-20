@@ -9,6 +9,9 @@ import { usePlayer } from '../player/PlayerProvider';
 import { trackOf } from '../player/trackOf';
 import { publisherMark } from './feed';
 import { rememberOrigin } from '../vivid/flight';
+import { ExecutorChip } from '../queue/PreparationProgress';
+import { STAGES } from '../queue/options';
+import { useActivePreparation } from '../queue/usePreparation';
 import { SelectableCard } from '../selection/SelectableCard';
 import { readingTime } from '../articles/readingTime';
 
@@ -33,6 +36,7 @@ export function EpisodeFeedCard({ episode, selected, onOpen, index, shared = fal
   const inProgress = !current && !!episode.progressMs && !!episode.progressDurationMs && episode.progressCompleted !== 1;
   const pct = current && player.duration > 0 ? (player.position / player.duration) * 100 : inProgress ? (episode.progressMs! / episode.progressDurationMs!) * 100 : 0;
   const act = () => (youtube ? onOpen() : current ? player.toggle() : player.play(trackOf(episode)));
+  const prep = useActivePreparation(youtube ? 'youtube' : 'episode', youtube ? episode.videoId : episode.id);
 
   return <SelectableCard item={{ type: 'episode', id: episode.id, title: episode.title }}><motion.article initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: Math.min(index, 8) * 0.04, ease: [0.2, 0.8, 0.2, 1] }}
     className={cn(cardBase, selected ? 'border-primary/40 bg-primary-soft' : 'border-border/60 bg-card hover:bg-muted/60')}
@@ -63,7 +67,20 @@ export function EpisodeFeedCard({ episode, selected, onOpen, index, shared = fal
           {episode.state === 'saved' && <Bookmark className="size-3.5 fill-primary text-primary" aria-label="Sauvegardé" />}
           {episode.progressCompleted === 1 && <span className="font-semibold text-primary">· écouté</span>}
         </span>
-        {episode.contentId && <span className="mt-1.5 inline-block rounded-full bg-primary-soft px-2 py-0.5 text-xs font-semibold text-primary">Version anglaise prête</span>}
+        {episode.contentId && !prep && <span className="mt-1.5 inline-block rounded-full bg-primary-soft px-2 py-0.5 text-xs font-semibold text-primary">Version anglaise prête</span>}
+        {/* Préparation en cours ou en attente : où elle tourne, l'étape, le pourcentage ou la place dans la file. */}
+        {prep && <span className="mt-1.5 flex flex-col gap-1">
+          <span className="flex flex-wrap items-center gap-1.5 text-xs">
+            <ExecutorChip executor={prep.executor} />
+            <span className="font-semibold text-foreground">{prep.status === 'leased'
+              ? `${STAGES[prep.stage ?? ''] ?? 'Préparation'}${prep.progress ? ` · ${prep.progress.percent}%` : ''}`
+              : prep.waiting && prep.waiting.ahead > 0 ? `En attente · n° ${prep.waiting.position}` : 'En attente'}</span>
+          </span>
+          {prep.status === 'leased' && <span className="relative block h-1 max-w-48 overflow-hidden rounded-full bg-muted">
+            <motion.span className="absolute inset-y-0 left-0 rounded-full bg-grad-primary" initial={false} animate={{ width: `${prep.progress?.percent ?? 8}%` }} />
+            <span className="progress-slide absolute inset-y-0 w-1/4 rounded-full bg-white/40" />
+          </span>}
+        </span>}
         {pct > 0 && <span aria-label="Progression d’écoute" className="mt-1.5 block h-[3px] max-w-44 overflow-hidden rounded-full bg-muted">
           <span className="block h-full rounded-full bg-article" style={{ width: `${Math.min(pct, 100)}%` }} />
         </span>}

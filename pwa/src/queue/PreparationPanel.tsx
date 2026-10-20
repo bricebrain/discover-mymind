@@ -9,7 +9,7 @@ import { defaultOptions, optionsLabel, queueLabel } from './options';
 import { PrepareDialog } from './PrepareDialog';
 import type { QueueItem } from './types';
 import { usePreparation } from './usePreparation';
-import { AtelierHint, PreparationProgress } from './PreparationProgress';
+import { AtelierHint, ExecutorChip, PreparationProgress } from './PreparationProgress';
 
 const KINDS = { episode: 'Podcast', youtube: 'YouTube', reflection: 'My Mind', dossier: 'Dossier' } as const;
 const DOT: Record<QueueItem['status'], string> = {
@@ -43,10 +43,11 @@ export function PreparationPanel({episode}: {episode?: Episode}) {
     {!episode && query.isSuccess && !shown.length && <p className="text-sm leading-relaxed text-muted-foreground">Ajoute un lien YouTube, ou choisis « Préparer en anglais » sur un épisode ou une note My Mind.</p>}
     <div className="mt-2 flex flex-col gap-2">{shown.map((item) => <div key={item.id} className={cn(cardCls, 'p-3')}>
       {!episode && <div className="mb-1 flex items-center gap-2">
-        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">{KINDS[item.kind]}</span>
+        <ExecutorChip executor={item.executor} /><span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">{KINDS[item.kind]}</span>
       </div>}
       {!episode && <p className="m-0 line-clamp-2 text-[15px] font-semibold leading-snug">{item.title}</p>}
-      <p className="m-0 mt-1 flex items-center gap-2 text-sm"><span className={cn('size-2 shrink-0 rounded-full', DOT[item.status])} />{queueLabel(item)}</p>
+      <p className="m-0 mt-1 flex flex-wrap items-center gap-2 text-sm"><span className={cn('size-2 shrink-0 rounded-full', DOT[item.status])} />{queueLabel(item)}
+        {episode && <ExecutorChip executor={item.executor} />}</p>
       {/* En préparation : frise des étapes, pourcentage et temps restant (barre lumineuse si l'avancement manque). */}
       {item.status === 'leased' && (item.progress ? <PreparationProgress item={item} fetchedAt={query.dataUpdatedAt} />
         : <span aria-hidden className="mt-2 block h-1.5 overflow-hidden rounded-full bg-muted">

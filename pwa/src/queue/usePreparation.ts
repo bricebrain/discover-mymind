@@ -21,3 +21,14 @@ export function usePreparation(target?: PrepTarget) {
   const remove = useMutation({mutationFn:queueApi.remove,onSuccess:refresh});
   return {query,prepare,cancel,retry,remove};
 }
+
+/**
+ * Préparation active d'une source (en cours ou en attente), lue dans la file générale déjà chargée (même requête partagée) :
+ * sert aux cartes du fil, sans requête par carte.
+ */
+export function useActivePreparation(kind: 'episode' | 'youtube' | 'reflection', ref: string | null | undefined) {
+  const live = usePreparationLive();
+  const query = useQuery({queryKey:['queue','all'],queryFn:() => queueApi.list(),
+    refetchInterval:(q) => (q.state.data?.items.some((i) => i.status==='leased') ? 20_000 : live ? false : 15_000)});
+  return ref ? query.data?.items.find((i) => i.kind===kind && i.ref===ref && (i.status==='leased' || i.status==='pending')) : undefined;
+}

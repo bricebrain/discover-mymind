@@ -7,6 +7,7 @@ import { MiniPlayer } from '../player/MiniPlayer';
 import { OfflineBanner } from '../offline/OfflineBanner';
 import { Aurora } from '../vivid/Aurora';
 import { ThemeToggle } from '../vivid/ThemeToggle';
+import { PreparationsButton } from '../queue/PreparationsButton';
 
 export const TABS = [
   { path: '/', label: 'Explorer', icon: Compass },
@@ -44,6 +45,7 @@ export function Shell() {
           {pathname === '/' && <Link to="/shows" className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-[13px] font-semibold text-foreground no-underline active:scale-95">
             <Radio className="size-4 text-primary" /><span className="hidden min-[420px]:inline">Abonnements</span><span className="sr-only min-[420px]:hidden">Abonnements</span>
           </Link>}
+          <PreparationsButton />
           <ThemeToggle />
           <Link to="/settings" aria-label="Réglages" aria-current={pathname === '/settings' ? 'page' : undefined}
             className={cn('-mr-2 grid size-11 place-items-center rounded-full transition-colors hover:bg-muted active:scale-95',

@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react';
+import { Check, Cloud, Laptop } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -96,4 +96,13 @@ export function AtelierHint({ seenAt, waiting }: { seenAt: string | null; waitin
   return <p className="m-0 mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
     <span className="size-1.5 shrink-0 animate-pulse rounded-full bg-emerald-500" />Atelier en ligne · la préparation va commencer
   </p>;
+}
+
+/** Où tourne la préparation : pastille « Mac » (sarcelle) ou « Cloud » (violet), avec son icône. */
+export function ExecutorChip({ executor, className }: { executor?: 'mac' | 'cloud'; className?: string }) {
+  const cloud = executor === 'cloud';
+  return <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold',
+    cloud ? 'bg-violet-100 text-violet-800' : 'bg-primary-soft text-primary', className)}>
+    {cloud ? <Cloud className="size-3" /> : <Laptop className="size-3" />}{cloud ? 'Cloud' : 'Mac'}
+  </span>;
 }
