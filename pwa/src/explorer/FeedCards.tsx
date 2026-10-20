@@ -8,6 +8,7 @@ import { formatClock } from '../player/MiniPlayer';
 import { usePlayer } from '../player/PlayerProvider';
 import { trackOf } from '../player/trackOf';
 import { publisherMark } from './feed';
+import { rememberOrigin } from '../vivid/flight';
 import { SelectableCard } from '../selection/SelectableCard';
 import { readingTime } from '../articles/readingTime';
 
@@ -19,10 +20,10 @@ export function PlayingBars({ active }: { active: boolean }) {
   </span>;
 }
 
-const cardBase = 'group relative flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition-colors';
+const cardBase = 'group relative flex w-full items-start gap-3 overflow-hidden rounded-[22px] border p-3 text-left shadow-surface transition-colors';
 
 /** Épisode de podcast ou vidéo YouTube : pochette, source, titre, méta, progression ; lecture directe. */
-export function EpisodeFeedCard({ episode, selected, onOpen, index }: { episode: Episode; selected?: boolean; onOpen: () => void; index: number }) {
+export function EpisodeFeedCard({ episode, selected, onOpen, index, shared = false }: { episode: Episode; selected?: boolean; onOpen: () => void; index: number; shared?: boolean }) {
   const player = usePlayer();
   const youtube = episode.sourceType === 'youtube';
   const current = player.track?.targetType === 'episode' && player.track.targetId === episode.id;
@@ -34,11 +35,16 @@ export function EpisodeFeedCard({ episode, selected, onOpen, index }: { episode:
   const act = () => (youtube ? onOpen() : current ? player.toggle() : player.play(trackOf(episode)));
 
   return <SelectableCard item={{ type: 'episode', id: episode.id, title: episode.title }}><motion.article initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: Math.min(index, 8) * 0.04, ease: [0.2, 0.8, 0.2, 1] }}
-    className={cn(cardBase, selected ? 'border-primary/40 bg-primary-soft' : 'border-border/70 bg-card hover:bg-muted/60')}>
-    <button type="button" data-selection-surface onClick={onOpen} aria-current={selected ? 'true' : undefined} className="flex min-w-0 flex-1 items-start gap-3 text-left active:scale-[.99]">
+    className={cn(cardBase, selected ? 'border-primary/40 bg-primary-soft' : 'border-border/60 bg-card hover:bg-muted/60')}
+    style={selected || episode.imageUrl ? undefined : { background: `color-mix(in oklab, ${color} 8%, var(--card))` }}>
+    {/* Teinte de la carte : la pochette, très floutée et atténuée, en fond. */}
+    {!selected && episode.imageUrl && <img src={episode.imageUrl} alt="" aria-hidden loading="lazy"
+      className="pointer-events-none absolute inset-0 size-full scale-150 object-cover opacity-[.14] blur-2xl saturate-150 dark:opacity-[.22]" />}
+    <button type="button" data-selection-surface aria-current={selected ? 'true' : undefined} className="relative flex min-w-0 flex-1 items-start gap-3 text-left active:scale-[.99]"
+      onClick={(e) => { if (shared) rememberOrigin(`art-${episode.id}`, e.currentTarget.querySelector('[data-flight]')); onOpen(); }}>
       <span className="relative shrink-0">
         {episode.imageUrl
-          ? <img src={episode.imageUrl} alt="" loading="lazy" className="size-14 rounded-xl object-cover" />
+          ? <img data-flight src={episode.imageUrl} alt="" loading="lazy" className="size-14 rounded-xl object-cover shadow-[0_6px_14px_-8px_rgb(0_0_0/0.5)]" />
           : <span className="grid size-14 place-items-center rounded-xl text-lg font-bold" style={{ background: `${color}22`, color }}>{episode.showTitle.slice(0, 1)}</span>}
         {youtube && <span className="absolute -bottom-1 -right-1 grid size-5 place-items-center rounded-md bg-youtube text-white ring-2 ring-card"><Play className="ml-px size-2.5 fill-current" /></span>}
         {unseen && <span aria-label="Nouveau" className="absolute -right-1 -top-1 size-3 rounded-full bg-article ring-2 ring-card" />}
@@ -64,7 +70,7 @@ export function EpisodeFeedCard({ episode, selected, onOpen, index }: { episode:
       </span>
     </button>
     <button type="button" onClick={act} aria-label={youtube ? `Ouvrir ${episode.title}` : playing ? `Mettre en pause ${episode.title}` : `Écouter ${episode.title}`}
-      className={cn('grid size-11 shrink-0 place-items-center self-center rounded-full transition-transform active:scale-90',
+      className={cn('relative grid size-11 shrink-0 place-items-center self-center rounded-full transition-transform active:scale-90',
         current ? 'bg-primary text-primary-foreground' : youtube ? 'bg-youtube-soft text-youtube' : 'bg-foreground text-background')}>
       {youtube ? <ChevronRight className="size-5" /> : playing ? <Pause className="size-4 fill-current" /> : <Play className="ml-0.5 size-4 fill-current" />}
     </button>
@@ -72,20 +78,23 @@ export function EpisodeFeedCard({ episode, selected, onOpen, index }: { episode:
 }
 
 /** Vignette d'un journal : abréviation sur sa couleur. */
-export function PublisherThumb({ publisher, size = 'md' }: { publisher: string; size?: 'md' | 'lg' }) {
+export function PublisherThumb({ publisher, size = 'md', thumbRef }: { publisher: string; size?: 'md' | 'lg'; thumbRef?: React.Ref<HTMLSpanElement> }) {
   const m = publisherMark(publisher);
-  return <span aria-hidden className={cn('grid shrink-0 place-items-center rounded-xl font-display leading-none tracking-tight shadow-[inset_0_0_0_1px_rgba(255,255,255,.08)]',
+  return <span ref={thumbRef} data-flight aria-hidden className={cn('grid shrink-0 place-items-center rounded-xl font-display leading-none tracking-tight shadow-[inset_0_0_0_1px_rgba(255,255,255,.08)]',
     size === 'lg' ? 'size-16 text-3xl' : 'size-14', size === 'md' && (m.mark.length > 2 ? 'text-lg' : m.mark.length > 1 ? 'text-2xl' : 'text-[2rem]'))}
     style={{ background: m.bg, color: m.fg }}>{m.mark}</span>;
 }
 
 
 /** Article : vignette du journal, journal, date, temps de lecture, titre ; même fil que les épisodes. */
-export function ArticleFeedCard({ article, selected, onOpen, index }: { article: ArticleSummary; selected?: boolean; onOpen: () => void; index: number }) {
+export function ArticleFeedCard({ article, selected, onOpen, index, shared = false }: { article: ArticleSummary; selected?: boolean; onOpen: () => void; index: number; shared?: boolean }) {
   const time = readingTime(article.contentLength);
+  const tint = publisherMark(article.publisher).bg;
   return <SelectableCard item={{ type: 'article', id: article.id, title: article.title }}><motion.article initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: Math.min(index, 8) * 0.04, ease: [0.2, 0.8, 0.2, 1] }}
-    className={cn(cardBase, selected ? 'border-primary/40 bg-primary-soft' : 'border-border/70 bg-card hover:bg-muted/60')}>
-    <button type="button" data-selection-surface onClick={onOpen} aria-current={selected ? 'true' : undefined} className="flex min-w-0 flex-1 items-start gap-3 text-left active:scale-[.99]">
+    className={cn(cardBase, selected ? 'border-primary/40 bg-primary-soft' : 'border-border/60 hover:brightness-[.98]')}
+    style={selected ? undefined : { background: `linear-gradient(120deg, color-mix(in oklab, ${tint} 13%, var(--card)) 0%, var(--card) 70%)` }}>
+    <button type="button" data-selection-surface aria-current={selected ? 'true' : undefined} className="relative flex min-w-0 flex-1 items-start gap-3 text-left active:scale-[.99]"
+      onClick={(e) => { if (shared) rememberOrigin(`pub-${article.id}`, e.currentTarget.querySelector('[data-flight]')); onOpen(); }}>
       <PublisherThumb publisher={article.publisher} />
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -97,7 +106,7 @@ export function ArticleFeedCard({ article, selected, onOpen, index }: { article:
       </span>
     </button>
     <button type="button" onClick={onOpen} aria-label={`Lire ${article.title}`}
-      className="grid size-11 shrink-0 place-items-center self-center rounded-full bg-article-soft text-article transition-transform active:scale-90">
+      className="relative grid size-11 shrink-0 place-items-center self-center rounded-full bg-article-soft text-article transition-transform active:scale-90">
       <ChevronRight className="size-5" />
     </button>
   </motion.article></SelectableCard>;

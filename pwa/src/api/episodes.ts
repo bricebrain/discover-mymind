@@ -65,10 +65,20 @@ export function useExplorer(filters: ExplorerFilters, enabled = true) {
 }
 
 export function useEpisode(id: string | null) {
+  const qc = useQueryClient();
   return useQuery({
     queryKey: ['episode', id],
     queryFn: async () => (await api<{ episode: Episode }>(`/api/episodes/${id}`)).episode,
     enabled: !!id,
+    // L'épisode est souvent déjà dans le fil : le détail s'affiche aussitôt (et la pochette peut « voler » de la carte au détail),
+    // puis la version complète remplace ces données.
+    placeholderData: () => {
+      for (const [, data] of qc.getQueriesData<{ pages: { episodes: Episode[] }[] }>({ queryKey: ['explorer'] })) {
+        const found = data?.pages?.flatMap((p) => p.episodes).find((e) => e.id === id);
+        if (found) return found;
+      }
+      return undefined;
+    },
   });
 }
 

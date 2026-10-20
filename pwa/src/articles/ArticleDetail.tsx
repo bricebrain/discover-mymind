@@ -1,6 +1,7 @@
 import { ArrowLeft, ExternalLink, NotebookPen, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
+import { useFlightFrom } from '../vivid/flight';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Field, Notice, Select, Sheet, Spinner } from '@/components/ui/kit';
@@ -52,7 +53,10 @@ export function ArticleDetail({ id, onBack }: { id: string; onBack?: () => void 
   const navigate = useNavigate();
   const [preparing, setPreparing] = useState(false);
   const asked = useRef<string | null>(null);
+  const thumb = useRef<HTMLSpanElement>(null);
   const a = query.data;
+  // Plié : la vignette du journal « vole » depuis la carte touchée dans le fil.
+  useFlightFrom(a ? `pub-${a.id}` : null, thumb, !!onBack);
   // Sans texte dans le flux (The Guardian) : la récupération est demandée à l'ouverture, une fois.
   useEffect(() => {
     if (a && !a.contentText && a.contentStatus === 'none' && asked.current !== a.id) { asked.current = a.id; fetchText.mutate(); }
@@ -64,11 +68,11 @@ export function ArticleDetail({ id, onBack }: { id: string; onBack?: () => void 
   const time = readingTime(a.contentText?.length ?? null);
   const noText = !a.contentText && !a.summary;
 
-  return <motion.article initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
+  return <motion.article initial={onBack ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
     className={`mx-auto max-w-[720px] px-4 pb-12 ${onBack ? 'pt-2' : 'pt-6'}`}>
     {onBack && <Button variant="ghost" size="icon" onClick={onBack} aria-label="Retour aux articles" className="-ml-2 mb-1"><ArrowLeft className="size-5" /></Button>}
     <div className="flex items-center gap-3">
-      <PublisherThumb publisher={a.publisher} />
+      <PublisherThumb publisher={a.publisher} thumbRef={thumb} />
       <div className="min-w-0">
         <p className="m-0 text-[13px] font-bold uppercase tracking-[.06em] text-article">{a.publisher}</p>
         <p className="m-0 text-[13px] text-muted-foreground">{[a.author, formatWhen(a.publishedAt), time].filter(Boolean).join(' · ')}</p>

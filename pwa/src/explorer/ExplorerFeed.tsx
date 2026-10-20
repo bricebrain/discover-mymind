@@ -77,8 +77,8 @@ export function ExplorerFeed({ filters, withEpisodes, withArticles, showResume, 
             <EventGroupCard group={events.byDay.get(day)!} onCreateDossier={events.prepare} onDismiss={() => events.dismiss(events.byDay.get(day)!.groupId)} />
           </div>}
           {item.kind === 'episode'
-            ? <EpisodeFeedCard episode={item.episode} index={index} selected={item.episode.id === selectedEpisode} onOpen={() => open('e', item.episode.id)} />
-            : <ArticleFeedCard article={item.article} index={index} selected={item.article.id === selectedArticle} onOpen={() => open('a', item.article.id)} />}
+            ? <EpisodeFeedCard episode={item.episode} index={index} selected={item.episode.id === selectedEpisode} onOpen={() => open('e', item.episode.id)} shared={!wide} />
+            : <ArticleFeedCard article={item.article} index={index} selected={item.article.id === selectedArticle} onOpen={() => open('a', item.article.id)} shared={!wide} />}
         </Fragment>;
       })}
     </div>

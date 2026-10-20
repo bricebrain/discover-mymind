@@ -34,8 +34,17 @@ export function useArticles(filters: ArticleFilters = {}, enabled = true) {
 
 /** Détail ; suivi toutes les 4 s tant que l'Atelier récupère le texte. */
 export function useArticle(id: string | null) {
+  const qc = useQueryClient();
   return useQuery({
     queryKey: ['article', id], enabled: !!id,
+    // Déjà dans le fil : affichage immédiat (titre, journal, résumé), puis le texte complet arrive.
+    placeholderData: () => {
+      for (const [, data] of qc.getQueriesData<{ pages: { articles: ArticleSummary[] }[] }>({ queryKey: ['articles'] })) {
+        const found = data?.pages?.flatMap((p) => p.articles).find((a) => a.id === id);
+        if (found) return { ...found, contentText: null } as unknown as Article;
+      }
+      return undefined;
+    },
     queryFn: async () => (await api<{ article: Article }>(`/api/articles/${id}`)).article,
     refetchInterval: (q) => (q.state.data?.contentStatus === 'pending' ? 4000 : false),
   });

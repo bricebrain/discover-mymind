@@ -41,7 +41,7 @@ export function EpisodeBrowser({ filters, header, empty }: { filters: ExplorerFi
         lastDay = day;
         return <Fragment key={e.id}>
           {showDay && <h3 className="m-0 px-1 pb-0.5 pt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{day}</h3>}
-          <EpisodeFeedCard episode={e} index={i} selected={e.id === selected} onOpen={() => open(e.id)} />
+          <EpisodeFeedCard episode={e} index={i} selected={e.id === selected} onOpen={() => open(e.id)} shared={!wide} />
         </Fragment>;
       })}
     </div>

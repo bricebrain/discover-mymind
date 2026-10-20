@@ -1,6 +1,6 @@
 import { ArrowLeft, Bookmark, ExternalLink, EyeOff, NotebookPen, Pause, Play } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Notice, Spinner } from '@/components/ui/kit';
 import { cn } from '@/lib/utils';
@@ -15,6 +15,7 @@ import { PreparationPanel } from '../queue/PreparationPanel';
 import { TranscriptView } from '../transcript/TranscriptView';
 import { RelatedList } from '../related/RelatedList';
 import { PreparedEpisode } from './PreparedEpisode';
+import { useFlightFrom } from '../vivid/flight';
 
 /** Onglets soulignés (Transcription / À propos), barre active animée. */
 export function UnderlineTabs<T extends string>({ value, onChange, options, id }: {
@@ -41,6 +42,9 @@ export function EpisodeDetail({ id, onBack }: { id: string; onBack?: () => void 
   const player = usePlayer();
   const [tab, setTab] = useState<'transcript' | 'about'>('transcript');
   const newNote = useNewNote();
+  const art = useRef<HTMLImageElement>(null);
+  // Plié : la pochette « vole » depuis la carte touchée dans le fil.
+  useFlightFrom(episode ? `art-${episode.id}` : null, art, !!onBack && !!episode?.imageUrl);
 
   // Ouvrir un épisode le marque comme vu.
   useEffect(() => {
@@ -63,7 +67,7 @@ export function EpisodeDetail({ id, onBack }: { id: string; onBack?: () => void 
     ? <p className="m-0 whitespace-pre-line font-reading text-[1.05rem] leading-[1.75] text-foreground/90">{episode.description}</p>
     : null;
 
-  return <motion.article initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="pb-8">
+  return <motion.article initial={onBack ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="pb-8">
     {/* En-tête : pochette floutée en fond, fondue dans la page */}
     <header className={cn('relative overflow-hidden px-4 pb-5', onBack ? 'pt-2' : 'pt-6')}>
       {episode.imageUrl && <div aria-hidden className="absolute -inset-16 bg-cover bg-center opacity-35 blur-[60px] saturate-150 [mask-image:linear-gradient(to_bottom,black_40%,transparent)]"
@@ -72,7 +76,7 @@ export function EpisodeDetail({ id, onBack }: { id: string; onBack?: () => void 
         {onBack && <Button variant="ghost" size="icon" onClick={onBack} aria-label="Retour à la liste" className="-ml-2 mb-2"><ArrowLeft className="size-5" /></Button>}
         <div className="mb-4 flex items-end gap-4">
           {episode.imageUrl
-            ? <img src={episode.imageUrl} alt="" className="size-28 shrink-0 rounded-2xl object-cover shadow-[0_14px_34px_rgba(0,0,0,.22)]" />
+            ? <img ref={art} src={episode.imageUrl} alt="" className="relative z-10 size-28 shrink-0 rounded-2xl object-cover shadow-[0_14px_34px_rgba(0,0,0,.22)]" />
             : <span className="grid size-28 shrink-0 place-items-center rounded-2xl font-display text-5xl" style={{ background: `${color}2e`, color }}>{episode.showTitle.slice(0, 1)}</span>}
           <div className="min-w-0 pb-1">
             <p className="m-0 text-sm font-semibold">{youtube ? 'YouTube · ' : ''}{episode.showTitle}</p>
