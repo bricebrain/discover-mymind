@@ -9,9 +9,9 @@ let client:QueryClient;
 const status:CloudStatus={owner:true,enabled:true,youtube:true,month:'2026-10',reservedMicros:2_000_000,limitMicros:10_000_000,runMicros:1_000_000};
 const quote={id:'quote',title:'Une vidéo publique',reserveMicros:1_000_000,expiresAt:'2099-01-01',attribution:'Author',durationSec:600};
 const target={kind:'youtube' as const,id:'AbCdEf01234'};
-function mount() {
+function mount(preparationTarget:{kind:'youtube'|'episode';id:string}=target) {
   const onQueued=vi.fn();
-  render(<QueryClientProvider client={client}><CloudPrepareDialog target={target} title="Ma vidéo" onClose={()=>{}} onQueued={onQueued} /></QueryClientProvider>);
+  render(<QueryClientProvider client={client}><CloudPrepareDialog target={preparationTarget} title="Ma source" onClose={()=>{}} onQueued={onQueued} /></QueryClientProvider>);
   return onQueued;
 }
 beforeEach(()=>{
@@ -28,6 +28,26 @@ it('n’autorise aucune génération lorsque le serveur est désactivé',async()
   await screen.findByText(/attend son activation/);
   expect(screen.queryByRole('button',{name:'Vérifier la source'})).toBeNull();
   expect(cloudApi.start).not.toHaveBeenCalled();
+});
+it('affiche les limites podcast et vérifie l’épisode avant tout lancement',async()=>{
+  const podcast={kind:'episode' as const,id:'c'.repeat(20)};mount(podcast);
+  expect(screen.getByText(/Podcast de 30 minutes maximum/)).toBeDefined();
+  fireEvent.click(await screen.findByRole('button',{name:'Vérifier la source'}));
+  await screen.findByRole('button',{name:'Lancer sans Mac'});
+  expect(cloudApi.quote).toHaveBeenCalledWith(podcast,expect.objectContaining({coverage:'essentials',targetMinutes:4}));
+  expect(cloudApi.start).not.toHaveBeenCalled();
+});
+it('donne accès à la préparation sans phrase quand la connexion de l’app est désactivée',async()=>{
+  vi.mocked(cloudApi.status).mockResolvedValue({...status,authRequired:false});
+  const queued=mount();
+  fireEvent.click(await screen.findByRole('button',{name:'Vérifier la source'}));
+  expect(screen.queryByLabelText('Phrase secrète Discover')).toBeNull();
+  expect(screen.queryByRole('button',{name:'Verrouiller l’Atelier'})).toBeNull();
+  await screen.findByRole('button',{name:'Lancer sans Mac'});
+  fireEvent.click(screen.getByRole('checkbox',{name:/J’autorise/}));
+  fireEvent.click(screen.getByRole('button',{name:'Lancer sans Mac'}));
+  await waitFor(()=>expect(queued).toHaveBeenCalledTimes(1));
+  expect(cloudApi.unlock).not.toHaveBeenCalled();
 });
 it('déverrouille avec la phrase sans l’enregistrer et affiche une erreur lisible',async()=>{
   vi.mocked(cloudApi.status).mockResolvedValueOnce({owner:false,enabled:true});

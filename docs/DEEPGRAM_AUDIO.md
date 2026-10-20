@@ -4,12 +4,16 @@
 
 Dans l’Atelier, ouvrir **Discover → Voix et budget audio** :
 
-- Moteur **Deepgram Aura-2**, voix **Cora** par défaut ; **Vesta** et **Draco** disponibles.
-- Débit natif **1,0**, réglable de 0,7 à 1,5. En dialogue, la seconde voix est Draco (Cora si la principale est Draco).
+- Moteur **Deepgram Aura-2**, voix **Vesta** par défaut ; **Cora** et **Draco** disponibles.
+- Débit par défaut **0,9**, réglable de 0,7 à 1,5. En dialogue, la seconde voix est Draco (Cora si la principale est Draco).
 - Plafond initial **10 USD par mois UTC** ; repli sur **Kokoro Heart** si la préparation complète dépasserait le montant restant, si la clé est absente ou si Deepgram échoue.
 - Les modifications concernent les prochaines préparations. Elles ne régénèrent pas la bibliothèque ni ne modifient le traitement déjà engagé.
 
-La préparation nécessite encore le Mac et l’Atelier. La génération sans Mac et les dossiers multisources restent des étapes distinctes.
+Depuis le 20 octobre 2026, l’Atelier Mac et le parcours sans Mac utilisent Vesta à 0,9× pour les nouvelles générations. Le Mac utilisait auparavant Cora, le cloud Thalia.
+
+Une introduction silencieuse d’environ 650 ms précède la première phrase ; environ 900 ms séparent les paragraphes. Ces pauses sont ajoutées dans le fichier audio, sans appel TTS ni coût supplémentaire, et intégrées au calcul des repères de transcription. Côté cloud, les durées sont arrondies aux trames MP3 (576 échantillons à 22,05 kHz). Les paragraphes existants restent inchangés ; le prompt cloud privilégie désormais des phrases courtes et 350–450 mots pour une source longue.
+
+Les audios existants ne sont pas régénérés. Le cache des fragments Mac reste partagé ; la signature d’assemblage a changé pour prendre en compte les pauses. Le budget et le repli Heart restent inchangés.
 
 ## Coût et protection du crédit
 
@@ -31,7 +35,7 @@ Le registre est `convert/fileToImport/.discover-queue/.deepgram/usage.sqlite`, p
 - Conversion finale MP3 128 kbit/s. Origine et `timingSource` publiées : `deepgram` ; les anciens audios restent `kokoro`.
 - Pas de seconde synthèse payante automatique pour forcer une durée cible. Le contrôle existant signale une durée réelle hors cible ; le débit peut être choisi pour les prochaines préparations.
 
-La clé reste dans `convert/config_discover.json` (ignoré par Git, permissions 0600), champ `deepgramApiKey`. Elle n’est jamais renvoyée au navigateur, ni publiée dans le manifeste ou les journaux. Aucune clé n’est ajoutée au Worker.
+La clé reste dans `convert/config_discover.json` (ignoré par Git, permissions 0600), champ `deepgramApiKey`. Elle n’est jamais renvoyée au navigateur, ni publiée dans le manifeste ou les journaux. Le parcours sans Mac utilise sa propre clé serveur Deepgram dans les secrets du Worker.
 
 ## Fichiers et contrat
 

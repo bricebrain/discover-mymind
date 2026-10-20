@@ -21,6 +21,16 @@ export async function snapshot(env: Env, body: Record<string, unknown>): Promise
     if (note.body_md.trim().length<100 || note.body_md.length>20_000) throw new HttpError(422,'cloud_text_size','Le texte enregistré doit contenir entre 100 et 20 000 caractères.');
     source = { kind:'reflection',ref:target.id,title:note.title || 'Note My Mind',text:note.body_md,
       url:note.source_url,durationSec:null,attribution:note.source_name };
+  } else if (target.kind==='episode' && /^[0-9a-f]{20}$/.test(target.id)) {
+    const episode=await env.DB.prepare(`SELECT e.title,e.audio_url,e.duration_sec,s.title AS attribution,s.source_type
+      FROM episodes e JOIN shows s ON s.id=e.show_id WHERE e.id=?`)
+      .bind(target.id).first<{title:string;audio_url:string;duration_sec:number|null;attribution:string;source_type:string}>();
+    if (!episode) throw new HttpError(404,'not_found','Podcast introuvable.');
+    if (episode.source_type!=='podcast' || !episode.duration_sec || episode.duration_sec<10 || episode.duration_sec>1800) {
+      throw new HttpError(422,'cloud_podcast_duration','Sans Mac : choisis un podcast de 10 secondes à 30 minutes, dont la durée est renseignée.');
+    }
+    source={kind:'episode',ref:target.id,title:episode.title,text:null,url:episode.audio_url,
+      durationSec:episode.duration_sec,attribution:episode.attribution};
   } else if (target.kind==='youtube' && /^[A-Za-z0-9_-]{11}$/.test(target.id)) {
     if (!env.YOUTUBE_DATA_API_KEY) throw new HttpError(503,'youtube_config','La vérification YouTube n’est pas configurée.');
     const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,status&id=${target.id}`,{
@@ -35,7 +45,7 @@ export async function snapshot(env: Env, body: Record<string, unknown>): Promise
     }
     source = {kind:'youtube',ref:target.id,title:video.snippet.title.slice(0,500),text:null,
       url:`https://www.youtube.com/watch?v=${target.id}`,durationSec:seconds,attribution:video.snippet.channelTitle ?? null};
-  } else throw new HttpError(422,'cloud_source','Sans Mac : note enregistrée ou lien YouTube public uniquement.');
+  } else throw new HttpError(422,'cloud_source','Sans Mac : note enregistrée, podcast ou lien YouTube public uniquement.');
   if (source.url) {
     try {parseSafeUrl(source.url);}
     catch {throw new HttpError(422,'cloud_source_url','La source doit posséder un lien HTTPS public ou aucun lien.');}

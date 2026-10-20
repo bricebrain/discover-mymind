@@ -1,4 +1,4 @@
-import type { Env } from '../env';
+import { authDisabled, type Env } from '../env';
 import { HttpError, json, readJson } from '../http';
 import * as auth from '../routes/auth';
 import { getSession } from '../security/session';
@@ -10,15 +10,17 @@ import { dispatch } from './dispatch';
 export async function cloudRoute(req:Request,env:Env,path:string):Promise<Response> {
   if (path==='/api/cloud/auth' && req.method==='POST') return auth.login(req,env);
   const session=await getSession(env,req);
+  const authRequired=!authDisabled(env);
+  const authorized=!authRequired || !!session;
   if (path==='/api/cloud/status' && req.method==='GET') {
-    if (!session) return json({owner:false,enabled:enabled(env)});
+    if (!authorized) return json({owner:false,authRequired,enabled:enabled(env)});
     const month=utcMonth(), used=await env.DB.prepare('SELECT COALESCE(SUM(reserved_micros),0) AS micros FROM cloud_runs WHERE month=?')
       .bind(month).first<{micros:number}>();
-    return json({owner:true,enabled:enabled(env),youtube:!!env.YOUTUBE_DATA_API_KEY,month,
+    return json({owner:true,authRequired,enabled:enabled(env),youtube:!!env.YOUTUBE_DATA_API_KEY,month,
       reservedMicros:used!.micros,limitMicros:monthlyLimit(env),runMicros:RUN_MICROS});
   }
-  if (!session) throw new HttpError(401,'unauthenticated','Déverrouille l’Atelier sans Mac avec ta phrase secrète.');
-  if (path==='/api/cloud/logout' && req.method==='POST') return auth.logout(env,session);
+  if (!authorized) throw new HttpError(401,'unauthenticated','Déverrouille l’Atelier sans Mac avec ta phrase secrète.');
+  if (path==='/api/cloud/logout' && req.method==='POST') return session ? auth.logout(env,session) : new Response(null,{status:204});
   if (path==='/api/cloud/quotes' && req.method==='POST') {
     assertEnabled(env);
     const captured=await snapshot(env,await readJson<Record<string,unknown>>(req,4096));
@@ -69,6 +71,7 @@ export async function cloudRoute(req:Request,env:Env,path:string):Promise<Respon
 
 /** Les anciennes routes publiques de file ne doivent pas contourner l'autorisation cloud. */
 export async function protectCloudQueue(req:Request,env:Env,id:string) {
+  if (authDisabled(env)) return;
   if (await env.DB.prepare("SELECT id FROM prepare_queue WHERE id=? AND executor='cloud'").bind(id).first() && !await getSession(env,req)) {
     throw new HttpError(401,'unauthenticated','Connexion propriétaire requise.');
   }

@@ -42,11 +42,21 @@ it('exécute le vrai Workflow jusqu’à la publication atomique et conserve le 
   expect(JSON.parse(variants!.evaluation_json)).toMatchObject({verdict:'review',autoPublished:true});
   expect(calls.mock.calls.filter(c=>String(c[0]).includes(':generateContent'))).toHaveLength(3);
   expect(calls.mock.calls.filter(c=>String(c[0]).includes('api.deepgram.com'))).toHaveLength(6);
+  const speechCalls=calls.mock.calls.filter(c=>String(c[0]).includes('api.deepgram.com'));
+  for (const call of speechCalls) {
+    const url=new URL(String(call[0]));
+    expect(url.searchParams.get('model')).toBe('aura-2-vesta-en');
+    expect(url.searchParams.get('speed')).toBe('0.9');
+  }
   const spoken=calls.mock.calls.filter(c=>String(c[0]).includes('api.deepgram.com')).map(c=>JSON.parse(String(c[1]!.body)).text);
   expect(spoken).toEqual(script.lines.map(l=>l.text));
   const segments=await env.DB.prepare(`SELECT f.r2_key FROM variants v JOIN publication_files f ON f.publication_id=v.publication_id AND f.path=v.segments_path
     WHERE v.content_id=? AND v.kind='adaptation'`).bind(q!.content_id).first<{r2_key:string}>();
-  const doc=await (await env.FILES.get(segments!.r2_key))!.json<{segments:{text:string;fr:string;sourceSegments:string[]}[]}>();
+  const doc=await (await env.FILES.get(segments!.r2_key))!.json<{segments:{text:string;fr:string;sourceSegments:string[];startMs:number;endMs:number}[]}>();
+  expect(doc.segments[0]!.startMs).toBeCloseTo(650, -1);
+  for (let i=1;i<doc.segments.length;i++) {
+    expect(Math.abs(doc.segments[i]!.startMs-doc.segments[i-1]!.endMs-900)).toBeLessThanOrEqual(14);
+  }
   expect(doc.segments.map(s=>s.text)).toEqual(spoken);
   expect(doc.segments.map(s=>s.fr)).toEqual(script.lines.map(l=>l.fr));
   expect(doc.segments.every(s=>s.sourceSegments.join(',')==='s1')).toBe(true);

@@ -35,7 +35,9 @@ export async function collectArticles(env: Env, now = Date.now(), fetcher: typeo
   if (!source) return { status: 'idle' as const };
   await env.DB.prepare('UPDATE article_sources SET next_check_at=? WHERE id=?').bind(new Date(now + CHECK_EVERY_MS).toISOString(), source.id).run();
   try {
-    const res = await safeFetch(source.feed_url, { headers: { 'User-Agent': USER_AGENT, Accept: 'application/rss+xml, application/atom+xml, application/xml;q=0.9' } }, fetcher);
+    // Les flux officiels Maxifoot sont disponibles uniquement en HTTP.
+    const allowHttp = source.feed_url.startsWith('http://rss.maxifoot.com/');
+    const res = await safeFetch(source.feed_url, { allowHttp, headers: { 'User-Agent': USER_AGENT, Accept: 'application/rss+xml, application/atom+xml, application/xml;q=0.9' } }, fetcher);
     if (!res.ok || !res.body) { await res.body?.cancel(); throw new Error(`HTTP ${res.status}`); }
     const { results: known } = await env.DB.prepare('SELECT guid FROM articles WHERE source_id=? ORDER BY published_at DESC LIMIT 80').bind(source.id).all<{ guid: string }>();
     const items = parseArticleFeed(await readCapped(res), NEW_PER_RUN, new Set(known.map((k) => k.guid)));

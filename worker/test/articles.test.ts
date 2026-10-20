@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:workers';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { collectArticles } from '../src/articles/collect';
 import { htmlToText, parseArticleFeed } from '../src/articles/feed';
 import { ATELIER_TOKEN, call, login } from './helpers';
@@ -18,6 +18,38 @@ let cookie = '';
 beforeEach(async () => { cookie = await login(); await env.DB.prepare('DELETE FROM articles').run(); await env.DB.prepare('DELETE FROM prepare_queue').run(); });
 
 describe('flux d’articles', () => {
+  it.each([
+    ['maxifoot-general', 'football-general.xml'],
+    ['maxifoot-top-articles', 'football-top-articles.xml'],
+  ])('collecte le flux officiel HTTP %s et expose la source française', async (sourceId, filename) => {
+    await env.DB.prepare("UPDATE article_sources SET next_check_at='2099-01-01T00:00:00.000Z'").run();
+    await env.DB.prepare("UPDATE article_sources SET next_check_at='2000-01-01T00:00:00.000Z' WHERE id=?").bind(sourceId).run();
+    const xml = `<rss><channel><item><title>Football : l’actualité &amp; les transferts</title>
+      <link>https://www.maxifoot.fr/football/actualite-foot-1.htm</link>
+      <guid isPermaLink="true">https://www.maxifoot.fr/football/actualite-foot-1.htm</guid>
+      <description>Les dernières nouvelles du football français.</description>
+      <pubDate>Tue, 20 Oct 2026 10:00:00 +0200</pubDate></item></channel></rss>`;
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(xml));
+    expect(await collectArticles(env, Date.parse('2026-10-20T09:00:00Z'), fetcher))
+      .toMatchObject({ status: 'ok', sourceId, items: 1 });
+    expect(fetcher.mock.calls[0]![0]).toBe(`http://rss.maxifoot.com/${filename}`);
+    const list = await (await call(`/api/articles?source=${sourceId}`, { cookie }))
+      .json<{ articles: unknown[]; sources: unknown[] }>();
+    expect(list.sources).toContainEqual(expect.objectContaining({ id: sourceId, publisher: 'Maxifoot', language: 'fr' }));
+    expect(list.articles).toEqual([expect.objectContaining({ title: 'Football : l’actualité & les transferts', publisher: 'Maxifoot', contentStatus: 'none' })]);
+  });
+
+  it('refuse HTTP pour les autres hôtes de flux', async () => {
+    await env.DB.prepare("UPDATE article_sources SET next_check_at='2099-01-01T00:00:00.000Z'").run();
+    await env.DB.prepare(`INSERT INTO article_sources (id,title,publisher,feed_url,language,next_check_at,created_at)
+      VALUES ('unsafe-http','HTTP','Test','http://rss.maxifoot.com.evil.example/flux.xml','fr','2000-01-01','2026-10-20')`).run();
+    const fetcher = vi.fn<typeof fetch>();
+    expect(await collectArticles(env, Date.parse('2026-10-20T09:00:00Z'), fetcher))
+      .toMatchObject({ status: 'error', sourceId: 'unsafe-http' });
+    expect(fetcher).not.toHaveBeenCalled();
+    await env.DB.prepare("DELETE FROM article_sources WHERE id='unsafe-http'").run();
+  });
+
   it('lit Atom avec texte complet et RSS avec résumé seulement', () => {
     const [atom] = parseArticleFeed(ATOM);
     expect(atom).toMatchObject({ url: 'https://theconversation.com/young-voters-1', title: 'Young voters fear mass shootings', author: 'Jane Doe', publishedAt: '2026-10-18T10:00:00.000Z' });
@@ -33,7 +65,7 @@ describe('flux d’articles', () => {
     const fetcher = (async () => new Response(RSS, { headers: { 'Content-Type': 'application/rss+xml' } })) as unknown as typeof fetch;
     expect(await collectArticles(env, Date.parse('2026-10-18T09:00:00Z'), fetcher)).toMatchObject({ status: 'ok', sourceId: 'guardian-world', items: 1 });
     const list = await (await call('/api/articles', { cookie })).json<{ articles: { id: string; contentStatus: string; publisher: string }[]; sources: unknown[] }>();
-    expect(list.sources.length).toBe(4);
+    expect(list.sources.length).toBe(6);
     const a = list.articles[0]!;
     expect(a).toMatchObject({ contentStatus: 'none', publisher: 'The Guardian' });
     expect((await call(`/api/articles/${a.id}/fetch`, { method: 'POST', cookie, body: {} })).status).toBe(202);

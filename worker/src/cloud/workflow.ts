@@ -10,6 +10,7 @@ import { publish } from './publish';
 import type { Script, Snapshot, SourceText } from './types';
 import { flushEvents } from '../events/hub';
 import { prepareSpokenScript } from './scripts';
+import { uploadPodcast, podcastReady, removePodcastAudio, type PodcastFile } from './podcast';
 
 const paidStep={retries:{limit:0,delay:'1 second' as const},timeout:'5 minutes' as const};
 const encode=(value:unknown) => new TextEncoder().encode(JSON.stringify(value));
@@ -27,8 +28,17 @@ export class CloudPreparation extends WorkflowEntrypoint<Env,{id:string}> {
           .bind(new Date().toISOString(),id).run();
         return snapshot;
       });
+      let podcast:PodcastFile|undefined;
+      if (captured.source.kind==='episode') {
+        const fileKey=await step.do('audio-podcast',paidStep,()=>operation(this.env,id,'podcast-file','transcribe',async()=>
+          encode(await uploadPodcast(this.env,id,captured.source.url!))));
+        podcast=await step.do('fichier-podcast',()=>checkpoint<PodcastFile>(this.env,fileKey));
+        const file=podcast;
+        await step.do('audio-podcast-disponible',{retries:{limit:5,delay:'10 seconds'},timeout:'30 seconds'},()=>podcastReady(this.env,id,file));
+      }
+      const media=podcast ?? (captured.source.kind==='youtube' ? captured.source.url! : undefined);
       const sourceKey=await step.do('source',paidStep,()=>operation(this.env,id,'source','transcribe',async()=>{
-        const raw=await gemini(this.env,SOURCE_PROMPT,{text:captured.source.text},captured.source.kind==='youtube' ? captured.source.url! : undefined,()=>active(this.env,id,'transcribe'));
+        const raw=await gemini(this.env,SOURCE_PROMPT,{text:captured.source.text},media,()=>active(this.env,id,'transcribe'));
         return encode(validateSource(JSON.parse(new TextDecoder().decode(raw)),captured));
       }));
       const generatedScriptKey=await step.do('adaptation',paidStep,()=>operation(this.env,id,'script','adapt',async()=>{
@@ -55,6 +65,14 @@ export class CloudPreparation extends WorkflowEntrypoint<Env,{id:string}> {
         })));
       }
       await step.do('publication',()=>publish(this.env,id,sourceKey,scriptKey,judgeKey,audioKeys));
+      if (podcast) {
+        const file=podcast;
+        await step.do('liberer-audio-podcast',async()=>{
+          // Un nettoyage indisponible ne doit pas invalider une publication terminée.
+          // Google expire ses fichiers ; la rétention R2 existante reste applicable.
+          try {await removePodcastAudio(this.env,id,file);return true;} catch {return false;}
+        });
+      }
       await step.do('notification',()=>flushEvents(this.env));
       return {id,status:'done'};
     } catch {

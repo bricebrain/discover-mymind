@@ -24,11 +24,11 @@ export function PrepareDialog({target,title,initial,faithfulAllowed,onClose,onQu
   return <Sheet title="Préparer en anglais" onClose={onClose} locked={prepare.isPending} footer={<>
     <Button variant="ghost" onClick={onClose} disabled={prepare.isPending}>Annuler</Button>
     <Button disabled={!valid || prepare.isPending} onClick={() => prepare.mutate(options,{onSuccess:() => { onQueued?.(); onClose(); }})}>
-      {prepare.isPending ? 'Envoi…' : 'Mettre à préparer'}
+      {prepare.isPending ? 'Envoi…' : 'Préparer sur le Mac'}
     </Button>
   </>}>
     <p className="m-0 text-[15px] font-semibold leading-snug">{title}</p>
-    {target.kind!=='episode' && <Button variant="outline" disabled={prepare.isPending} onClick={()=>setCloud(true)}>Préparer sans Mac</Button>}
+    <Button variant="outline" disabled={prepare.isPending} onClick={()=>setCloud(true)}>Préparer sans Mac</Button>
     <Field label="Version">
       <Select aria-label="Version" value={options.coverage} options={Object.entries(COVERAGES) as [PrepareOptions['coverage'], string][]} onChange={(coverage) =>
         setOptions((o) => ({...o,coverage,targetMinutes:coverage==='full' ? null : coverage==='condensed' ? 12 : 4}))} />

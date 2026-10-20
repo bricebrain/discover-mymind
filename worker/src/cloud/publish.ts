@@ -8,6 +8,7 @@ import { current, manifest, publication } from '../publications/store';
 import { active, run } from './store';
 import { checkpoint } from './operations';
 import { concat, mp3Frames } from './mp3';
+import { silence, INTRO_PAUSE_MS, PARAGRAPH_PAUSE_MS, SPEECH_SPEED } from './pacing';
 import { MODEL, VOICE, type Judge, type Script, type Snapshot, type SourceText } from './types';
 import { assertNoTechnicalIds } from './citations';
 
@@ -39,10 +40,12 @@ export async function publish(env:Env,id:string,sourceKey:string,scriptKey:strin
     if (!prior || JSON.stringify(prior.segments)!==JSON.stringify(sourceDoc.segments)) throw new Error('Une autre version de cette source existe déjà ; conserver sa préparation dans l’Atelier Mac.');
   }
   const key=`cloud-en-${options.level.toLowerCase()}-4`, sourcePath=original?.segmentsFile ?? 'source.json';
-  let samples=0;
-  const chunks:Uint8Array[]=[], segments:Segments['segments']=[];
+  const intro=silence(INTRO_PAUSE_MS), pause=silence(PARAGRAPH_PAUSE_MS);
+  let samples=intro.samples;
+  const chunks:Uint8Array[]=[intro.bytes], segments:Segments['segments']=[];
   if (audioKeys.length!==script.lines.length) throw new Error('Fragments audio incomplets.');
   for (let i=0;i<audioKeys.length;i++) {
+    if (i>0) {chunks.push(pause.bytes);samples+=pause.samples;}
     const audio=await env.FILES.get(audioKeys[i]!);
     if (!audio) throw new Error('Fragment audio manquant.');
     const frame=mp3Frames(new Uint8Array(await audio.arrayBuffer())), startMs=Math.round(samples/22.05);
@@ -56,14 +59,14 @@ export async function publish(env:Env,id:string,sourceKey:string,scriptKey:strin
     [`${key}.json`]:{bytes:new TextEncoder().encode(JSON.stringify({schemaVersion:1,variantKey:key,segments})),contentType:'application/json'},
     [`${key}.mp3`]:{bytes:concat(chunks),contentType:'audio/mpeg'},
   };
-  const m:Manifest={schemaVersion:1,content:{id:contentId,title:source.title,sourceType:source.kind,sourceRef,
+  const m:Manifest={schemaVersion:1,content:{id:contentId,title:source.title,sourceType:source.kind==='episode' ? 'podcast' : source.kind,sourceRef,
     originalLanguage:sourceText.language,sourceUrl:source.url,rights:'personal_use',editorial:'discovery'},
     variants:[...(old?.variants.filter(v=>v.key!==key) ?? [{key:sourceVariant,kind:'source' as const,language:sourceText.language,segmentsFile:sourcePath,
-      generation:{executor:'cloud',transcription:source.kind==='youtube' ? 'gemini_unverified' : 'saved_text',attribution:source.attribution}}]),
+      generation:{executor:'cloud',transcription:source.kind!=='reflection' ? 'gemini_unverified' : 'saved_text',attribution:source.attribution}}]),
       {key,kind:'adaptation',language:'en',cefrLevel:options.level==='original' ? null : options.level,style:'narration',coverage:'essentials',derivedFrom:sourceVariant,
         condensation:{targetMinutes:4,sourceMinutes:source.durationSec ? source.durationSec/60 : Math.max(1,sourceText.paragraphs.join(' ').split(/\s+/).length/130),excludeAds:true},
         segmentsFile:`${key}.json`,audio:{source:'r2',file:`${key}.mp3`,origin:'deepgram',timingSource:'deepgram',durationMs},
-        generation:{executor:'cloud',model:MODEL,voice:VOICE,sourceTranscriptionVerified:false,attribution:source.attribution},
+        generation:{executor:'cloud',model:MODEL,voice:VOICE,speed:SPEECH_SPEED,paragraphPauseMs:PARAGRAPH_PAUSE_MS,sourceTranscriptionVerified:false,attribution:source.attribution},
         evaluation:{...judge,autoPublished:judge.verdict!=='ok'}}],files:{...old?.files}};
   // Éliminer les anciens fichiers d'une variante remplacée, sans supprimer d'autre version.
   const used=new Set(m.variants.flatMap(v=>[v.segmentsFile,...(v.audio?.file ? [v.audio.file] : [])]));

@@ -6,7 +6,7 @@ import { LEVEL_OPTIONS } from '../queue/options';
 import { dollars } from './api';
 import { useCloudPreparation } from './useCloudPreparation';
 
-/** Préparation manuelle, phrase secrète jamais enregistrée sur l'appareil. */
+/** Préparation manuelle, avec le même réglage de connexion que l'app. */
 export function CloudPrepareDialog({target,title,onClose,onQueued}:{target:PrepTarget;title:string;onClose:()=>void;onQueued:()=>void}) {
   const cloud=useCloudPreparation(target,onQueued), [passphrase,setPassphrase]=useState(''),[accepted,setAccepted]=useState(false);
   const {status,unlock,lock,estimate,start,quote}=cloud;
@@ -22,6 +22,7 @@ export function CloudPrepareDialog({target,title,onClose,onQueued}:{target:PrepT
     <p className="m-0 text-[15px] font-semibold">{title}</p>
     <p className="m-0 text-sm text-muted-foreground">L’essentiel en anglais, narration d’environ 4 minutes, traduction française et audio. Une source courte donne une version plus courte. Tu pourras fermer l’app une fois la demande enregistrée.</p>
     {target.kind==='youtube' && <Notice>Vidéo publique terminée, 15 minutes maximum. Gemini tente une transcription même sans sous-titres. Son exactitude reste à vérifier.</Notice>}
+    {target.kind==='episode' && <Notice>Podcast de 30 minutes maximum, avec une durée renseignée et un audio public HTTPS de 80 Mo maximum. Gemini transcrit l’audio ; son exactitude reste à vérifier. La copie audio originale et la version fidèle intégrale restent disponibles sur le Mac.</Notice>}
     {target.kind==='reflection' && <Notice>Seul le texte déjà enregistré est utilisé (100 à 20 000 caractères). Pour un article, vérifie qu’il contient bien le texte souhaité.</Notice>}
     {status.isPending && <Spinner label="Vérification de l’Atelier cloud" />}
     {budget && !budget.enabled && <Notice tone="warning">L’Atelier sans Mac attend son activation sur le serveur.</Notice>}
@@ -34,7 +35,7 @@ export function CloudPrepareDialog({target,title,onClose,onQueued}:{target:PrepT
     {budget?.enabled && budget.owner && <>
       <Field label="Niveau d’anglais"><Select value={cloud.level} options={LEVEL_OPTIONS} disabled={busy} onChange={value=>{setAccepted(false);cloud.setLevel(value);}} /></Field>
       <p className="m-0 text-sm text-muted-foreground">Budget cloud · {budget.month} UTC : {dollars(budget.reservedMicros ?? 0)} engagés sur {dollars(budget.limitMicros ?? 0)}. Infrastructure facturée séparément.</p>
-      <Button variant="ghost" disabled={busy} onClick={()=>lock.mutate()}>Verrouiller l’Atelier</Button>
+      {budget.authRequired!==false && <Button variant="ghost" disabled={busy} onClick={()=>lock.mutate()}>Verrouiller l’Atelier</Button>}
       {target.kind==='youtube' && !budget.youtube && <Notice tone="warning">La vérification YouTube doit encore être configurée sur le serveur.</Notice>}
       {quote && !expired && <>
         <p className="m-0 text-sm"><strong>{quote.title}</strong>{quote.attribution && ` · ${quote.attribution}`}</p>

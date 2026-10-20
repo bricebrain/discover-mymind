@@ -2,7 +2,7 @@ import { api } from '../api/client';
 import type { PrepTarget } from '../api/queue';
 import type { PrepareOptions } from '../queue/types';
 
-export interface CloudStatus { owner:boolean; enabled:boolean; youtube?:boolean; month?:string; reservedMicros?:number; limitMicros?:number; runMicros?:number }
+export interface CloudStatus { owner:boolean; authRequired?:boolean; enabled:boolean; youtube?:boolean; month?:string; reservedMicros?:number; limitMicros?:number; runMicros?:number }
 export interface CloudQuote { id:string;title:string;reserveMicros:number;expiresAt:string;attribution:string|null;durationSec:number|null }
 export const cloudApi={
   status:()=>api<CloudStatus>('/api/cloud/status'),

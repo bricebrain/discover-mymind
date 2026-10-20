@@ -17,14 +17,25 @@ import { NOTE, body, captured, options, cloudEnv, owner, cloudCall, cloudRequest
 beforeEach(setupCloud);
 afterEach(()=>vi.unstubAllGlobals());
 describe('autorisation et devis cloud',()=>{
-  it('protège les dépenses et annulations même avec AUTH_DISABLED=true',async()=>{
-    expect(await (await cloudCall('status',undefined,'')).json()).toEqual({owner:false,enabled:true});
-    await expect(cloudCall('quotes',{target:{kind:'reflection',id:NOTE},options},'')).rejects.toMatchObject({status:401});
-    const {id}=await startNote(), ctx=createExecutionContext();
+  it('prépare et annule sans phrase lorsque la connexion de l’app est désactivée',async()=>{
+    expect(await (await cloudCall('status',undefined,'')).json()).toMatchObject({owner:true,authRequired:false,enabled:true});
+    const quote=await (await cloudCall('quotes',{target:{kind:'reflection',id:NOTE},options},'')).json<{id:string}>();
+    const {id}=await (await cloudCall('runs',{quoteId:quote.id,acceptedMicros:1_000_000},'')).json<{id:string}>();
+    const ctx=createExecutionContext();
     const res=await worker.fetch(new Request(`https://discover.test/api/queue/${id}`,{method:'DELETE',headers:{Origin:'https://discover.test','X-Discover-Client':'1'}}),cloudEnv,ctx);
-    await waitOnExecutionContext(ctx);expect(res.status).toBe(401);
+    await waitOnExecutionContext(ctx);expect(res.status).toBe(204);
     const csrf=await worker.fetch(new Request('https://discover.test/api/cloud/runs',{method:'POST',headers:{Cookie:owner}}),cloudEnv,ctx);
     expect(csrf.status).toBe(403);
+  });
+  it('exige toujours une session si la connexion de l’app est réactivée',async()=>{
+    const secured={...cloudEnv,AUTH_DISABLED:'false'};
+    expect(await (await cloudRoute(cloudRequest('status',undefined,''),secured,'/api/cloud/status')).json()).toEqual({owner:false,authRequired:true,enabled:true});
+    for (const path of ['quotes','runs']) {
+      await expect(cloudRoute(cloudRequest(path,{},''),secured,`/api/cloud/${path}`)).rejects.toMatchObject({status:401});
+    }
+    const {id}=await startNote(), ctx=createExecutionContext();
+    const res=await worker.fetch(new Request(`https://discover.test/api/queue/${id}`,{method:'DELETE',headers:{Origin:'https://discover.test','X-Discover-Client':'1'}}),secured,ctx);
+    await waitOnExecutionContext(ctx);expect(res.status).toBe(401);
   });
   it('vérifie réellement la phrase et émet un cookie HttpOnly',async()=>{
     expect((await cloudCall('auth',{passphrase:'incorrect'},'')).status).toBe(401);
@@ -33,7 +44,7 @@ describe('autorisation et devis cloud',()=>{
   });
   it('refuse activation absente et options non prises en charge',async()=>{
     await expect(cloudRoute(cloudRequest('quotes',{}),{...cloudEnv,CLOUD_ATELIER_ENABLED:'false'},'/api/cloud/quotes')).rejects.toMatchObject({code:'cloud_disabled'});
-    await expect(cloudCall('quotes',{target:{kind:'episode',id:'a'.repeat(20)},options})).rejects.toMatchObject({status:422});
+    await expect(cloudCall('quotes',{target:{kind:'unsupported',id:'a'.repeat(20)},options})).rejects.toMatchObject({status:422});
     await expect(cloudCall('quotes',{target:{kind:'reflection',id:NOTE},options:{...options,faithful:true}})).rejects.toMatchObject({code:'cloud_options'});
   });
   it('fige la note au devis sans appel IA et refuse ensuite son texte trop court',async()=>{
