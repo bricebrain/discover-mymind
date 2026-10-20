@@ -1,6 +1,7 @@
 import { Loader2, Pause, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Notice } from '@/components/ui/kit';
+import { ActiveListeningControls } from '../listening/ActiveListeningControls';
 import { formatClock } from '../player/MiniPlayer';
 import type { useContentReader } from './useContentReader';
 
@@ -18,6 +19,7 @@ export function PlaybackControls({ reader }: { reader: Reader }) {
       {!reader.playing && reader.positionSec < 5 && progress.data?.completed && <span className="text-sm text-muted-foreground">Version terminée · relancer depuis le début</span>}
       {variant.style === 'dialogue' && <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">Dialogue</span>}
     </div>
+    <ActiveListeningControls controls={reader.activeListening} />
     {progress.isError && <Notice tone="warning" action={<Button size="sm" variant="ghost" onClick={() => void progress.refetch()}>Réessayer</Button>}>La progression enregistrée n’a pas pu être chargée.</Notice>}
     {variant.audio.timingSource === 'none' ? <p className="m-0 text-sm text-muted-foreground">Transcription disponible sans synchronisation audio.</p>
       : !reader.verified && <p className="m-0 text-sm text-muted-foreground">{reader.current

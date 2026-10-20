@@ -8,6 +8,7 @@ import { formatClock } from '../player/MiniPlayer';
 import { usePlayer } from '../player/PlayerProvider';
 import { trackOf } from '../player/trackOf';
 import { publisherMark } from './feed';
+import { SelectableCard } from '../selection/SelectableCard';
 import { readingTime } from '../articles/readingTime';
 
 /** Petit égaliseur animé : « en cours de lecture ». */
@@ -32,9 +33,9 @@ export function EpisodeFeedCard({ episode, selected, onOpen, index }: { episode:
   const pct = current && player.duration > 0 ? (player.position / player.duration) * 100 : inProgress ? (episode.progressMs! / episode.progressDurationMs!) * 100 : 0;
   const act = () => (youtube ? onOpen() : current ? player.toggle() : player.play(trackOf(episode)));
 
-  return <motion.article initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: Math.min(index, 8) * 0.04, ease: [0.2, 0.8, 0.2, 1] }}
+  return <SelectableCard item={{ type: 'episode', id: episode.id, title: episode.title }}><motion.article initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: Math.min(index, 8) * 0.04, ease: [0.2, 0.8, 0.2, 1] }}
     className={cn(cardBase, selected ? 'border-primary/40 bg-primary-soft' : 'border-border/70 bg-card hover:bg-muted/60')}>
-    <button type="button" onClick={onOpen} aria-current={selected ? 'true' : undefined} className="flex min-w-0 flex-1 items-start gap-3 text-left active:scale-[.99]">
+    <button type="button" data-selection-surface onClick={onOpen} aria-current={selected ? 'true' : undefined} className="flex min-w-0 flex-1 items-start gap-3 text-left active:scale-[.99]">
       <span className="relative shrink-0">
         {episode.imageUrl
           ? <img src={episode.imageUrl} alt="" loading="lazy" className="size-14 rounded-xl object-cover" />
@@ -67,7 +68,7 @@ export function EpisodeFeedCard({ episode, selected, onOpen, index }: { episode:
         current ? 'bg-primary text-primary-foreground' : youtube ? 'bg-youtube-soft text-youtube' : 'bg-foreground text-background')}>
       {youtube ? <ChevronRight className="size-5" /> : playing ? <Pause className="size-4 fill-current" /> : <Play className="ml-0.5 size-4 fill-current" />}
     </button>
-  </motion.article>;
+  </motion.article></SelectableCard>;
 }
 
 /** Vignette d'un journal : abréviation sur sa couleur. */
@@ -82,9 +83,9 @@ export function PublisherThumb({ publisher, size = 'md' }: { publisher: string; 
 /** Article : vignette du journal, journal, date, temps de lecture, titre ; même fil que les épisodes. */
 export function ArticleFeedCard({ article, selected, onOpen, index }: { article: ArticleSummary; selected?: boolean; onOpen: () => void; index: number }) {
   const time = readingTime(article.contentLength);
-  return <motion.article initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: Math.min(index, 8) * 0.04, ease: [0.2, 0.8, 0.2, 1] }}
+  return <SelectableCard item={{ type: 'article', id: article.id, title: article.title }}><motion.article initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: Math.min(index, 8) * 0.04, ease: [0.2, 0.8, 0.2, 1] }}
     className={cn(cardBase, selected ? 'border-primary/40 bg-primary-soft' : 'border-border/70 bg-card hover:bg-muted/60')}>
-    <button type="button" onClick={onOpen} aria-current={selected ? 'true' : undefined} className="flex min-w-0 flex-1 items-start gap-3 text-left active:scale-[.99]">
+    <button type="button" data-selection-surface onClick={onOpen} aria-current={selected ? 'true' : undefined} className="flex min-w-0 flex-1 items-start gap-3 text-left active:scale-[.99]">
       <PublisherThumb publisher={article.publisher} />
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -99,7 +100,7 @@ export function ArticleFeedCard({ article, selected, onOpen, index }: { article:
       className="grid size-11 shrink-0 place-items-center self-center rounded-full bg-article-soft text-article transition-transform active:scale-90">
       <ChevronRight className="size-5" />
     </button>
-  </motion.article>;
+  </motion.article></SelectableCard>;
 }
 
 /** « À reprendre » : la dernière écoute commencée, en grande carte sarcelle. */
@@ -107,14 +108,18 @@ export function ResumeFeedCard({ episode }: { episode: Episode }) {
   const player = usePlayer();
   const pct = (episode.progressMs! / episode.progressDurationMs!) * 100;
   const left = (episode.progressDurationMs! - episode.progressMs!) / 1000;
-  return <motion.button type="button" onClick={() => player.play(trackOf(episode))} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-    className="flex w-full items-center gap-3 rounded-2xl bg-primary p-3 text-left text-primary-foreground shadow-[0_12px_30px_-14px_var(--primary)] active:scale-[.99]">
-    {episode.imageUrl ? <img src={episode.imageUrl} alt="" className="size-[52px] shrink-0 rounded-xl object-cover" /> : <span className="size-[52px] shrink-0 rounded-xl bg-white/20" />}
-    <span className="min-w-0 flex-1">
-      <span className="block text-[11px] font-semibold uppercase tracking-wider opacity-80">À reprendre · encore {formatClock(left)}</span>
+  return <motion.button type="button" onClick={() => player.play(trackOf(episode))} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.98 }}
+    className="relative flex w-full items-center gap-3 overflow-hidden rounded-[22px] bg-[#0d3b36] p-3 text-left text-white shadow-[0_16px_34px_-18px_rgb(13_59_54/0.9)]">
+    {/* Pochette agrandie et floutée en fond : la carte prend la couleur de l'émission. */}
+    {episode.imageUrl && <img src={episode.imageUrl} alt="" aria-hidden className="art-breathe absolute inset-0 size-full object-cover opacity-70 blur-2xl" />}
+    <span aria-hidden className="absolute inset-0 bg-black/30" />
+    {episode.imageUrl ? <img src={episode.imageUrl} alt="" className="relative size-[54px] shrink-0 rounded-xl object-cover shadow-lg" /> : <span className="relative size-[54px] shrink-0 rounded-xl bg-white/20" />}
+    <span className="relative min-w-0 flex-1">
+      <span className="block text-[11px] font-semibold uppercase tracking-wider text-white/80">À reprendre · encore {formatClock(left)}</span>
       <span className="block truncate text-[15px] font-semibold">{episode.title}</span>
-      <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-white/25"><span className="block h-full rounded-full bg-white" style={{ width: `${pct}%` }} /></span>
+      <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-white/25"><motion.span className="block h-full rounded-full bg-white"
+        initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 0.2 }} /></span>
     </span>
-    <span className="grid size-11 shrink-0 place-items-center rounded-full bg-white text-primary"><Play className="ml-0.5 size-4 fill-current" /></span>
+    <span className="relative grid size-11 shrink-0 place-items-center rounded-full bg-white text-[#18181b]"><Play className="ml-0.5 size-4 fill-current" /></span>
   </motion.button>;
 }

@@ -10,7 +10,7 @@ import { Button } from './button';
  * onglets en pastilles. Ils remplacent peu à peu Dialog, Alert, Switch, TextField et Tabs de MUI.
  */
 
-export const cardCls = 'rounded-2xl border border-[#ececee] bg-card';
+export const cardCls = 'rounded-[22px] border border-border/60 bg-card shadow-surface';
 export const inputCls = 'h-11 w-full appearance-none rounded-xl border border-border bg-card px-3 text-[15px] text-foreground outline-none transition-shadow placeholder:text-muted-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/15 disabled:opacity-50';
 
 /** Volet du bas (vaul) : poignée, titre en Instrument Serif, contenu défilant et actions collées en bas. */
@@ -19,7 +19,7 @@ export function Sheet({ title, onClose, children, footer, locked = false, wide =
 }) {
   return <Drawer.Root open onOpenChange={(o) => { if (!o && !locked) onClose(); }} dismissible={!locked} repositionInputs={false}>
     <Drawer.Portal>
-      <Drawer.Overlay className="fixed inset-0 z-[1300] bg-zinc-900/40" />
+      <Drawer.Overlay className="fixed inset-0 z-[1300] bg-black/45" />
       <Drawer.Content aria-describedby={undefined}
         className={cn('fixed inset-x-0 bottom-0 z-[1300] mx-auto flex max-h-[92dvh] flex-col rounded-t-[28px] bg-card font-sans text-foreground outline-none',
           wide ? 'max-w-[720px]' : 'max-w-[560px]')}>

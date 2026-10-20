@@ -11,6 +11,7 @@ import { api } from '../api/client';
 import { cleanPastedArticle, worthCleaning } from './cleanPaste';
 import { renderMarkdown } from './markdown';
 import { NoteOriginFields } from './NoteOriginFields';
+import { RelatedList } from '../related/RelatedList';
 import { NotePreparation } from './NotePreparation';
 import { ArticleFetch } from './ArticleFetch';
 import { deleteDraft, draftFromNote, getDraft, pushDraft, putDraft, type ArticleFetchStatus, type Draft, type Note } from './store';
@@ -249,6 +250,8 @@ export function NoteEditor({ id, onBack, onDeleted }: { id: string; onBack?: () 
     />}
 
     <NotePreparation id={draft.id} title={draft.title} body={draft.body} synced={status === 'saved'} englishContentId={englishContentId} />
+
+    {draft.baseUpdatedAt && <div className="mt-8"><RelatedList type="reflection" id={draft.id} /></div>}
 
     <AnimatePresence>
       {pasted && <motion.div role="status" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 16 }}

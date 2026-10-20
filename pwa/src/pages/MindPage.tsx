@@ -77,7 +77,7 @@ function NewNoteSheet({ open, onClose, onCreate }: { open: boolean; onClose: () 
   ];
   return <Drawer.Root open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
     <Drawer.Portal>
-      <Drawer.Overlay className="fixed inset-0 z-[1300] bg-zinc-900/40" />
+      <Drawer.Overlay className="fixed inset-0 z-[1300] bg-black/45" />
       <Drawer.Content aria-describedby={undefined}
         className="fixed inset-x-0 bottom-0 z-[1300] mx-auto flex max-w-[640px] flex-col gap-3 rounded-t-[28px] bg-card px-5 pb-[calc(28px+env(safe-area-inset-bottom))] pt-2.5 font-sans text-foreground outline-none">
         <span className="mx-auto h-[5px] w-10 rounded-full bg-zinc-300" aria-hidden />

@@ -36,7 +36,11 @@ export async function library(req: Request, env: Env) {
 export async function detail(env: Env, id: string) {
   const p = await visible(env,id), m = await manifest(env,p);
   const statuses = await env.DB.prepare('SELECT variant_key,timing_status FROM variants WHERE publication_id=?').bind(p.id).all<{ variant_key: string; timing_status: string }>();
-  return json({ content: m.content, publicationId: p.id, variants: m.variants.map((v) => {
+  const episode = await env.DB.prepare(`SELECT e.id, e.show_id AS showId FROM contents c JOIN episodes e
+    ON (c.source_type='podcast' AND c.source_ref='episode:' || e.id)
+      OR (c.source_type='youtube' AND c.source_ref='youtube:' || e.video_id)
+    WHERE c.id=? AND c.deleted_at IS NULL LIMIT 1`).bind(id).first<{ id: string; showId: string }>();
+  return json({ content: m.content, episode, publicationId: p.id, variants: m.variants.map((v) => {
     const base = `/api/contents/${id}/variants/${v.key}`;
     return { ...v, quiz: undefined, segmentsFile: undefined, segmentsUrl: `${base}/segments?publication=${p.id}`,
       timingStatus: statuses.results.find((s) => s.variant_key === v.key)?.timing_status,

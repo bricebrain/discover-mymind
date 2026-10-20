@@ -9,7 +9,7 @@ export class ApiError extends Error {
  * Appel à l'API du Worker (même origine). Toute écriture porte les en-têtes
  * exigés par la protection CSRF (§ 8.3) ; le cookie de session est envoyé automatiquement.
  */
-export async function api<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
+export async function api<T>(path: string, init: { method?: string; body?: unknown; onResponse?: (response: Response) => void } = {}): Promise<T> {
   const method = init.method ?? 'GET';
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (method !== 'GET') {
@@ -33,5 +33,6 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
     const retry = Number(res.headers.get('Retry-After') ?? '') || undefined;
     throw new ApiError(res.status, data?.error?.code ?? 'http_error', data?.error?.message ?? `Erreur ${res.status}`, retry);
   }
+  init.onResponse?.(res);
   return data as T;
 }

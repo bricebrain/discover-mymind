@@ -6,9 +6,15 @@
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 
-/* Jetons de la maquette « Discover · mobile » : neutres zinc, sarcelle pour l'action, orange pour les articles. */
+/* `dark:` suit le choix fait dans l'app (attribut data-theme posé avant le premier affichage). */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/*
+ * Jetons « vivant » (20 octobre 2026) : thème clair blanc ou sombre profond, au choix dans l'app (Réglages, bouton soleil / lune).
+ * Sarcelle pour l'action, orange pour les articles ; aurores et dégradés pour donner de la vie.
+ */
 :root {
-  --background: #fafaf9;
+  --background: #ffffff;
   --foreground: #18181b;
   --card: #ffffff;
   --muted: #f4f4f5;
@@ -23,26 +29,67 @@
   --youtube-soft: #fee2e2;
   --dock: rgba(24, 24, 27, 0.94);
   --dock-foreground: #fafafa;
+  --surface-shadow: 0 1px 2px rgb(20 20 40 / 0.04), 0 10px 26px -14px rgb(20 20 40 / 0.16);
+  --glass: rgb(255 255 255 / 0.78);
+  --aurora-1: #2dd4bf;
+  --aurora-2: #a78bfa;
+  --aurora-3: #fb923c;
+  --aurora-4: #38bdf8;
+  --grad-primary: linear-gradient(135deg, #0d5f56 0%, #0e8f7e 50%, #2bb3a0 100%);
+  --grad-warm: linear-gradient(135deg, #f97316 0%, #e11d48 100%);
 }
 :root { color-scheme: light; }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --background: #0c0c0e;
-  --foreground: #f4f4f5;
-  --card: #17171a;
-  --muted: #1f1f23;
-  --muted-foreground: #a1a1aa;
-  --border: #2c2c31;
-  --primary: #5ec9bb;
-  --primary-foreground: #06201c;
-  --primary-soft: #123630;
-  --article: #fb923c;
-  --article-soft: #352219;
+  --background: #0d0e12;
+  --foreground: #f1f1f4;
+  --card: #17181e;
+  --muted: #1f2027;
+  --muted-foreground: #a3a3ad;
+  --border: #2a2b33;
+  --primary: #5ed6c4;
+  --primary-foreground: #04201b;
+  --primary-soft: #12332e;
+  --article: #fb9a5b;
+  --article-soft: #36231a;
   --youtube: #fca5a5;
   --youtube-soft: #3b1c20;
-  --dock: rgba(31, 31, 35, 0.96);
+  --dock: rgba(28, 29, 36, 0.96);
   --dock-foreground: #f4f4f5;
+  --surface-shadow: 0 0 0 1px rgb(255 255 255 / 0.05);
+  --glass: rgb(16 17 22 / 0.78);
+  --aurora-1: #14b8a6;
+  --aurora-2: #8b5cf6;
+  --aurora-3: #f97316;
+  --aurora-4: #0ea5e9;
+  --grad-primary: linear-gradient(135deg, #0f766e 0%, #14a08c 50%, #34d3bd 100%);
+  /*
+   * Couleurs fixes de Tailwind utilisées par les écrans (messages, pastilles) : en sombre, les fonds clairs (50–200) deviennent des
+   * teintes foncées et les textes foncés (700–900) des tons clairs. Les tons moyens (300–600) ne changent pas.
+   */
+  --color-zinc-50: #1c1d24; --color-zinc-100: #22232b; --color-zinc-200: #2c2d36; --color-zinc-300: #3a3b45; --color-zinc-400: #8b8b96;
+  --color-zinc-700: #d4d4d8; --color-zinc-800: #e4e4e7; --color-zinc-900: #f4f4f5;
+  --color-sky-50: color-mix(in oklab, var(--color-sky-500) 14%, var(--card)); --color-sky-100: color-mix(in oklab, var(--color-sky-500) 20%, var(--card)); --color-sky-200: color-mix(in oklab, var(--color-sky-500) 32%, var(--card));
+  --color-sky-700: var(--color-sky-400); --color-sky-800: var(--color-sky-300); --color-sky-900: var(--color-sky-300);
+  --color-amber-50: color-mix(in oklab, var(--color-amber-500) 14%, var(--card)); --color-amber-100: color-mix(in oklab, var(--color-amber-500) 20%, var(--card)); --color-amber-200: color-mix(in oklab, var(--color-amber-500) 32%, var(--card));
+  --color-amber-700: var(--color-amber-400); --color-amber-800: var(--color-amber-300); --color-amber-900: var(--color-amber-300);
+  --color-emerald-50: color-mix(in oklab, var(--color-emerald-500) 14%, var(--card)); --color-emerald-100: color-mix(in oklab, var(--color-emerald-500) 20%, var(--card)); --color-emerald-200: color-mix(in oklab, var(--color-emerald-500) 32%, var(--card));
+  --color-emerald-700: var(--color-emerald-400); --color-emerald-800: var(--color-emerald-300); --color-emerald-900: var(--color-emerald-300);
+  --color-red-50: color-mix(in oklab, var(--color-red-500) 14%, var(--card)); --color-red-100: color-mix(in oklab, var(--color-red-500) 20%, var(--card)); --color-red-200: color-mix(in oklab, var(--color-red-500) 32%, var(--card));
+  --color-red-700: var(--color-red-400); --color-red-800: var(--color-red-300); --color-red-900: var(--color-red-300);
+  --color-indigo-50: color-mix(in oklab, var(--color-indigo-500) 14%, var(--card)); --color-indigo-100: color-mix(in oklab, var(--color-indigo-500) 20%, var(--card)); --color-indigo-200: color-mix(in oklab, var(--color-indigo-500) 32%, var(--card));
+  --color-indigo-700: var(--color-indigo-400); --color-indigo-800: var(--color-indigo-300); --color-indigo-900: var(--color-indigo-300);
+  --color-rose-50: color-mix(in oklab, var(--color-rose-500) 14%, var(--card)); --color-rose-100: color-mix(in oklab, var(--color-rose-500) 20%, var(--card)); --color-rose-200: color-mix(in oklab, var(--color-rose-500) 32%, var(--card));
+  --color-rose-700: var(--color-rose-400); --color-rose-800: var(--color-rose-300); --color-rose-900: var(--color-rose-300);
+  --color-violet-50: color-mix(in oklab, var(--color-violet-500) 14%, var(--card)); --color-violet-100: color-mix(in oklab, var(--color-violet-500) 20%, var(--card)); --color-violet-200: color-mix(in oklab, var(--color-violet-500) 32%, var(--card));
+  --color-violet-700: var(--color-violet-400); --color-violet-800: var(--color-violet-300); --color-violet-900: var(--color-violet-300);
+  --color-orange-50: color-mix(in oklab, var(--color-orange-500) 14%, var(--card)); --color-orange-100: color-mix(in oklab, var(--color-orange-500) 20%, var(--card)); --color-orange-200: color-mix(in oklab, var(--color-orange-500) 32%, var(--card));
+  --color-orange-700: var(--color-orange-400); --color-orange-800: var(--color-orange-300); --color-orange-900: var(--color-orange-300);
+  --color-green-50: color-mix(in oklab, var(--color-green-500) 14%, var(--card)); --color-green-100: color-mix(in oklab, var(--color-green-500) 20%, var(--card)); --color-green-200: color-mix(in oklab, var(--color-green-500) 32%, var(--card));
+  --color-green-700: var(--color-green-400); --color-green-800: var(--color-green-300); --color-green-900: var(--color-green-300);
+  --color-teal-50: color-mix(in oklab, var(--color-teal-500) 14%, var(--card)); --color-teal-100: color-mix(in oklab, var(--color-teal-500) 20%, var(--card)); --color-teal-200: color-mix(in oklab, var(--color-teal-500) 32%, var(--card));
+  --color-teal-700: var(--color-teal-400); --color-teal-800: var(--color-teal-300); --color-teal-900: var(--color-teal-300);
 }
 
 @theme inline {
@@ -64,18 +111,35 @@
   --color-youtube-soft: var(--youtube-soft);
   --color-dock: var(--dock);
   --color-dock-foreground: var(--dock-foreground);
+  --color-glass: var(--glass);
+  --shadow-surface: var(--surface-shadow);
   --radius-xl: 1rem;
   --radius-2xl: 1.25rem;
 }
 
 @keyframes eq { from { height: 3px; } to { height: 12px; } }
 
+@utility bg-grad-primary { background-image: var(--grad-primary); }
+@utility bg-grad-warm { background-image: var(--grad-warm); }
+
+/* Aurore : taches de couleur floues qui dérivent lentement (fond de la barre du haut, de la Une, du lecteur). */
+@keyframes aurora-drift {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  33% { transform: translate3d(12%, -8%, 0) scale(1.15); }
+  66% { transform: translate3d(-10%, 10%, 0) scale(0.92); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+.aurora-blob { position: absolute; border-radius: 9999px; filter: blur(42px); animation: aurora-drift 14s ease-in-out infinite; will-change: transform; }
+/* Pochette floutée qui respire derrière le lecteur. */
+@keyframes art-breathe { 0%, 100% { transform: scale(1.25) rotate(0deg); } 50% { transform: scale(1.4) rotate(6deg); } }
+.art-breathe { animation: art-breathe 18s ease-in-out infinite; }
+
 @layer base {
   /* Instrument Serif n'existe qu'en graisse normale : pas de faux gras synthétisé par le navigateur. */
   html { font-synthesis-weight: none; }
   *, ::before, ::after { box-sizing: border-box; }
   body { margin: 0; background: var(--background); color: var(--foreground); font-family: var(--font-sans);
-    -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
+    -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; transition: background-color .3s ease, color .3s ease; }
   img, svg, video { max-width: 100%; }
   /* Remise à zéro minimale des boutons natifs (sans le « preflight » complet). */
   button { background: transparent; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; cursor: pointer; }

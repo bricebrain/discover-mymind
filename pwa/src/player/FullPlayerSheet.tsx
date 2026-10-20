@@ -1,7 +1,10 @@
+import { motion } from 'motion/react';
 import { ChevronDown, FileText, Loader2, Pause, Play, RotateCcw, RotateCw } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Drawer } from 'vaul';
+import { Aurora } from '../vivid/Aurora';
+import { ActiveListeningControls } from '../listening/ActiveListeningControls';
 import { useContent } from '../api/contents';
 import { variantName, variantTrack, languageName } from '../content/variants';
 import { AutoplayNextToggle, ReturnToVersionButton, SleepButton } from '../listening/ListeningControls';
@@ -44,11 +47,14 @@ export function FullPlayerSheet({ open, onClose }: { open: boolean; onClose: () 
 
   return <Drawer.Root open={open} onOpenChange={(o) => { if (!o) onClose(); }} shouldScaleBackground={false}>
     <Drawer.Portal>
-      <Drawer.Overlay className="fixed inset-0 z-[1300] bg-zinc-900/40" />
+      <Drawer.Overlay className="fixed inset-0 z-[1300] bg-black/45" />
       <Drawer.Content aria-describedby={undefined}
         className="fixed inset-x-0 bottom-0 z-[1300] mx-auto flex max-h-[94dvh] max-w-[640px] flex-col overflow-hidden rounded-t-[28px] bg-background font-sans text-foreground outline-none">
         {/* Fond : la pochette floutée, très atténuée. */}
-        {track.imageUrl && <div aria-hidden className="pointer-events-none absolute -inset-10 bg-cover bg-center opacity-25 blur-3xl saturate-150" style={{ backgroundImage: `url("${track.imageUrl}")` }} />}
+        {/* Fond vivant : la pochette floutée qui respire lentement (ou une aurore sans pochette). */}
+        {track.imageUrl
+          ? <div aria-hidden className="art-breathe pointer-events-none absolute -inset-16 bg-cover bg-center opacity-40 blur-3xl saturate-150 dark:opacity-35" style={{ backgroundImage: `url("${track.imageUrl}")` }} />
+          : <Aurora intensity={0.45} />}
         <div className="relative flex justify-center pt-2.5"><span className="h-[5px] w-10 rounded-full bg-zinc-300" aria-hidden /></div>
         <div className="relative flex items-center justify-between px-3 pt-1">
           <button type="button" onClick={onClose} aria-label="Réduire le lecteur" className="grid size-11 place-items-center rounded-full active:scale-95"><ChevronDown className="size-6" /></button>
@@ -59,7 +65,8 @@ export function FullPlayerSheet({ open, onClose }: { open: boolean; onClose: () 
         <div className="relative flex min-h-0 flex-col gap-5 overflow-y-auto px-6 pb-[calc(24px+env(safe-area-inset-bottom))] pt-2 [&>*]:shrink-0">
           <div className="flex justify-center">
             {track.imageUrl
-              ? <img src={track.imageUrl} alt="" className="aspect-square w-[min(62vw,250px)] rounded-[28px] object-cover shadow-[0_24px_50px_-18px_rgba(0,0,0,.45)]" />
+              ? <motion.img src={track.imageUrl} alt="" animate={{ scale: playing ? 1 : 0.86 }} transition={{ type: 'spring', stiffness: 220, damping: 20 }}
+                  className="aspect-square w-[min(62vw,250px)] rounded-[28px] object-cover shadow-[0_24px_50px_-18px_rgba(0,0,0,.45)]" />
               : <div className="grid aspect-square w-[min(62vw,250px)] place-items-center rounded-[28px] bg-gradient-to-br from-[#2f7d73] to-[#0d3b36] font-display text-7xl text-white shadow-[0_24px_50px_-18px_rgba(13,95,86,.6)]">{track.title.slice(0, 1)}</div>}
           </div>
           <div className="text-center">
@@ -100,6 +107,7 @@ export function FullPlayerSheet({ open, onClose }: { open: boolean; onClose: () 
             <SleepButton />
           </div>
 
+          <ActiveListeningControls controls={player.activeListening} />
           {variant && <Link to={`/library/${variant[0]}?v=${variant[1]}`} onClick={onClose}
             className="flex h-11 items-center justify-center gap-2 rounded-full border border-border bg-card text-sm font-semibold text-foreground no-underline active:scale-[.98]">
             <FileText className="size-4" />Lire la transcription
