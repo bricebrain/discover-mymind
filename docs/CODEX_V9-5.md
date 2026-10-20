@@ -2,7 +2,7 @@
 
 ## État du chantier
 
-Export, analyse des 363 annotations et correction de la cohérence des groupes livrés. **Accord sur les nouvelles valeurs encore attendu.** Proposition après correction : même langue **0,75** ; entre langues **0,75** ; zone de doute 0,60 conservée ; juge désactivé. Sur l’échantillon : 26 vrais rapprochements, aucun faux, dont les 15 positifs entre langues ; les 57 positifs exclus par les règles d’éditeur/texte restent écartés. Aucun réglage appliqué. Voir `docs/calibration/V9-5-COHERENCE.md`, qui remplace la proposition restrictive de l’analyse précédente. Le chantier suivant n’est pas commencé.
+Export, analyse des 363 annotations et correction de la cohérence des groupes livrés. **Valeurs approuvées par l’utilisateur et inscrites dans la configuration locale** : même langue **0,75** ; entre langues **0,75** ; zone de doute 0,60 ; juge désactivé. Sur l’échantillon : 26 vrais rapprochements, aucun faux, dont les 15 positifs entre langues ; les 57 positifs exclus par les règles d’éditeur/texte restent écartés. La correction du code attend encore intégration et redémarrage autorisés de l’Atelier. Voir `docs/calibration/V9-5-COHERENCE.md`. Le chantier suivant n’est pas commencé.
 
 Worktrees :
 
@@ -74,7 +74,7 @@ Les premiers lancements Worker/Atelier ont rencontré le refus sandbox d’ouvri
 
 ## Production
 
-Aucun changement de configuration réelle, aucun appel payant, aucune synchronisation ni publication. Aucun déploiement, aucune migration, aucun redémarrage de l’Atelier.
+Les quatre valeurs approuvées ont été inscrites dans la configuration locale (voir dernière section). Aucun appel payant, aucune synchronisation ni publication. Aucun déploiement, aucune migration, aucun redémarrage de l’Atelier.
 
 ## Retour utilisateur — 20 octobre 2026
 
@@ -90,4 +90,12 @@ L’utilisateur a autorisé la correction du regroupement. Le worktree Atelier `
 
 Chaque groupe exige un lien validé entre toutes ses paires ; des groupes distincts peuvent partager une source. La couverture conserve tous les liens validés, les voisins « Voir aussi » ne changent pas et les identités des anciens groupes sont retirées par le mécanisme de publication existant. La configuration et le processus réels de l’Atelier restent inchangés.
 
-La proposition devient 0,75 / 0,75 ; les valeurs et leur application nécessitent encore accord. Le bilan détaillé et les limites sont dans `docs/calibration/V9-5-COHERENCE.md`. Les suites obligatoires passent après correction : **1 179 tests**, dont **303 Atelier** ; TypeScript, lint et builds requis réussis.
+La proposition devient 0,75 / 0,75. Le bilan détaillé et les limites sont dans `docs/calibration/V9-5-COHERENCE.md`. Les suites obligatoires passent après correction : **1 179 tests**, dont **303 Atelier** ; TypeScript, lint et builds requis réussis.
+
+## Application locale approuvée — 20 octobre 2026
+
+Après l’accord explicite « Oui c est ok », les quatre clés ont été inscrites dans `/Users/brice/mesProjects/myMobileProjects/convert/config_discover.json` : `relatedSameLanguageScore = 0.75`, `relatedCrossLanguageScore = 0.75`, `relatedDoubtScore = 0.60`, `relatedLlm = false`.
+
+Les clés étaient absentes et utilisaient les défauts du code. Ajout ciblé, écriture atomique et relecture JSON : aucune autre valeur n’a changé. Sauvegarde préalable privée (mode 0600) : `/private/tmp/discover-v9-5-config-avant-20261020-064512.json`. Le fichier de configuration est non suivi par Git et n’est pas commité.
+
+Le consommateur conserve sa configuration en mémoire après démarrage. Aucun rechargement ni redémarrage n’a été provoqué ; le code corrigé `2fbd089` reste dans son worktree, non intégré au checkout actif. L’activation complète du lot nécessite donc encore une intégration et une relance autorisées selon le § 6 du brief. Ni déploiement, ni migration, ni publication exécutés. Les 1 179 tests précédemment verts restent la validation du code inchangé ; l’application des paramètres a été vérifiée par comparaison des quatre clés et de toutes les autres valeurs.

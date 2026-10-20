@@ -17,7 +17,7 @@ La nouvelle proposition de seuils est :
 }
 ```
 
-Elle remplace la proposition restrictive **0,75 / 0,79**, qui concernait l’ancien algorithme. **Ces nouvelles valeurs restent soumises à accord avant modification de la configuration réelle.** Le code conserve ses défauts existants ; ni fichier de configuration réel ni exemple de configuration n’a changé.
+Elle remplace la proposition restrictive **0,75 / 0,79**, qui concernait l’ancien algorithme. **L’utilisateur a approuvé ces valeurs**, ensuite inscrites dans la configuration locale `convert/config_discover.json`, avec sauvegarde préalable privée et contrôle des autres valeurs. Le code conserve ses défauts existants et l’exemple de configuration n’a pas changé. Aucun redémarrage n’a été effectué : l’intégration du code corrigé et son activation restent à réaliser avec l’accord de déploiement requis.
 
 ## Fichiers Atelier
 
@@ -71,4 +71,4 @@ Ces chiffres portent uniquement sur les annotations de ce même instantané, str
 - Les groupes peuvent être plus nombreux et partager une source. Les API conservent leurs plafonds existants, dont 50 groupes récents dans Explorer ; aucune promesse de liste exhaustive n’est ajoutée.
 - Un lien direct erroné peut toujours produire un mauvais groupe. La correction supprime l’inférence transitive, elle ne remplace pas une annotation sémantique ni une validation sur de nouvelles données.
 
-Aucun appel payant, aucune publication, aucune migration, aucun déploiement et aucun redémarrage de l’Atelier. `relatedDoubtScore` reste à 0,60 dans la proposition, sans prétention de calibration du juge ; `relatedLlm` reste désactivé.
+Aucun appel payant, aucune publication, aucune migration, aucun déploiement et aucun redémarrage de l’Atelier. `relatedDoubtScore` est conservé à 0,60 dans les valeurs approuvées, sans prétention de calibration du juge ; `relatedLlm` reste désactivé.
