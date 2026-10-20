@@ -22,10 +22,12 @@
 
   // Connexion désactivée pour l'instant (choix du 2026-10-17). Remettre "false" pour l'exiger à nouveau :
   // APP_PASSPHRASE reste enregistrée dans les secrets.
-  "vars": { "AUTH_DISABLED": "true" },
+  "vars": { "AUTH_DISABLED": "true", "CLOUD_ATELIER_ENABLED": "false", "CLOUD_MONTHLY_USD": "10" },
+  "workflows": [{ "binding": "CLOUD_PREPARATION", "name": "discover-cloud-preparation", "class_name": "CloudPreparation" }],
 
   // Secrets (wrangler secret put) : APP_PASSPHRASE, SESSION_EPOCH, ATELIER_TOKEN.
   // En local : .dev.vars (voir .dev.vars.example).
+  // Cloud (désactivé par défaut) : GEMINI_API_KEY, DEEPGRAM_API_KEY, YOUTUBE_DATA_API_KEY.
 
   // Collecte : une émission par minute (§ 7.1). Le seul cron de discover.
   "triggers": { "crons": ["* * * * *"] },

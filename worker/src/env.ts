@@ -13,6 +13,12 @@ export interface Env {
   SESSION_EPOCH: string;
   /** Jeton Bearer de l'Atelier (32 caractères minimum). */
   ATELIER_TOKEN: string;
+  CLOUD_PREPARATION: Workflow<{id:string}>;
+  CLOUD_ATELIER_ENABLED?: string;
+  CLOUD_MONTHLY_USD?: string;
+  GEMINI_API_KEY?: string;
+  DEEPGRAM_API_KEY?: string;
+  YOUTUBE_DATA_API_KEY?: string;
   /**
    * "true" : connexion désactivée (accès libre à /api, choix temporaire du propriétaire).
    * /atelier reste protégé par son jeton, et les contrôles CSRF restent actifs.

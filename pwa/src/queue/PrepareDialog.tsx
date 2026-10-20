@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox, Field, Notice, Select, Sheet, inputCls } from '@/components/ui/kit';
 import type { PrepTarget } from '../api/queue';
-import { COVERAGES } from './options';
+import { COVERAGES, LEVEL_OPTIONS } from './options';
 import type { PrepareOptions } from './types';
 import { usePreparation } from './usePreparation';
+import { CloudPrepareDialog } from '../cloud/CloudPrepareDialog';
 
-export const LEVEL_OPTIONS = [['A2', 'A2'], ['B1', 'B1'], ['B2', 'B2'], ['C1', 'C1'], ['original', 'Anglais non simplifié']] as const;
+export { LEVEL_OPTIONS } from './options';
 export const STYLE_OPTIONS = [['narration', 'Narration'], ['dialogue', 'Dialogue']] as const;
 
 /** Options communes aux épisodes, vidéos et notes ; la copie de l’audio original concerne les épisodes. */
@@ -14,10 +15,12 @@ export function PrepareDialog({target,title,initial,faithfulAllowed,onClose,onQu
   target: PrepTarget; title: string; initial: PrepareOptions; faithfulAllowed: boolean; onClose:() => void; onQueued?:() => void;
 }) {
   const [options,setOptions] = useState(initial);
+  const [cloud,setCloud] = useState(false);
   const {prepare} = usePreparation(target);
   const set = <K extends keyof PrepareOptions>(key: K,value: PrepareOptions[K]) => setOptions((o) => ({...o,[key]:value}));
   const range = options.coverage==='condensed' ? [8,20] : [3,6];
   const valid = options.coverage==='full' || (Number.isInteger(options.targetMinutes) && options.targetMinutes!>=range[0]! && options.targetMinutes!<=range[1]!);
+  if (cloud) return <CloudPrepareDialog target={target} title={title} onClose={()=>setCloud(false)} onQueued={()=>{onQueued?.();onClose();}} />;
   return <Sheet title="Préparer en anglais" onClose={onClose} locked={prepare.isPending} footer={<>
     <Button variant="ghost" onClick={onClose} disabled={prepare.isPending}>Annuler</Button>
     <Button disabled={!valid || prepare.isPending} onClick={() => prepare.mutate(options,{onSuccess:() => { onQueued?.(); onClose(); }})}>
@@ -25,6 +28,7 @@ export function PrepareDialog({target,title,initial,faithfulAllowed,onClose,onQu
     </Button>
   </>}>
     <p className="m-0 text-[15px] font-semibold leading-snug">{title}</p>
+    {target.kind!=='episode' && <Button variant="outline" disabled={prepare.isPending} onClick={()=>setCloud(true)}>Préparer sans Mac</Button>}
     <Field label="Version">
       <Select aria-label="Version" value={options.coverage} options={Object.entries(COVERAGES) as [PrepareOptions['coverage'], string][]} onChange={(coverage) =>
         setOptions((o) => ({...o,coverage,targetMinutes:coverage==='full' ? null : coverage==='condensed' ? 12 : 4}))} />

@@ -50,7 +50,7 @@ export async function lease(req: Request,env: Env) {
     lease_expires_at=?,attempts=attempts+1,stage='download',updated_at=?
     WHERE id=(SELECT id FROM prepare_queue WHERE
       (status='pending' OR (status='leased' AND lease_expires_at<=?)) AND attempts<max_attempts
-      AND ${ARTICLE_TEXTS_READY}
+      AND executor='mac' AND ${ARTICLE_TEXTS_READY}
       AND (?=0 OR COALESCE(stage,'')<>'source_ready')
       AND (?=1 OR COALESCE(stage,'')<>'review') AND (? IS NULL OR id=?)
       ORDER BY created_at,id LIMIT 1) RETURNING *`)

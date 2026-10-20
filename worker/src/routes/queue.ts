@@ -11,7 +11,7 @@ export async function insertQueue(env: Env, kind: 'episode' | 'youtube' | 'refle
   const row = await env.DB.prepare(`${QUEUE_SELECT} WHERE q.kind=? AND q.ref=? AND q.status IN ('pending','leased')`)
     .bind(kind,ref).first<QueueRow>();
   if (!row) throw new HttpError(409,'queue_changed','La demande a changé, réessayer.');
-  if (row.options_json !== JSON.stringify(options)) throw new HttpError(409,'already_queued','Cette source a déjà une préparation en cours avec d’autres options.');
+  if (row.executor!=='mac' || row.options_json !== JSON.stringify(options)) throw new HttpError(409,'already_queued','Cette source a déjà une préparation en cours avec d’autres options ou sans Mac.');
   return json({ item: queueOut(row) },row.id === id ? 201 : 200);
 }
 
@@ -105,6 +105,9 @@ export async function removeEntry(env: Env,id: string) {
   return noContent();
 }
 export async function retry(env: Env,id: string) {
+  if (await env.DB.prepare("SELECT id FROM prepare_queue WHERE id=? AND executor='cloud'").bind(id).first()) {
+    throw new HttpError(409,'cloud_no_retry','Les appels cloud ne sont pas relancés automatiquement. Une nouvelle préparation nécessite une nouvelle autorisation de dépense.');
+  }
   const r = await env.DB.prepare(`UPDATE prepare_queue SET status='pending',attempts=0,error=NULL,stage=NULL,
     lease_token=NULL,lease_owner=NULL,lease_expires_at=NULL,updated_at=? WHERE id=? AND status IN ('failed','cancelled')
     AND NOT EXISTS (SELECT 1 FROM prepare_queue active WHERE active.kind=prepare_queue.kind AND active.ref=prepare_queue.ref

@@ -53,7 +53,7 @@ export function PreparationPanel({episode}: {episode?: Episode}) {
         {!episode && item.kind==='reflection' && <Action to={`/mind?n=${item.ref}`}>Voir la note</Action>}
         {!episode && item.kind==='youtube' && <Action href={`https://www.youtube.com/watch?v=${encodeURIComponent(item.ref)}`}>Voir la vidéo</Action>}
         {['pending','leased'].includes(item.status) && <Action disabled={cancel.isPending} onClick={() => cancel.mutate(item.id)}>Annuler</Action>}
-        {item.status==='failed' && <Action disabled={retry.isPending || items.some((i) => i.ref===item.ref && (i.status==='pending' || i.status==='leased'))} onClick={() => retry.mutate(item.id)}>Réessayer</Action>}
+        {item.status==='failed' && item.executor!=='cloud' && <Action disabled={retry.isPending || items.some((i) => i.ref===item.ref && (i.status==='pending' || i.status==='leased'))} onClick={() => retry.mutate(item.id)}>Réessayer</Action>}
         {item.status==='done' && item.contentId && <Action to={item.kind==='episode' ? `/?e=${item.ref}` : `/library/${item.contentId}`}>Écouter les versions</Action>}
         {!episode && ['done','failed','cancelled'].includes(item.status) && <Action muted disabled={remove.isPending} onClick={() => remove.mutate(item.id)}>Retirer de la liste</Action>}
       </div>
