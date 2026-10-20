@@ -13,7 +13,7 @@ describe('schéma', () => {
       "SELECT name FROM sqlite_master WHERE type IN ('table') AND name NOT LIKE 'search_index_%' AND name NOT LIKE '\\_%' ESCAPE '\\' AND name NOT LIKE 'sqlite_%' AND name <> 'd1_migrations'",
     ).all<{ name: string }>();
     expect(results.map((r) => r.name).sort()).toEqual([
-      'app_settings', 'article_sources', 'articles', 'contents', 'dossier_runs', 'dossiers', 'episodes', 'level_feedback', 'listening_progress', 'login_attempts', 'prepare_queue', 'publication_files', 'publication_gc', 'publication_guards',
+      'app_settings', 'article_sources', 'articles', 'cloud_guards', 'cloud_operations', 'cloud_quotes', 'cloud_runs', 'contents', 'dossier_runs', 'dossiers', 'episodes', 'level_feedback', 'listening_progress', 'login_attempts', 'prepare_queue', 'publication_files', 'publication_gc', 'publication_guards',
       'publications', 'push_deliveries', 'push_subscriptions', 'queue_events', 'quiz_answers', 'reflection_links', 'reflections', 'related_changes', 'related_groups', 'related_links', 'related_members', 'search_index', 'sessions', 'shows', 'variants', 'vocabulary_picks',
       'weekly_articles', 'weekly_links', 'weekly_listening', 'weekly_notes', 'weekly_publications',
     ]);

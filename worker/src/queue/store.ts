@@ -7,9 +7,10 @@ export interface QueueRow {
   lease_token: string | null; lease_owner: string | null; lease_expires_at: string | null;
   attempts: number; max_attempts: number; content_id: string | null; error: string | null;
   created_at: string; updated_at: string; title?: string;
+  executor: 'mac'|'cloud';
 }
 export function queueOut(row: QueueRow) {
-  return { id: row.id, kind: row.kind, ref: row.ref, title: row.title ?? row.ref,
+  return { id: row.id, kind: row.kind, ref: row.ref, executor:row.executor, title: row.title ?? row.ref,
     options: JSON.parse(row.options_json) as PrepareOptions, status: row.status, stage: row.stage,
     attempts: row.attempts, maxAttempts: row.max_attempts, contentId: row.content_id,
     error: row.error, createdAt: row.created_at, updatedAt: row.updated_at, leaseExpiresAt: row.lease_expires_at };

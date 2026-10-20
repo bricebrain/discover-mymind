@@ -4,6 +4,13 @@ APP_PASSPHRASE=<phrase secrète locale, 24 caractères minimum>
 SESSION_EPOCH=<valeur aléatoire>
 ATELIER_TOKEN=<valeur aléatoire, 32 caractères minimum>
 
+# Atelier sans Mac : secrets dédiés, jamais copiés du Mac. Désactivé par défaut dans wrangler.jsonc.
+# GEMINI_API_KEY=<clé Gemini API>
+# DEEPGRAM_API_KEY=<clé Deepgram Aura-2>
+# YOUTUBE_DATA_API_KEY=<clé Google avec YouTube Data API v3 activée>
+# CLOUD_ATELIER_ENABLED=true
+# CLOUD_MONTHLY_USD=10
+
 # Notifications Web Push : paire ECDSA P-256, valeurs base64url.
 # La clé privée reste hors de Git et devient un secret Wrangler en production.
 # VAPID_PUBLIC_KEY=<clé publique non compressée de 65 octets>

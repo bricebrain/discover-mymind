@@ -21,7 +21,7 @@ export function AddYoutubeDialog({ onClose, onQueued }: { onClose: () => void; o
         <input autoFocus type="url" inputMode="url" className={inputCls} value={url} aria-invalid={bad} placeholder="https://youtu.be/…"
           onChange={(event) => setUrl(event.target.value)} />
       </Field>
-      <p className="m-0 text-sm leading-relaxed text-muted-foreground">Choisis ensuite la version et ton niveau d’anglais. L’Atelier sur le Mac récupère la vidéo et prépare le texte et l’audio.</p>
+      <p className="m-0 text-sm leading-relaxed text-muted-foreground">Choisis ensuite une préparation sur le Mac ou sans Mac, puis ton niveau d’anglais.</p>
     </form>
   </Sheet>;
 }

@@ -29,9 +29,15 @@ import { getTranscript } from './routes/transcripts';
 import { handleAtelier } from './routes/atelier';
 import { assertSameOriginWrite } from './security/csrf';
 import { getSession } from './security/session';
+import { cloudRoute, protectCloudQueue } from './cloud/routes';
+import { recoverCloud } from './cloud/dispatch';
+export { CloudPreparation } from './cloud/workflow';
 
 async function handleApi(req: Request, env: Env, path: string): Promise<Response> {
   assertSameOriginWrite(req);
+  if (path.startsWith('/api/cloud/')) return cloudRoute(req,env,path);
+  const cloudQueue=path.match(/^\/api\/queue\/([0-9a-f-]{36})(?:\/(?:retry|remove))?$/);
+  if (cloudQueue?.[1] && req.method!=='GET') await protectCloudQueue(req,env,cloudQueue[1]);
 
   const m = req.method;
 
@@ -169,6 +175,7 @@ export default {
   /** Cron toutes les minutes : une émission vérifiée par exécution (§ 7.1). */
   async scheduled(_controller: ScheduledController, env: Env): Promise<void> {
     await expireExhausted(env);
+    await recoverCloud(env);
     const r = await collectNext(env);
     if (r.status !== 'idle') console.log(JSON.stringify({ event: 'collect', ...r }));
     await flushEvents(env);

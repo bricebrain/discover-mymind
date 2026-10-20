@@ -43,7 +43,7 @@ export function NotePreparation({ id, title, body, synced, englishContentId }: {
       {failed?.error && <p className="m-0 mt-1 text-sm text-red-700">{failed.error}</p>}
       <div className="-mx-2 mt-1 flex gap-1">
         {current && <Button size="sm" variant="ghost" className="text-primary" disabled={cancel.isPending} onClick={() => cancel.mutate(current.id)}>Annuler</Button>}
-        {failed && <Button size="sm" variant="ghost" className="text-primary" disabled={retry.isPending} onClick={() => retry.mutate(failed.id)}>Réessayer</Button>}
+        {failed && failed.executor!=='cloud' && <Button size="sm" variant="ghost" className="text-primary" disabled={retry.isPending} onClick={() => retry.mutate(failed.id)}>Réessayer</Button>}
       </div>
     </div>}
     {contentId && <PreparedEpisode contentId={contentId} about={null} onDeleted={() => setDeleted(contentId)} />}

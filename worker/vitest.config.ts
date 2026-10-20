@@ -16,6 +16,10 @@ export default defineConfig(async () => {
             LOGIN_DELAY_MS: '0',
             // Les tests de sécurité vérifient la connexion : on l'active quelle que soit la config.
             AUTH_DISABLED: 'false',
+            CLOUD_ATELIER_ENABLED: 'true',
+            GEMINI_API_KEY: 'fake-gemini-test-only',
+            DEEPGRAM_API_KEY: 'fake-deepgram-test-only',
+            YOUTUBE_DATA_API_KEY: 'fake-youtube-test-only',
           },
         },
       }),
