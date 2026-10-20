@@ -25,7 +25,7 @@ fichiers d'Opus » de `BRIEFS_CODEX_VAGUE5.md` et `BRIEFS_CODEX_VAGUE8.md` **ne 
    `python3 -m unittest discover -s tests -q` dans `convert/` ; `npm test` dans `englishfluency-worker/`, et
    `npx tsc -b && npm test -- --run && npm run lint && npm run build` dans `englishPwa/`.
 3. Interface : Tailwind + shadcn/ui + Motion, composants de `pwa/src/components/ui/kit.tsx` et `button.tsx`, icônes
-   `lucide-react`, **aucun `@mui`**, **thème clair uniquement**, mobile d'abord (Galaxy Z Fold7 plié ~375 px, déplié ~720 px,
+   `lucide-react`, **aucun `@mui`**, **thèmes clair et sombre au choix (V9-8)**, mobile d'abord (Galaxy Z Fold7 plié ~375 px, déplié ~720 px,
    mise en page côte à côte au-delà de 600 px via `useMediaQuery(WIDE)`), cibles ≥ 44 px, titres d'écran dans la barre du haut
    (`pwa/src/app/Shell.tsx`). Modèles : `pages/ShowsPage.tsx`, `components/EpisodeDetail.tsx`, `pages/MindPage.tsx`.
 4. **Aucun appel payant réel** pendant les tests (Gemini, OpenAI, Deepgram simulés).
@@ -86,6 +86,27 @@ Lancer `convert/discover_related_calibrer.py` pour exporter un CSV de paires, le
 - Vérifier qu'aucun code (Worker ni `englishPwa/`) ne lit encore ces tables ; tests verts.
 - En production, avec l'accord de l'utilisateur pour ce lot : sauvegarde de la base `englishfluency` (§ 6, préfixe `ef-`),
   `npx wrangler d1 migrations apply englishfluency --remote`, déploiement du Worker, vérification.
+
+### V9-8 — Discover : choix Clair / Sombre et style « vivant » (demande du 20 octobre 2026)
+**Remplace la règle « thème clair uniquement ».** L'utilisateur veut choisir dans l'app entre un thème **clair blanc** et un thème
+**sombre**, et trouve le design actuel beaucoup trop sobre : il veut de la vie et des animations, dans l'esprit des pages produit
+d'Apple (sans copier). **Modèle à suivre : EnglishPWA**, déjà refait et publié (`englishPwa/`, commits `1660c0e` et `91bcbd1`) :
+`src/styles.css` (jetons clair/sombre, dégradés, aurore, `@custom-variant dark` sur `data-theme`), `src/services/themePreference.ts`,
+`src/context/ThemeContext.tsx`, script en ligne d'`index.html` (thème appliqué avant le premier affichage), `src/components/vivid/`
+(`Aurora`, `ThemeToggle`, `ThemePicker`, `Reveal`), `src/components/ui/list.tsx`, `src/components/layout/AppShell.tsx`, `src/pages/HomePage.tsx`.
+À faire **après V9-2** (mêmes fichiers) :
+- Jetons sombres pour tout `pwa/src/styles/app.css` (fond très sombre bleuté, jamais noir pur ; textes, bordures, cartes, couleurs
+  d'accent éclaircies pour rester lisibles), `@custom-variant dark` sur `[data-theme='dark']`, `color-scheme` et `theme-color`
+  (manifest, `index.html`) selon le thème ; préférence `light | dark | system` enregistrée sur l'appareil, appliquée avant le
+  premier affichage, **défaut : clair**.
+- Bascule soleil / lune dans la barre du haut (`Shell.tsx`) et aperçus Clair / Sombre / Automatique dans Réglages.
+- Vérifier chaque écran dans les deux thèmes (cartes d'articles colorées par journal, lecteur, transcription surlignée, volets,
+  `Notice`, pastilles de catégorie lisibles en sombre).
+- Style vivant : couleur tirée des pochettes et des journaux (fonds teintés, dégradés), une « Une » en tête d'Explorer (grand
+  carrousel avec les contenus du jour et les groupes « Même événement », parallaxe légère), apparitions au défilement, transition
+  carte → détail (`layoutId` sur la pochette), mini-lecteur → lecteur plein écran, fond de pochette floutée animé dans le lecteur,
+  barre d'onglets flottante avec pastille animée, lueur d'aurore discrète en haut des écrans, micro-rebonds et vibration légère.
+  Respecter `prefers-reduced-motion`. Recette à 375 et 720 px, en clair et en sombre, captures à l'appui.
 
 ## 4. Décisions de l'utilisateur (20 octobre 2026) et points restants
 
