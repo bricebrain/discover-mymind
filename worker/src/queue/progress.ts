@@ -29,6 +29,30 @@ export async function stageAverages(env: Env): Promise<Averages> {
   return new Map(results.map((r) => [key(r.kind, r.executor, r.stage), r.avg]));
 }
 
+function expectedSeconds(row: Pick<QueueRow, 'kind' | 'executor' | 'options_json'>, averages: Averages) {
+  const defaults = row.executor === 'cloud' ? CLOUD_DEFAULTS : DEFAULTS;
+  return plannedStages(row).map((s) => Math.max(3, averages.get(key(row.kind, row.executor, s)) ?? defaults[s] ?? 30));
+}
+
+export interface Waiting { position: number; ahead: number; aheadTitle: string | null; startInSec: number }
+
+/**
+ * Place d'une demande dans la file du Mac (une préparation à la fois, dans l'ordre d'arrivée) et délai avant son début :
+ * temps restant de la préparation en cours plus la durée prévue des demandes placées avant elle.
+ */
+export function waitingOf(active: (QueueRow & { stage_started_at?: string | null })[], averages: Averages, now = Date.now()): Map<string, Waiting> {
+  const out = new Map<string, Waiting>();
+  let elapsed = 0, ahead = 0, first: string | null = null;
+  for (const row of active) {
+    if (row.status === 'pending' && (row.stage === 'review' || row.stage === 'source_ready')) continue;
+    if (row.status === 'pending') out.set(row.id, { position: ahead + 1, ahead, aheadTitle: first, startInSec: Math.round(elapsed) });
+    elapsed += row.status === 'leased' ? (progressOf(row, averages, now)?.remainingSec ?? 0) : expectedSeconds(row, averages).reduce((a, b) => a + b, 0);
+    first ??= row.title ?? null;
+    ahead += 1;
+  }
+  return out;
+}
+
 export interface Progress {
   stages: string[]; current: number; percent: number; remainingSec: number;
   startedAt: string | null; stageStartedAt: string | null; history: boolean;

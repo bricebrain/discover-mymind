@@ -54,3 +54,22 @@ describe('avancement des préparations', () => {
     expect(list.atelierSeenAt).not.toBeNull();
   });
 });
+
+describe('place dans la file du Mac', () => {
+  it('donne la position, la demande qui passe avant et le délai avant le début', async () => {
+    const { waitingOf } = await import('../src/queue/progress');
+    const now = Date.parse('2026-10-20T10:10:00Z');
+    const rows = [
+      { ...row({ id: 'a', status: 'leased', stage: 'tts', title: 'En cours' }), stage_started_at: '2026-10-20T10:09:00Z' },
+      row({ id: 'b', status: 'pending', stage: null, title: 'Deuxième' }),
+      row({ id: 'c', status: 'pending', stage: 'review', title: 'À relire' }),
+      row({ id: 'd', status: 'pending', stage: null, title: 'Troisième' }),
+    ];
+    const w = waitingOf(rows, new Map(), now);
+    expect(w.get('b')).toMatchObject({ position: 2, ahead: 1, aheadTitle: 'En cours' });
+    expect(w.get('b')!.startInSec).toBeGreaterThan(0);
+    expect(w.has('c')).toBe(false);
+    expect(w.get('d')!.position).toBe(3);
+    expect(w.get('d')!.startInSec).toBeGreaterThan(w.get('b')!.startInSec);
+  });
+});

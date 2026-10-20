@@ -52,7 +52,7 @@ export function PreparationPanel({episode}: {episode?: Episode}) {
         : <span aria-hidden className="mt-2 block h-1.5 overflow-hidden rounded-full bg-muted">
           <span className="progress-slide block h-full w-1/3 rounded-full bg-grad-primary" />
         </span>)}
-      {item.status === 'pending' && item.executor !== 'cloud' && <AtelierHint seenAt={query.data?.atelierSeenAt ?? null} />}
+      {item.status === 'pending' && item.executor !== 'cloud' && <AtelierHint seenAt={query.data?.atelierSeenAt ?? null} waiting={item.waiting} />}
       <p className="m-0 mt-0.5 text-xs text-muted-foreground">{optionsLabel(item.options)}</p>
       {item.error && item.status==='failed' && <p className="m-0 mt-1 text-sm text-red-700">{item.error}</p>}
       <div className="-mx-2 mt-1 flex flex-wrap">

@@ -14,7 +14,7 @@ export function defaultOptions(durationSec: number | null,showId: string): Prepa
 export function queueLabel(item: QueueItem) {
   if (item.executor==='cloud' && item.status==='pending') return 'En file · sans Mac';
   if (item.executor==='cloud' && item.status==='leased') return `Sans Mac · ${STAGES[item.stage ?? ''] ?? 'Demande enregistrée'}`;
-  if (item.status==='pending') return item.stage==='review' ? 'À relire dans l’Atelier sur le Mac' : item.stage==='source_ready' ? 'Source prête · en attente de l’adaptation' : 'En file · ouvrir l’Atelier sur le Mac';
+  if (item.status==='pending') return item.stage==='review' ? 'À relire dans l’Atelier sur le Mac' : item.stage==='source_ready' ? 'Source prête · en attente de l’adaptation' : 'En attente sur le Mac';
   if (item.status==='leased') return `En préparation · ${STAGES[item.stage ?? ''] ?? 'Atelier'}`;
   return {done:'Prêt',failed:'Échec',cancelled:'Annulé'}[item.status];
 }

@@ -2,7 +2,7 @@ import type { Env } from '../env';
 import { HttpError, json, noContent, readJson } from '../http';
 import { prepareOptions, type PrepareOptions } from '../queue/options';
 import { expireExhausted, QUEUE_SELECT, queueOut, type QueueRow } from '../queue/store';
-import { atelierSeenAt, progressOf, stageAverages } from '../queue/progress';
+import { atelierSeenAt, progressOf, stageAverages, waitingOf } from '../queue/progress';
 
 /** Crée (ou retrouve) la demande active d'une source ; refuse d'autres options tant qu'une préparation tourne. */
 export async function insertQueue(env: Env, kind: 'episode' | 'youtube' | 'reflection' | 'dossier', ref: string, options: PrepareOptions) {
@@ -90,9 +90,16 @@ export async function list(req: Request, env: Env) {
   const rows = await env.DB.prepare(`${QUEUE_SELECT} ${ref ? `WHERE q.kind='${kind}' AND q.ref=?` : ''}
     ORDER BY q.created_at DESC,q.id DESC LIMIT 100`).bind(...(ref ? [ref] : [])).all<QueueRow>();
   // Avancement des préparations en cours (étapes, pourcentage, temps restant) et dernier signe de vie de l'Atelier.
-  const active = rows.results.some((r) => r.status === 'leased');
-  const averages = active ? await stageAverages(env) : new Map<string, number>();
-  return json({ items: rows.results.map((r) => ({ ...queueOut(r), progress: progressOf(r, averages) })), atelierSeenAt: await atelierSeenAt(env) });
+  const busy = rows.results.some((r) => r.status === 'leased' || (r.status === 'pending' && r.executor === 'mac'));
+  const averages = busy ? await stageAverages(env) : new Map<string, number>();
+  // File du Mac (toutes sources) : place de chaque demande en attente et délai estimé avant son début.
+  const macQueue = busy ? (await env.DB.prepare(`${QUEUE_SELECT} WHERE q.executor='mac' AND q.status IN ('pending','leased')
+    ORDER BY q.created_at,q.id LIMIT 100`).all<QueueRow>()).results : [];
+  // La préparation en cours passe toujours en tête, même si elle a été demandée après.
+  const ordered = [...macQueue.filter((r) => r.status === 'leased'), ...macQueue.filter((r) => r.status === 'pending')];
+  const waiting = waitingOf(ordered, averages);
+  return json({ items: rows.results.map((r) => ({ ...queueOut(r), progress: progressOf(r, averages), waiting: waiting.get(r.id) ?? null })),
+    atelierSeenAt: await atelierSeenAt(env) });
 }
 export async function cancel(env: Env,id: string) {
   const r = await env.DB.prepare(`UPDATE prepare_queue SET status='cancelled',lease_token=NULL,lease_owner=NULL,

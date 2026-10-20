@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { STAGES } from './options';
-import type { QueueItem } from './types';
+import type { QueueItem, QueueWaiting } from './types';
 
 /** Libellés courts des étapes, pour la frise. */
 const SHORT: Record<string, string> = {
@@ -74,15 +74,26 @@ export function PreparationProgress({ item, fetchedAt }: { item: QueueItem; fetc
   </div>;
 }
 
-/** Demande en file pour le Mac : signale quand l'Atelier n'a pas donné signe de vie depuis plusieurs minutes. */
-export function AtelierHint({ seenAt }: { seenAt: string | null }) {
+/**
+ * Demande en file pour le Mac : sa place, la demande qui passe avant et l'heure de début estimée ; signale aussi un Atelier
+ * silencieux depuis plusieurs minutes (Mac éteint ou préparateur arrêté).
+ */
+export function AtelierHint({ seenAt, waiting }: { seenAt: string | null; waiting?: QueueWaiting | null }) {
   const now = useNow(true);
   const age = seenAt ? (now - Date.parse(seenAt)) / 1000 : Infinity;
-  if (age < 180) return <p className="m-0 mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-    <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />Atelier en ligne · la préparation va commencer
-  </p>;
-  return <p className="m-0 mt-1.5 flex items-center gap-1.5 text-xs text-amber-700">
-    <span className="size-1.5 rounded-full bg-amber-500" />
+  if (age >= 180) return <p className="m-0 mt-1.5 flex items-center gap-1.5 text-xs text-amber-700">
+    <span className="size-1.5 shrink-0 rounded-full bg-amber-500" />
     {seenAt ? `Atelier silencieux depuis ${formatRemaining(age).replace('environ ', '')}` : 'Atelier pas encore vu'} : allume le Mac, ou prépare sans Mac.
+  </p>;
+  if (waiting && waiting.ahead > 0) return <div className="mt-1.5 flex flex-col gap-0.5 text-xs text-muted-foreground">
+    <p className="m-0 flex items-center gap-1.5">
+      <span className="grid size-5 shrink-0 place-items-center rounded-full bg-primary-soft text-[11px] font-bold text-primary">{waiting.position}</span>
+      <span>En file · {waiting.ahead === 1 ? 'une préparation passe avant' : `${waiting.ahead} préparations passent avant`}
+        {waiting.aheadTitle ? <> : « <span className="font-medium text-foreground">{waiting.aheadTitle.length > 40 ? `${waiting.aheadTitle.slice(0, 39)}…` : waiting.aheadTitle}</span> »</> : null}</span>
+    </p>
+    <p className="m-0 pl-[26px]">Début dans {formatRemaining(waiting.startInSec)} · le Mac prépare une demande à la fois</p>
+  </div>;
+  return <p className="m-0 mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+    <span className="size-1.5 shrink-0 animate-pulse rounded-full bg-emerald-500" />Atelier en ligne · la préparation va commencer
   </p>;
 }

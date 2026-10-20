@@ -42,7 +42,7 @@ export function NotePreparation({ id, title, body, synced, englishContentId }: {
       <p className="m-0 text-sm font-semibold">{queueLabel((current ?? failed)!)}</p>
       <p className="m-0 text-xs text-muted-foreground">{optionsLabel((current ?? failed)!.options)}</p>
       {current?.status === 'leased' && <PreparationProgress item={current} fetchedAt={query.dataUpdatedAt} />}
-      {current?.status === 'pending' && current.executor !== 'cloud' && <AtelierHint seenAt={query.data?.atelierSeenAt ?? null} />}
+      {current?.status === 'pending' && current.executor !== 'cloud' && <AtelierHint seenAt={query.data?.atelierSeenAt ?? null} waiting={current.waiting} />}
       {failed?.error && <p className="m-0 mt-1 text-sm text-red-700">{failed.error}</p>}
       <div className="-mx-2 mt-1 flex gap-1">
         {current && <Button size="sm" variant="ghost" className="text-primary" disabled={cancel.isPending} onClick={() => cancel.mutate(current.id)}>Annuler</Button>}
