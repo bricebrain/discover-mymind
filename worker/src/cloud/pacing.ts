@@ -1,8 +1,8 @@
 import { concat } from './mp3';
 
-export const SPEECH_SPEED = 0.9;
-export const INTRO_PAUSE_MS = 650;
-export const PARAGRAPH_PAUSE_MS = 900;
+export const SPEECH_SPEED = 1;
+export const INTRO_PAUSE_MS = 300;
+export const PARAGRAPH_PAUSE_MS = 600;
 
 // Trame silencieuse autonome : LAME, MPEG-2 Layer III, mono 22,05 kHz,
 // 48 kbps, réservoir désactivé. Chaque trame contient 576 échantillons.

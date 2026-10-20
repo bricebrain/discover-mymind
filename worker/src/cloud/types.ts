@@ -17,5 +17,5 @@ export interface Judge { verdict: 'ok'|'review'|'rejected'; reasons: string[] }
 export const RUN_MICROS = 1_000_000;
 export const MONTHLY_MICROS = 10_000_000;
 export const MODEL = 'gemini-3.1-flash-lite';
-export const VOICE = 'aura-2-vesta-en';
+export const VOICE = 'aura-2-arcas-en';
 export const CLOUD_OPTIONS = { coverage:'essentials', style:'narration', targetMinutes:4, faithful:false, keepOriginalCopy:false } as const;
