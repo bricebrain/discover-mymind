@@ -6,6 +6,7 @@ import { PillTabs, cardCls } from '@/components/ui/kit';
 import { EpisodeBrowser } from '../components/EpisodeBrowser';
 import { DossiersPanel } from '../dossiers/DossiersPanel';
 import { PreparedContents } from '../library/PreparedContents';
+import { ListenStrip } from '../library/ListenStrip';
 import { DownloadsList } from '../offline/DownloadsList';
 import { LIBRARY_VIEWS, useLibraryNavigation, type LibraryView } from '../library/useLibraryNavigation';
 import { AddYoutubeDialog } from '../queue/AddYoutubeDialog';
@@ -22,6 +23,7 @@ export function LibraryPage() {
   const prepared = navigation.view !== 'queue' && navigation.view !== 'saved' && navigation.view !== 'downloads';
   return <div className="mx-auto max-w-[960px] px-4 pb-6 pt-3">
     <h1 className="sr-only">Bibliothèque</h1>
+    {navigation.view === 'all' && !navigation.search && <ListenStrip />}
     <div className="mb-3 grid grid-cols-2 gap-2">
       <button type="button" onClick={() => setAdding(true)}
         className={`${cardCls} flex min-h-14 items-center gap-3 px-3 text-left transition-transform active:scale-[.98]`}>

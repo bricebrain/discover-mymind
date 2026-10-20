@@ -46,6 +46,10 @@ export function PreparationPanel({episode}: {episode?: Episode}) {
       </div>}
       {!episode && <p className="m-0 line-clamp-2 text-[15px] font-semibold leading-snug">{item.title}</p>}
       <p className="m-0 mt-1 flex items-center gap-2 text-sm"><span className={cn('size-2 shrink-0 rounded-full', DOT[item.status])} />{queueLabel(item)}</p>
+      {/* En préparation dans l'Atelier : une barre lumineuse qui file. */}
+      {item.status === 'leased' && <span aria-hidden className="mt-2 block h-1.5 overflow-hidden rounded-full bg-muted">
+        <span className="progress-slide block h-full w-1/3 rounded-full bg-grad-primary" />
+      </span>}
       <p className="m-0 mt-0.5 text-xs text-muted-foreground">{optionsLabel(item.options)}</p>
       {item.error && item.status==='failed' && <p className="m-0 mt-1 text-sm text-red-700">{item.error}</p>}
       <div className="-mx-2 mt-1 flex flex-wrap">

@@ -29,9 +29,16 @@ function Runs({ id }: { id: string }) {
 function DossierCard({ dossier, onEdit, onPrepare }: { dossier: Dossier; onEdit: () => void; onPrepare: () => void }) {
   const [open, setOpen] = useState(false);
   const missing = dossier.sources.filter((s) => !s.title).length;
-  return <article className={cn(cardCls, 'p-4')}>
-    <h3 className="m-0 text-[16px] font-semibold leading-snug">{dossier.title}</h3>
-    <p className="m-0 mt-0.5 text-[13px] text-muted-foreground">{dossier.sources.length} sources · modifié le {dateFmt.format(new Date(dossier.updatedAt))}</p>
+  return <article className={cn(cardCls, 'relative overflow-hidden p-4')}>
+    {/* Bandeau indigo animé : un dossier réunit plusieurs voix sur un même sujet. */}
+    <span aria-hidden className="absolute inset-x-0 top-0 h-20 opacity-60 [mask-image:linear-gradient(to_bottom,black,transparent)]"
+      style={{ background: 'linear-gradient(120deg, #6366f1, #a855f7, #ec4899)' }} />
+    <span aria-hidden className="relative -mt-1 mb-2 flex -space-x-2">
+      {dossier.sources.slice(0, 6).map((s, i) => <span key={`${s.type}:${s.id}`} className="grid size-8 place-items-center rounded-full border-2 border-card bg-indigo-600 text-[12px] font-bold text-white shadow"
+        style={{ background: ['#4f46e5', '#7c3aed', '#db2777', '#0d9488', '#ea580c', '#2563eb'][i % 6] }}>{i + 1}</span>)}
+    </span>
+    <h3 className="relative m-0 text-[16px] font-semibold leading-snug">{dossier.title}</h3>
+    <p className="relative m-0 mt-0.5 text-[13px] text-muted-foreground">{dossier.sources.length} sources · modifié le {dateFmt.format(new Date(dossier.updatedAt))}</p>
     <ol className="my-3 flex list-none flex-col gap-1.5 p-0">
       {dossier.sources.map((s, i) => <li key={`${s.type}:${s.id}`} className="flex items-start gap-2.5 text-sm">
         <span className="grid size-5 shrink-0 place-items-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-800">{i + 1}</span>

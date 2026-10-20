@@ -10,6 +10,8 @@ import { formatWhen } from '../api/episodes';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { NoteEditor } from '../mind/NoteEditor';
+import { publisherMark } from '../explorer/feed';
+import { Aurora } from '../vivid/Aurora';
 import { dirtyDrafts, newDraft, putDraft, syncDirtyDrafts, type NoteLink, type NoteOrigin, type NoteSummary } from '../mind/store';
 
 /** Aperçu lisible d'un texte Markdown : sans symboles de mise en forme. */
@@ -38,6 +40,13 @@ function cardText(note: NoteSummary): { title: string; text: string } {
   return { title: first.slice(0, 90) || 'Note sans titre', text: plain(lines.slice(1).join(' ')) };
 }
 
+/** Couleur d'une note selon sa nature : réflexion (sarcelle), article (couleur du journal), question (indigo). */
+function toneOf(note: NoteSummary) {
+  if (note.origin === 'article') return note.sourceName ? publisherMark(note.sourceName).bg : 'var(--article)';
+  if (note.kind === 'question') return '#6366f1';
+  return 'var(--primary)';
+}
+
 function tagOf(note: NoteSummary) {
   if (note.origin === 'article') return { label: `Article${note.sourceName ? ` · ${note.sourceName}` : ''}`, cls: 'bg-article-soft text-article' };
   if (note.kind === 'question') return { label: `Question${note.questionState ? ` · ${QUESTION_STATES[note.questionState]}` : ''}`, cls: 'bg-indigo-50 text-indigo-800' };
@@ -50,22 +59,51 @@ function NoteCard({ note, selected, onOpen, index, knownTitle }: { note: NoteSum
   const title = note.highlights?.length && !note.title && knownTitle ? knownTitle : card.title;
   const text = card.text;
   const tag = tagOf(note);
+  const tone = toneOf(note);
   return <motion.button type="button" onClick={onOpen} aria-current={selected ? 'true' : undefined}
-    initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: Math.min(index, 8) * 0.04, ease: [0.2, 0.8, 0.2, 1] }}
-    className={cn('flex w-full flex-col gap-1.5 rounded-2xl border p-3.5 text-left transition-colors active:scale-[.99]',
-      selected ? 'border-primary/40 bg-primary-soft' : 'border-border/70 bg-card hover:bg-muted/60')}>
+    initial={{ opacity: 0, y: 18, scale: 0.98 }} whileInView={{ opacity: 1, y: 0, scale: 1 }} viewport={{ once: true, margin: '0px 0px -6% 0px' }}
+    transition={{ type: 'spring', stiffness: 190, damping: 24, delay: Math.min(index, 6) * 0.04 }} whileTap={{ scale: 0.98 }}
+    className={cn('relative flex w-full flex-col gap-1.5 overflow-hidden rounded-[22px] border p-3.5 pl-5 text-left shadow-surface transition-colors',
+      selected ? 'border-primary/40 bg-primary-soft' : 'border-border/60')}
+    style={selected ? undefined : { background: `linear-gradient(120deg, color-mix(in oklab, ${tone} 11%, var(--card)) 0%, var(--card) 65%)` }}>
+    {/* Liseré de couleur à gauche : la nature de la note se lit d'un coup d'œil. */}
+    <span aria-hidden className="absolute inset-y-3 left-0 w-1 rounded-r-full" style={{ background: tone }} />
     <span className="flex items-center gap-1.5 text-xs">
       <span className={cn('max-w-[70%] truncate rounded-full px-2 py-0.5 font-semibold', tag.cls)}>{tag.label}</span>
       <span className="text-muted-foreground">{note.localOnly ? 'Sur cet appareil' : formatWhen(note.updatedAt)}</span>
     </span>
     <span className="text-base font-semibold leading-snug">{title}</span>
     {note.highlights?.length
-      ? <span className="line-clamp-3 text-sm leading-relaxed text-zinc-600">
+      ? <span className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
         {note.highlights.map((h, i) => (h.highlighted ? <mark key={i} className="rounded bg-amber-100 px-0.5 text-foreground">{h.text}</mark> : <span key={i}>{h.text}</span>))}
       </span>
-      : text && text !== title && <span className="line-clamp-2 text-sm leading-relaxed text-zinc-600">{text}</span>}
+      : text && text !== title && <span className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">{text}</span>}
     {note.firstLinkTitle && <span className="truncate text-xs text-muted-foreground">↳ {note.firstLinkTitle}</span>}
   </motion.button>;
+}
+
+/** En-tête de journal : notes de la semaine, questions à explorer et la dernière d'entre elles, sur une aurore. */
+function JournalHeader({ notes, onOpen }: { notes: NoteSummary[]; onOpen: (id: string) => void }) {
+  const week = Date.now() - 7 * 86_400_000;
+  const thisWeek = notes.filter((n) => Date.parse(n.updatedAt) >= week).length;
+  const questions = notes.filter((n) => n.kind === 'question' && n.questionState !== 'deepened');
+  const latest = questions[0];
+  return <motion.section aria-label="Mon journal" initial={{ opacity: 0, y: 16, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+    transition={{ type: 'spring', stiffness: 170, damping: 22 }}
+    className="relative mb-3 overflow-hidden rounded-[28px] bg-[#0f2e3a] p-4 text-white shadow-[0_20px_40px_-22px_rgb(0_0_0/0.6)]">
+    <Aurora intensity={0.75} />
+    <span aria-hidden className="absolute inset-0 bg-gradient-to-b from-black/0 to-black/35" />
+    <p className="relative m-0 text-[12px] font-semibold uppercase tracking-[0.08em] text-white/75">Mon journal</p>
+    <div className="relative mt-1 flex items-end gap-6">
+      <p className="m-0"><span className="block font-display text-[2.6rem] leading-none">{thisWeek}</span><span className="text-[13px] text-white/80">note{thisWeek > 1 ? 's' : ''} cette semaine</span></p>
+      <p className="m-0"><span className="block font-display text-[2.6rem] leading-none">{questions.length}</span><span className="text-[13px] text-white/80">question{questions.length > 1 ? 's' : ''} ouverte{questions.length > 1 ? 's' : ''}</span></p>
+    </div>
+    {latest && <button type="button" onClick={() => onOpen(latest.id)}
+      className="relative mt-3 flex w-full items-center gap-2 rounded-2xl bg-white/15 px-3 py-2.5 text-left text-[14px] backdrop-blur-md active:scale-[.99]">
+      <span className="shrink-0 text-[12px] font-semibold uppercase tracking-wide text-white/70">À explorer</span>
+      <span className="min-w-0 flex-1 truncate font-semibold">{cardText(latest).title}</span>
+    </button>}
+  </motion.section>;
 }
 
 /** Volet « Nouvelle note » de la maquette : réflexion, article collé, ou article depuis un lien. */
@@ -182,6 +220,7 @@ export function MindPage() {
       {notes.isFetching && searching && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
       {query && <button type="button" onClick={() => setQuery('')} aria-label="Effacer la recherche" className="grid size-8 place-items-center rounded-full text-muted-foreground"><X className="size-4" /></button>}
     </label>
+    {!searching && filter === 'all' && (notes.data?.length ?? 0) > 0 && <div className="mt-3"><JournalHeader notes={notes.data!} onOpen={open} /></div>}
     <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {FILTERS.map(([id, label]) => <button key={id} type="button" onClick={() => setFilter(id)} aria-pressed={filter === id}
         className={cn('h-9 shrink-0 rounded-full border px-3.5 text-[13px] font-semibold transition-colors active:scale-95',
@@ -201,14 +240,16 @@ export function MindPage() {
     </div>
   </div>;
 
-  const fab = <motion.button type="button" onClick={() => setSheet(true)} aria-label="Nouvelle note" whileTap={{ scale: 0.92 }}
-    className="fixed right-5 z-[1050] grid size-[60px] place-items-center rounded-[20px] bg-foreground text-background shadow-[0_14px_30px_-10px_rgba(0,0,0,.5)]"
-    style={{ bottom: 'calc(64px + var(--player-h, 0px) + env(safe-area-inset-bottom) + 18px)' }}>
-    <Plus className="size-6" strokeWidth={2.4} />
+  // Bouton « + » : dégradé lumineux, apparition en ressort, la croix pivote quand le volet est ouvert.
+  const fab = <motion.button type="button" onClick={() => setSheet(true)} aria-label="Nouvelle note" whileTap={{ scale: 0.9 }}
+    initial={{ scale: 0, rotate: -90 }} animate={{ scale: 1, rotate: sheet ? 45 : 0 }} transition={{ type: 'spring', stiffness: 320, damping: 20 }}
+    className="fixed right-5 z-[1050] grid size-[60px] place-items-center rounded-[20px] bg-grad-primary text-white shadow-[0_16px_34px_-10px_var(--primary)]"
+    style={{ bottom: 'calc(64px + 20px + var(--player-h, 0px) + env(safe-area-inset-bottom) + 18px)' }}>
+    <Plus className="size-7" strokeWidth={2.4} />
   </motion.button>;
 
   const toast = undo && <div role="status" className="fixed inset-x-3 z-[1200] mx-auto flex max-w-md items-center gap-3 rounded-2xl bg-dock px-4 py-3 text-sm text-dock-foreground shadow-lg"
-    style={{ bottom: 'calc(64px + var(--player-h, 0px) + env(safe-area-inset-bottom) + 14px)' }}>
+    style={{ bottom: 'calc(64px + 24px + var(--player-h, 0px) + env(safe-area-inset-bottom) + 14px)' }}>
     <span className="flex-1">Note mise à la corbeille</span>
     <button type="button" onClick={() => void restore()} className="font-semibold text-primary-soft underline-offset-2 hover:underline">Annuler</button>
   </div>;

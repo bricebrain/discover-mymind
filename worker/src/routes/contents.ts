@@ -29,7 +29,12 @@ export async function library(req: Request, env: Env) {
   const where = `FROM contents c JOIN publications p ON p.id=c.current_publication_id WHERE c.deleted_at IS NULL AND p.status='ready'
     ${filters.map((f) => `AND ${f}`).join(' ')}`;
   const rows = await env.DB.prepare(`SELECT c.id,c.title,c.original_language AS originalLanguage,c.source_type AS sourceType,c.category,c.updated_at AS updatedAt,
-    (SELECT COUNT(*) FROM variants v WHERE v.publication_id=p.id) AS variantCount ${where} ORDER BY c.updated_at DESC,c.id LIMIT 30 OFFSET ?`).bind(...values,offset).all();
+    (SELECT COUNT(*) FROM variants v WHERE v.publication_id=p.id) AS variantCount,
+    -- Visuel de la carte : pochette de l'épisode (ou de l'émission), miniature YouTube ; rien pour les notes et dossiers.
+    CASE WHEN c.source_type='podcast' THEN (SELECT COALESCE(e.image_url,s.image_url) FROM episodes e JOIN shows s ON s.id=e.show_id
+        WHERE e.id=substr(c.source_ref,9) AND c.source_ref LIKE 'episode:%')
+      WHEN c.source_type='youtube' AND c.source_ref LIKE 'youtube:%' THEN 'https://i.ytimg.com/vi/' || substr(c.source_ref,9) || '/mqdefault.jpg'
+    END AS imageUrl ${where} ORDER BY c.updated_at DESC,c.id LIMIT 30 OFFSET ?`).bind(...values,offset).all();
   const count = await env.DB.prepare(`SELECT COUNT(*) AS total ${where}`).bind(...values).first<{ total: number }>();
   return json({ contents: rows.results, total: count?.total ?? 0, nextOffset: offset+rows.results.length < (count?.total ?? 0) ? offset+rows.results.length : null });
 }

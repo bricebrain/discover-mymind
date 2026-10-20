@@ -133,6 +133,9 @@
 /* Pochette floutée qui respire derrière le lecteur. */
 @keyframes art-breathe { 0%, 100% { transform: scale(1.25) rotate(0deg); } 50% { transform: scale(1.4) rotate(6deg); } }
 .art-breathe { animation: art-breathe 18s ease-in-out infinite; }
+/* Barre de progression indéterminée (préparation en cours). */
+@keyframes progress-slide { 0% { transform: translateX(-110%); } 100% { transform: translateX(330%); } }
+.progress-slide { animation: progress-slide 1.6s cubic-bezier(.4,0,.2,1) infinite; }
 
 @layer base {
   /* Instrument Serif n'existe qu'en graisse normale : pas de faux gras synthétisé par le navigateur. */
