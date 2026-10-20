@@ -27,7 +27,7 @@ describe('avancement des préparations', () => {
     expect(plannedStages(row({ options_json: '{"faithful":true}' }))).toContain('translate');
     expect(plannedStages(row({ kind: 'reflection' }))[0]).toBe('download');
     expect(plannedStages(row({ kind: 'reflection' }))).not.toContain('transcribe');
-    expect(plannedStages(row({ executor: 'cloud' }))).toEqual(['transcribe', 'adapt', 'evaluate', 'tts', 'publish']);
+    expect(plannedStages(row({ executor: 'cloud' }))).toEqual(['transcribe', 'adapt', 'tts', 'publish']);
   });
   it('calcule pourcentage et temps restant, sans dépasser 99 % quand une étape s’allonge', () => {
     const now = Date.parse('2026-10-20T10:10:00Z');

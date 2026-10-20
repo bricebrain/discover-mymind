@@ -70,7 +70,12 @@ it('une réponse TTS perdue échoue sans relance ni publication et garde l’env
   await env.CLOUD_PREPARATION.create({id,params:{id}});
   await inspector.waitForStatus('errored');
   expect((await env.DB.prepare('SELECT status FROM prepare_queue WHERE id=?').bind(id).first<{status:string}>())!.status).toBe('failed');
-  expect(calls.mock.calls.filter(c=>String(c[0]).includes('api.deepgram.com'))).toHaveLength(1);
+  // Le premier groupe part en parallèle (4 passages au plus) ; chaque passage n'est envoyé qu'une fois et aucun groupe suivant ne part.
+  const sent=calls.mock.calls.filter(c=>String(c[0]).includes('api.deepgram.com'));
+  expect(sent.length).toBeGreaterThanOrEqual(1);
+  expect(sent.length).toBeLessThanOrEqual(4);
+  const engaged=await env.DB.prepare("SELECT COUNT(*) n FROM cloud_operations WHERE run_id=? AND operation LIKE 'speech-%'").bind(id).first<{n:number}>();
+  expect(engaged!.n).toBe(sent.length); // un journal par envoi, aucun deuxième essai
   expect((await env.DB.prepare('SELECT reserved_micros FROM cloud_runs WHERE id=?').bind(id).first<{reserved_micros:number}>())!.reserved_micros).toBe(1_000_000);
   expect((await env.DB.prepare('SELECT COUNT(*) n FROM publications').first<{n:number}>())!.n).toBe(0);
 },30_000);

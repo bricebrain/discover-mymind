@@ -12,6 +12,14 @@ import { flushEvents } from '../events/hub';
 import { prepareSpokenScript } from './scripts';
 import { uploadPodcast, podcastReady, removePodcastAudio, type PodcastFile } from './podcast';
 
+const SPEECH_PARALLEL=4;
+/** Attend toutes les étapes lancées avant de signaler un échec : jamais d'arrêt pendant un envoi en vol. */
+async function settled<T>(tasks:Promise<T>[]) {
+  const results=await Promise.allSettled(tasks);
+  const failure=results.find(r=>r.status==='rejected');
+  if (failure) throw failure.reason;
+  return results.map(r=>(r as PromiseFulfilledResult<T>).value);
+}
 const paidStep={retries:{limit:0,delay:'1 second' as const},timeout:'5 minutes' as const};
 const encode=(value:unknown) => new TextEncoder().encode(JSON.stringify(value));
 
@@ -48,22 +56,30 @@ export class CloudPreparation extends WorkflowEntrypoint<Env,{id:string}> {
         return encode(validateScript(JSON.parse(new TextDecoder().decode(raw)),source));
       }));
       const scriptKey=await step.do('texte-propre-v2',()=>prepareSpokenScript(this.env,id,sourceKey,generatedScriptKey));
-      const judgeKey=await step.do('controle',paidStep,()=>operation(this.env,id,'judge','evaluate',async()=>{
+      // Le contrôle ne bloque pas la publication (il marque seulement « non relu ») :
+      // il tourne pendant la voix, sous l'étape « tts » pour garder un suivi lisible.
+      const judging=step.do('controle',paidStep,()=>operation(this.env,id,'judge','tts',async()=>{
         const source=await checkpoint<SourceText>(this.env,sourceKey), script=await checkpoint<Script>(this.env,scriptKey);
-        const raw=await gemini(this.env,JUDGE_PROMPT,{source,script,level:captured.options.level},undefined,()=>active(this.env,id,'evaluate'));
+        const raw=await gemini(this.env,JUDGE_PROMPT,{source,script,level:captured.options.level},undefined,()=>active(this.env,id,'tts'));
         return encode(validateJudge(JSON.parse(new TextDecoder().decode(raw))));
       }));
       const count=await step.do('nombre-passages',async()=> (await checkpoint<Script>(this.env,scriptKey)).lines.length);
-      const audioKeys:string[]=[];
-      for (let i=0;i<count;i++) {
-        audioKeys.push(await step.do(`voix-${i}`,paidStep,()=>operation(this.env,id,`speech-${i}`,'tts',async()=>{
-          const script=await checkpoint<Script>(this.env,scriptKey);
-          await active(this.env,id,'tts');
-          const audio=await speak(this.env,script.lines[i]!.text);
-          mp3Frames(audio); // Valider avant le checkpoint ; aucune réparation payante implicite.
-          return audio;
-        })));
-      }
+      const voice=(i:number)=>step.do(`voix-${i}`,paidStep,()=>operation(this.env,id,`speech-${i}`,'tts',async()=>{
+        const script=await checkpoint<Script>(this.env,scriptKey);
+        await active(this.env,id,'tts');
+        const audio=await speak(this.env,script.lines[i]!.text);
+        mp3Frames(audio); // Valider avant le checkpoint ; aucune réparation payante implicite.
+        return audio;
+      }));
+      const speaking=(async()=>{
+        const keys:string[]=[];
+        // Passages envoyés par groupes : même coût, attente divisée ; un échec arrête les groupes suivants.
+        for (let i=0;i<count;i+=SPEECH_PARALLEL) {
+          keys.push(...await settled(Array.from({length:Math.min(SPEECH_PARALLEL,count-i)},(_,j)=>voice(i+j))));
+        }
+        return keys;
+      })();
+      const [judgeKey,audioKeys]=await settled<string|string[]>([judging,speaking]) as [string,string[]];
       await step.do('publication',()=>publish(this.env,id,sourceKey,scriptKey,judgeKey,audioKeys));
       if (podcast) {
         const file=podcast;
