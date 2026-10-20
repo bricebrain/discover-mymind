@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { BookOpen, CalendarDays, LogOut, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Notice, SectionTitle, Spinner, cardCls } from '@/components/ui/kit';
+import { ThemePicker } from '../vivid/ThemePicker';
 import { cn } from '@/lib/utils';
 import { useLogout, useRevokeOthers, useRevokeSession, useSession, useSessions } from '../api/auth';
 import { NotificationSettings } from '../notifications/NotificationSettings';
@@ -14,13 +15,16 @@ export function SettingsPage() {
   const auth = useSession();
   return <div className="mx-auto max-w-[720px] px-4 pb-8 pt-1">
     <h1 className="sr-only">Réglages</h1>
+    <SectionTitle className="mt-4">Apparence</SectionTitle>
+    <ThemePicker />
+    <p className="mb-0 mt-2 text-xs text-muted-foreground">Enregistré sur cet appareil. Le bouton soleil / lune de la barre du haut bascule aussi en un geste.</p>
     <section aria-label="Bilan hebdomadaire" className="mt-4">
       <Button asChild variant="outline" className="w-full justify-start">
-        <Link to="/week"><CalendarDays className="size-4" />Ma semaine</Link>
+        <Link to="/week" className="no-underline"><CalendarDays className="size-4" />Ma semaine</Link>
       </Button>
     </section>
     <section aria-label="Vocabulaire" className="mt-3"><Button asChild variant="outline" className="w-full justify-start">
-      <Link to="/vocabulary"><BookOpen className="size-4" />Mots gardés</Link>
+      <Link to="/vocabulary" className="no-underline"><BookOpen className="size-4" />Mots gardés</Link>
     </Button></section>
     {auth.data?.authDisabled ? <>
       <SectionTitle className="mt-4">Connexion</SectionTitle>

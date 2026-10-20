@@ -108,14 +108,18 @@ export function ResumeFeedCard({ episode }: { episode: Episode }) {
   const player = usePlayer();
   const pct = (episode.progressMs! / episode.progressDurationMs!) * 100;
   const left = (episode.progressDurationMs! - episode.progressMs!) / 1000;
-  return <motion.button type="button" onClick={() => player.play(trackOf(episode))} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-    className="flex w-full items-center gap-3 rounded-2xl bg-primary p-3 text-left text-primary-foreground shadow-[0_12px_30px_-14px_var(--primary)] active:scale-[.99]">
-    {episode.imageUrl ? <img src={episode.imageUrl} alt="" className="size-[52px] shrink-0 rounded-xl object-cover" /> : <span className="size-[52px] shrink-0 rounded-xl bg-white/20" />}
-    <span className="min-w-0 flex-1">
-      <span className="block text-[11px] font-semibold uppercase tracking-wider opacity-80">À reprendre · encore {formatClock(left)}</span>
+  return <motion.button type="button" onClick={() => player.play(trackOf(episode))} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.98 }}
+    className="relative flex w-full items-center gap-3 overflow-hidden rounded-[22px] bg-[#0d3b36] p-3 text-left text-white shadow-[0_16px_34px_-18px_rgb(13_59_54/0.9)]">
+    {/* Pochette agrandie et floutée en fond : la carte prend la couleur de l'émission. */}
+    {episode.imageUrl && <img src={episode.imageUrl} alt="" aria-hidden className="art-breathe absolute inset-0 size-full object-cover opacity-70 blur-2xl" />}
+    <span aria-hidden className="absolute inset-0 bg-black/30" />
+    {episode.imageUrl ? <img src={episode.imageUrl} alt="" className="relative size-[54px] shrink-0 rounded-xl object-cover shadow-lg" /> : <span className="relative size-[54px] shrink-0 rounded-xl bg-white/20" />}
+    <span className="relative min-w-0 flex-1">
+      <span className="block text-[11px] font-semibold uppercase tracking-wider text-white/80">À reprendre · encore {formatClock(left)}</span>
       <span className="block truncate text-[15px] font-semibold">{episode.title}</span>
-      <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-white/25"><span className="block h-full rounded-full bg-white" style={{ width: `${pct}%` }} /></span>
+      <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-white/25"><motion.span className="block h-full rounded-full bg-white"
+        initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 0.2 }} /></span>
     </span>
-    <span className="grid size-11 shrink-0 place-items-center rounded-full bg-white text-primary"><Play className="ml-0.5 size-4 fill-current" /></span>
+    <span className="relative grid size-11 shrink-0 place-items-center rounded-full bg-white text-[#18181b]"><Play className="ml-0.5 size-4 fill-current" /></span>
   </motion.button>;
 }

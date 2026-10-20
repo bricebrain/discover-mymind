@@ -24,10 +24,10 @@ export default defineConfig({
         scope: '/',
         display: 'standalone',
         orientation: 'portrait',
-        background_color: '#F6F2EA',
+        background_color: '#FFFFFF',
         // « Partager vers Discover » depuis Chrome Android : titre, texte sélectionné, lien → une note My Mind.
         share_target: { action: '/share', method: 'GET', params: { title: 'title', text: 'text', url: 'url' } },
-        theme_color: '#0E6B61',
+        theme_color: '#FFFFFF',
         icons: [
           { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },

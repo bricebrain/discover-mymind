@@ -10,7 +10,7 @@ import { useOriginalPassage, type Original } from './useOriginal';
 export interface OriginalMenuState { segment: ContentSegment; anchor: HTMLElement }
 
 function Action({ icon, title, hint, onClick, to }: { icon: ReactNode; title: string; hint?: string; onClick?: () => void; to?: string }) {
-  const cls = 'flex min-h-14 w-full items-center gap-3 rounded-2xl border border-[#ececee] bg-background p-3 text-left text-foreground no-underline transition-transform active:scale-[.98]';
+  const cls = 'flex min-h-14 w-full items-center gap-3 rounded-2xl border border-border/70 bg-background p-3 text-left text-foreground no-underline transition-transform active:scale-[.98]';
   const body = <><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">{icon}</span>
     <span className="flex flex-col"><span className="text-[15px] font-semibold">{title}</span>{hint && <span className="text-[13px] text-muted-foreground">{hint}</span>}</span></>;
   return to ? <Link to={to} onClick={onClick} className={cls}>{body}</Link> : <button type="button" onClick={onClick} className={cls}>{body}</button>;

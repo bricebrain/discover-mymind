@@ -6,6 +6,7 @@ import { useArticles } from '../api/articles';
 import { useExplorer, type ExplorerFilters } from '../api/episodes';
 import { ArticleDetail } from '../articles/ArticleDetail';
 import { EventGroupCard } from '../related/EventGroupCard';
+import { HeroCarousel } from './HeroCarousel';
 import { useExplorerEvents } from '../related/useExplorerEvents';
 import { DossierPrepareDialog } from '../dossiers/DossierPrepareDialog';
 import { Notice } from '../components/ui/kit';
@@ -58,6 +59,7 @@ export function ExplorerFeed({ filters, withEpisodes, withArticles, showResume, 
   let lastDay = '';
   const list = <div className="mx-auto max-w-[760px] px-3 pb-8 pt-3">
     <div className="px-1">{header}</div>
+    {showResume && !pending && <HeroCarousel items={items.slice(0, 6)} onOpen={(it) => open(it.kind === 'episode' ? 'e' : 'a', it.kind === 'episode' ? it.episode.id : it.article.id)} />}
     {resume && <div className="mb-2 mt-1"><ResumeFeedCard episode={resume} /></div>}
     {pending && <div className="grid place-items-center py-12"><Loader2 className="size-6 animate-spin text-muted-foreground" /></div>}
     {error && <p className="m-2 rounded-xl bg-article-soft p-3 text-sm text-article">{error.message}</p>}

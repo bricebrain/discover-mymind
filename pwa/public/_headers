@@ -1,5 +1,5 @@
 # En-têtes des fichiers statiques servis par Workers Static Assets (§ 8.3).
-# style-src 'unsafe-inline' : MUI/emotion injecte ses styles dans des balises <style>.
+# style-src 'unsafe-inline' : styles en ligne de Motion (transformations animées) et attributs style.
 # img-src/media-src http: : certains éditeurs (BBC…) redirigent vers des fichiers http ; en HTTPS,
 # Chrome les convertit lui-même en https (mixed content autoupgrade). Seuls images et audio sont concernés.
 /*
