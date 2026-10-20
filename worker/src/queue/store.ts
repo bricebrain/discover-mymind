@@ -8,6 +8,7 @@ export interface QueueRow {
   attempts: number; max_attempts: number; content_id: string | null; error: string | null;
   created_at: string; updated_at: string; title?: string;
   executor: 'mac'|'cloud';
+  started_at?: string | null; stage_started_at?: string | null;
 }
 export function queueOut(row: QueueRow) {
   return { id: row.id, kind: row.kind, ref: row.ref, executor:row.executor, title: row.title ?? row.ref,

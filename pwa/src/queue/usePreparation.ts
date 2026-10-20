@@ -6,7 +6,9 @@ import type { PrepareOptions } from './types';
 export function usePreparation(target?: PrepTarget) {
   const qc = useQueryClient();
   const live = usePreparationLive();
-  const query = useQuery({queryKey:['queue',target ? `${target.kind}:${target.id}` : 'all'],queryFn:() => queueApi.list(target),refetchInterval:live ? false : 15_000});
+  // Une préparation en cours : rafraîchie toutes les 20 s pour suivre l'étape et affiner le temps restant.
+  const query = useQuery({queryKey:['queue',target ? `${target.kind}:${target.id}` : 'all'],queryFn:() => queueApi.list(target),
+    refetchInterval:(q) => (q.state.data?.items.some((i) => i.status==='leased') ? 20_000 : live ? false : 15_000)});
   const refresh = () => {
     void qc.invalidateQueries({queryKey:['queue']});
     void qc.invalidateQueries({queryKey:['episode']});

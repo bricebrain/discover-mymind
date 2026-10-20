@@ -5,7 +5,7 @@ import type { PrepareOptions, QueueItem } from '../queue/types';
 export interface PrepTarget { kind: 'episode' | 'reflection' | 'youtube'; id: string }
 
 export const queueApi = {
-  list: (target?: PrepTarget) => api<{ items: QueueItem[] }>(`/api/queue${target ? `?${target.kind}=${encodeURIComponent(target.id)}` : ''}`),
+  list: (target?: PrepTarget) => api<{ items: QueueItem[]; atelierSeenAt?: string | null }>(`/api/queue${target ? `?${target.kind}=${encodeURIComponent(target.id)}` : ''}`),
   prepare: (target: PrepTarget,options: PrepareOptions) =>
     target.kind==='youtube'
       ? api<{ item: QueueItem }>('/api/sources/youtube',{method:'POST',body:{url:`https://www.youtube.com/watch?v=${target.id}`,options}})

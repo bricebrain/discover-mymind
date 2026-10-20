@@ -6,7 +6,13 @@ export interface PrepareOptions {
   faithful: boolean;
   keepOriginalCopy: boolean;
 }
+/** Avancement calculé par le Worker pour une préparation en cours. */
+export interface QueueProgress {
+  stages: string[]; current: number; percent: number; remainingSec: number;
+  startedAt: string | null; stageStartedAt: string | null; history: boolean;
+}
 export interface QueueItem {
+  progress?: QueueProgress | null;
   executor?: 'mac'|'cloud';
   id: string; kind: 'episode' | 'reflection' | 'youtube' | 'dossier'; ref: string; title: string;
   options: PrepareOptions; status: 'pending' | 'leased' | 'done' | 'failed' | 'cancelled';

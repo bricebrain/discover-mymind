@@ -3,6 +3,7 @@ import type { Env } from '../env';
 import { HttpError, json, readJson } from '../http';
 import { expireExhausted, queueOut, type QueueRow } from './store';
 import { assertLease } from '../publications/store';
+import { markAtelierSeen } from './progress';
 
 export const LEASE_MS = 15 * 60_000;
 const STAGES = ['download','normalize','transcribe','source_ready','plan','extract','translate','adapt','evaluate','review','tts','publish'];
@@ -44,6 +45,7 @@ export async function lease(req: Request,env: Env) {
     throw new HttpError(422,'invalid_options','Demande de relecture invalide.');
   }
   const now = new Date().toISOString(), expires = new Date(Date.now()+LEASE_MS).toISOString();
+  await markAtelierSeen(env);
   await expireExhausted(env,now);
   await resolveArticleTexts(env);
   const row = await env.DB.prepare(`UPDATE prepare_queue SET status='leased',lease_token=?,lease_owner=?,
@@ -69,6 +71,7 @@ export async function change(req: Request,env: Env,id: string,action: string) {
   const b = await readJson<Record<string,unknown>>(req,4096);
   if (!b || typeof b.leaseToken !== 'string' || b.leaseToken.length > 256) throw new HttpError(422,'invalid_lease','Jeton de bail requis.');
   await assertLease(env,{queue_item_id:id,lease_token:b.leaseToken});
+  await markAtelierSeen(env);
   const now = new Date().toISOString();
   let sql: string, args: unknown[];
   if (action === 'heartbeat') {
