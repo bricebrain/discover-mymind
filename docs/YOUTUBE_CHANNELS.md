@@ -29,7 +29,15 @@ Une vidéo suivie est envoyée avec `kind=youtube` et son identifiant de vidéo 
 
 Résolution des handles : lecture de la page de chaîne plafonnée à 2 Mo, extraction HTML du lien RSS/canonique. Pas d’extraction d’identifiants provenant des vidéos recommandées. Les erreurs YouTube sont affichées ; l’adresse `/channel/UC…` sert de solution de repli.
 
+La requête de page utilise un refus anonyme des cookies facultatifs (`SOCS=CAI`) pour éviter l’écran de consentement. Si le flux officiel sur `www.youtube.com` répond 404 ou 5xx, l’aperçu et la collecte réessaient une seule fois sur `youtube.com`, avec les mêmes paramètres et en-têtes conditionnels. L’adresse du flux enregistrée reste canonique. Les erreurs persistantes restent visibles ; les réponses 403/429 ne déclenchent pas de nouvelle tentative immédiate.
+
+Contrôle du 20 octobre 2026 : les huit pages signalées exposent leur identifiant de chaîne. Sept flux répondent directement ; BFM Business renvoie 404/500 sur `www.youtube.com`, mais répond sur `youtube.com`. Les tests utilisent les balises canoniques/RSS relevées sur ces pages : France24_en, SamouraiDansant, BFMBusiness, aktionnaire, LeDessousdesCartesARTE, romainmolina4473, SciShow et siliconcarnepod.
+
+Le contrôle des aperçus avant déploiement confirme le caractère intermittent : sept aperçus répondent HTTP 200 (dont BFM Business), tandis que SciShow échoue sur un flux HTTP 500. Aucun abonnement n’a été créé pendant ces contrôles. Après déploiement du correctif, l’aperçu SciShow répond HTTP 200.
+
 ## Vérifications
+
+- Correctif du 20 octobre 2026 : 364 tests Worker réussis, dont 39 cas dans la suite YouTube ; vérification TypeScript Worker réussie. Couverture du secours 404/5xx, des erreurs persistantes, des réponses sans nouvelle tentative et de la conservation des en-têtes conditionnels en collecte.
 
 - 219 tests Worker, dont 20 nouveaux cas YouTube et un cas de publication/rattachement/suppression ; résolution HTML vérifiée avec les métadonnées placées après le head, comme sur les pages réelles, et par TypeScript.
 - 47 tests PWA, TypeScript et build réussis.
@@ -45,5 +53,9 @@ Résolution des handles : lecture de la page de chaîne plafonnée à 2 Mo, extr
 ## Déploiement
 
 Migration 0011 appliquée à la base de production `discover`. Version Worker finale : `6b8057f9-8847-4c02-a4c7-8fce95d706db`.
+
+Correctif YouTube déployé le 20 octobre 2026 : version `a461aaa5-22eb-4e83-a98c-09735f9f39cb`. Build PWA et empaquetage Worker réussis ; aperçu SciShow vérifié en production.
+
+À la demande de l’utilisateur, les dernières publications de l’onglet Vidéos des huit chaînes ont été mises en préparation via l’Atelier : A2, narration, condensé de huit minutes si la source dépasse 480 secondes, intégral sinon. Les huit demandes et leurs options ont été relues dans la file distante. Cinq versions condensées (SciShow, Romain Molina, SamouraiDansant, Aktionnaire, Silicon Carne) et trois intégrales (ARTE, BFM Business, France 24). Au contrôle, l’Atelier est actif mais attend sa reprise automatique après quota Gemini et erreur OpenAI HTTP 503 ; les huit demandes restent en attente.
 
 Contrôle de production sans création : `@arte` et l’identifiant canonique de la chaîne renvoient un aperçu HTTP 200 avec les trois dernières vidéos ; l’Explorer podcasts reste accessible. Les 49 abonnements existants (38 actifs) sont conservés, aucune chaîne de test n’est enregistrée.

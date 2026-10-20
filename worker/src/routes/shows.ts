@@ -1,4 +1,5 @@
 import { channelInput, resolveChannel, validateChannelFeed } from '../youtube/channels';
+import { fetchYoutubeFeed } from '../youtube/request';
 import { autoPrepareEnabled, setAutoPrepareEnabled } from '../queue/automatic';
 import { channelFeedUrl, parseYoutubeFeed } from '../youtube/feed';
 import { USER_AGENT } from '../collector';
@@ -66,7 +67,7 @@ const lang = (v: string | null): 'fr' | 'en' | null => {
 /** Aperçu d'un flux, sans rien enregistrer : 8 derniers épisodes au plus. */
 export async function previewFeed(feedUrl: string, fetcher: typeof fetch, apple?: Candidate, channelId?: string): Promise<ShowPreview> {
   const url = parseSafeUrl(feedUrl, { allowHttp: true }).toString();
-  const res = await safeFetch(url, { allowHttp: true, headers: { 'User-Agent': USER_AGENT } }, fetcher);
+  const res = await (channelId ? fetchYoutubeFeed : safeFetch)(url, { allowHttp: true, headers: { 'User-Agent': USER_AGENT } }, fetcher);
   if (!res.ok || !res.body) {
     await res.body?.cancel();
     throw new HttpError(422, 'feed_unreachable', `Flux inaccessible (HTTP ${res.status}).`);

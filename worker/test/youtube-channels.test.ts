@@ -4,6 +4,8 @@ import { collectNext } from '../src/collector';
 import { resolve } from '../src/routes/shows';
 import { channelInput, resolveChannel } from '../src/youtube/channels';
 import { channelFeedUrl, parseYoutubeFeed } from '../src/youtube/feed';
+import { fetchYoutubeFeed } from '../src/youtube/request';
+import channelMetadata from './fixtures/youtube-channel-metadata.json';
 import { ATELIER_TOKEN, call, login, ORIGIN } from './helpers';
 
 const CHANNEL = 'UCwI-JbGNsojunnHbFAc0M4Q';
@@ -37,6 +39,23 @@ beforeEach(async () => {
 });
 
 describe('résolution et lecture YouTube', () => {
+  // Métadonnées publiques des huit chaînes signalées, relevées le 20 octobre 2026.
+  it.each(channelMetadata)('résout @$handle et charge son aperçu', async ({ handle, id, html }) => {
+    const requested: string[] = [];
+    const res = await resolve(new Request(ORIGIN + '/api/shows/resolve', {
+      method: 'POST', body: JSON.stringify({ input: `https://www.youtube.com/@${handle}` }),
+    }), fetcher((url, init) => {
+      requested.push(url);
+      if (url === `https://www.youtube.com/@${handle}`) {
+        expect(new Headers(init?.headers).get('Cookie')).toBe('SOCS=CAI');
+        return new Response(html);
+      }
+      expect(url).toBe(channelFeedUrl(id));
+      return new Response(feed());
+    }));
+    expect(await res.json()).toMatchObject({ kind: 'preview', preview: { sourceType: 'youtube', channelId: id, feedUrl: channelFeedUrl(id) } });
+    expect(requested).toHaveLength(2);
+  });
   it.each([CHANNEL, `https://www.youtube.com/channel/${CHANNEL}`, channelFeedUrl(CHANNEL)])('normalise %s', (input) => {
     expect(channelInput(input).id).toBe(CHANNEL);
   });
@@ -86,9 +105,50 @@ describe('résolution et lecture YouTube', () => {
       fetcher((url) => { expect(url).toBe(channelFeedUrl(CHANNEL)); return new Response(feed()); }));
     expect(await res.json()).toMatchObject({ kind: 'preview', preview: { sourceType: 'youtube', channelId: CHANNEL, title: 'ARTE', language: null, latest: [{ title: 'Une vidéo & une idée' }] } });
   });
+  it.each([404, 500, 502, 503, 504])('réessaie un flux YouTube HTTP %s sur le domaine officiel sans www', async (status) => {
+    const urls: string[] = [];
+    let cancelled = false;
+    const res = await resolve(new Request(ORIGIN + '/api/shows/resolve', { method: 'POST', body: JSON.stringify({ input: CHANNEL }) }),
+      fetcher((url) => {
+        urls.push(url);
+        return urls.length === 1
+          ? new Response(new ReadableStream({ cancel() { cancelled = true; } }), { status })
+          : new Response(feed());
+      }));
+    expect(await res.json()).toMatchObject({ kind: 'preview', preview: { channelId: CHANNEL, feedUrl: channelFeedUrl(CHANNEL) } });
+    expect(urls).toEqual([channelFeedUrl(CHANNEL), channelFeedUrl(CHANNEL).replace('www.youtube.com', 'youtube.com')]);
+    expect(cancelled).toBe(true);
+  });
+  it('limite le secours à une tentative et conserve les erreurs persistantes', async () => {
+    let calls = 0;
+    await expect(resolve(new Request(ORIGIN + '/api/shows/resolve', { method: 'POST', body: JSON.stringify({ input: CHANNEL }) }),
+      fetcher(() => { calls++; return new Response('Indisponible', { status: 503 }); }))).rejects.toThrow(/HTTP 503/);
+    expect(calls).toBe(2);
+  });
+  it.each([200, 304, 403, 429])('ne réessaie pas un flux HTTP %s', async (status) => {
+    let calls = 0;
+    const response = await fetchYoutubeFeed(channelFeedUrl(CHANNEL), {}, fetcher(() => {
+      calls++; return new Response(null, { status });
+    }));
+    expect(response.status).toBe(status);
+    expect(calls).toBe(1);
+  });
 });
 
 describe('abonnement → collecte → préparation', () => {
+  it('collecte via le secours officiel en conservant les en-têtes conditionnels', async () => {
+    const cookie = await login(); const id = await subscribe(cookie);
+    await env.DB.prepare('UPDATE shows SET etag = ? WHERE id = ?').bind('v1', id).run();
+    const urls: string[] = [];
+    const result = await collectNext(env, NOW, fetcher((url, init) => {
+      urls.push(url);
+      expect(new Headers(init?.headers).get('If-None-Match')).toBe('v1');
+      return urls.length === 1 ? new Response(null, { status: 500 }) : new Response(feed(), { headers: { ETag: 'v2' } });
+    }), id);
+    expect(result).toMatchObject({ status: 'ok', newItems: 1 });
+    expect(urls).toHaveLength(2);
+    expect(await env.DB.prepare('SELECT etag, last_error FROM shows WHERE id = ?').bind(id).first()).toMatchObject({ etag: 'v2', last_error: null });
+  });
   it('collecte et déduplique sans préparation automatique, puis filtre Explorer par source', async () => {
     const cookie = await login(); const id = await subscribe(cookie);
     const f = fetcher(() => new Response(feed(), { headers: { ETag: 'v1' } }));

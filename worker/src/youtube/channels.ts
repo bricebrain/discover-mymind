@@ -26,7 +26,11 @@ export function channelInput(input: string): { id: string | null; url: string } 
 export async function resolveChannel(input: string, fetcher: typeof fetch = fetch): Promise<string> {
   const candidate = channelInput(input);
   if (candidate.id) return candidate.id;
-  const res = await safeFetch(candidate.url, { headers: { 'User-Agent': 'Mozilla/5.0', 'Accept-Language': 'fr,en;q=0.8' } }, fetcher);
+  const res = await safeFetch(candidate.url, { headers: {
+    'User-Agent': 'Mozilla/5.0', 'Accept-Language': 'fr,en;q=0.8',
+    // Lecture anonyme avec refus des cookies facultatifs, sans écran de consentement.
+    Cookie: 'SOCS=CAI',
+  } }, fetcher);
   if (!res.ok || !res.body) {
     await res.body?.cancel();
     throw new HttpError(422, 'channel_unreachable', `Chaîne inaccessible (HTTP ${res.status}).`);

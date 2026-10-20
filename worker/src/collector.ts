@@ -1,4 +1,5 @@
 import { parseYoutubeFeed } from './youtube/feed';
+import { fetchYoutubeFeed } from './youtube/request';
 import type { Env } from './env';
 import { parseFeedStream, type FeedItem } from './feedParser';
 import { sha256Hex } from './security/crypto';
@@ -103,7 +104,7 @@ export async function collectNext(env: Env, now = Date.now(), fetcher: typeof fe
     const headers: Record<string, string> = { 'User-Agent': USER_AGENT, Accept: 'application/rss+xml, application/xml;q=0.9, */*;q=0.5' };
     if (show.etag) headers['If-None-Match'] = show.etag;
     if (show.last_modified) headers['If-Modified-Since'] = show.last_modified;
-    const res = await safeFetch(show.feed_url, { allowHttp: true, headers }, fetcher);
+    const res = await (show.source_type === 'youtube' ? fetchYoutubeFeed : safeFetch)(show.feed_url, { allowHttp: true, headers }, fetcher);
 
     if (res.status === 304) {
       await env.DB.prepare('UPDATE shows SET last_success_at = ?, last_error = NULL, consecutive_failures = 0 WHERE id = ?')
