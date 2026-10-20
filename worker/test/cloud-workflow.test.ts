@@ -10,9 +10,10 @@ import { cancel } from '../src/routes/queue';
 
 beforeEach(setupCloud);
 afterEach(()=>vi.unstubAllGlobals());
-function providers(failSpeech=false) {
+function providers(failSpeech=false,dirty=false) {
   let generated=0;
-  const values=[{language:'fr',paragraphs:[body]},script,{verdict:'review',reasons:['Validation humaine nécessaire.']}];
+  const narration=dirty ? {lines:script.lines.map(l=>({...l,text:`${l.text} (s0001)`,fr:`${l.fr} [s0001]`}))} : script;
+  const values=[{language:'fr',paragraphs:[body]},narration,{verdict:'review',reasons:['Validation humaine nécessaire.']}];
   const calls=vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>{
     const url=String(input);
     if(url.endsWith(':countTokens')) return Response.json({totalTokens:5000});
@@ -29,7 +30,7 @@ function providers(failSpeech=false) {
   vi.stubGlobal('fetch',calls);return calls;
 }
 it('exécute le vrai Workflow jusqu’à la publication atomique et conserve le marquage non relu',async()=>{
-  const calls=providers(), {id}=await startNote();
+  const calls=providers(false,true), {id}=await startNote();
   await using inspector=await introspectWorkflowInstance(env.CLOUD_PREPARATION,id);
   await env.CLOUD_PREPARATION.create({id,params:{id}});
   await inspector.waitForStatus('complete');
@@ -41,6 +42,14 @@ it('exécute le vrai Workflow jusqu’à la publication atomique et conserve le 
   expect(JSON.parse(variants!.evaluation_json)).toMatchObject({verdict:'review',autoPublished:true});
   expect(calls.mock.calls.filter(c=>String(c[0]).includes(':generateContent'))).toHaveLength(3);
   expect(calls.mock.calls.filter(c=>String(c[0]).includes('api.deepgram.com'))).toHaveLength(6);
+  const spoken=calls.mock.calls.filter(c=>String(c[0]).includes('api.deepgram.com')).map(c=>JSON.parse(String(c[1]!.body)).text);
+  expect(spoken).toEqual(script.lines.map(l=>l.text));
+  const segments=await env.DB.prepare(`SELECT f.r2_key FROM variants v JOIN publication_files f ON f.publication_id=v.publication_id AND f.path=v.segments_path
+    WHERE v.content_id=? AND v.kind='adaptation'`).bind(q!.content_id).first<{r2_key:string}>();
+  const doc=await (await env.FILES.get(segments!.r2_key))!.json<{segments:{text:string;fr:string;sourceSegments:string[]}[]}>();
+  expect(doc.segments.map(s=>s.text)).toEqual(spoken);
+  expect(doc.segments.map(s=>s.fr)).toEqual(script.lines.map(l=>l.fr));
+  expect(doc.segments.every(s=>s.sourceSegments.join(',')==='s1')).toBe(true);
   await publish(cloudEnv,id,'unused','unused','unused',[]);
   expect((await env.DB.prepare("SELECT COUNT(*) n FROM publications WHERE status='ready'").first<{n:number}>())!.n).toBe(1);
   expect((await env.DB.prepare('SELECT state FROM cloud_runs WHERE id=?').bind(id).first<{state:string}>())!.state).toBe('done');

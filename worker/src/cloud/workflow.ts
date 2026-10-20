@@ -9,6 +9,7 @@ import { active, fail } from './store';
 import { publish } from './publish';
 import type { Script, Snapshot, SourceText } from './types';
 import { flushEvents } from '../events/hub';
+import { prepareSpokenScript } from './scripts';
 
 const paidStep={retries:{limit:0,delay:'1 second' as const},timeout:'5 minutes' as const};
 const encode=(value:unknown) => new TextEncoder().encode(JSON.stringify(value));
@@ -30,12 +31,13 @@ export class CloudPreparation extends WorkflowEntrypoint<Env,{id:string}> {
         const raw=await gemini(this.env,SOURCE_PROMPT,{text:captured.source.text},captured.source.kind==='youtube' ? captured.source.url! : undefined,()=>active(this.env,id,'transcribe'));
         return encode(validateSource(JSON.parse(new TextDecoder().decode(raw)),captured));
       }));
-      const scriptKey=await step.do('adaptation',paidStep,()=>operation(this.env,id,'script','adapt',async()=>{
+      const generatedScriptKey=await step.do('adaptation',paidStep,()=>operation(this.env,id,'script','adapt',async()=>{
         const source=await checkpoint<SourceText>(this.env,sourceKey);
         const paragraphs=source.paragraphs.map((text,i)=>({id:`s${i+1}`,text}));
         const raw=await gemini(this.env,SCRIPT_PROMPT,{level:captured.options.level,source:paragraphs,attribution:captured.source.attribution},undefined,()=>active(this.env,id,'adapt'));
         return encode(validateScript(JSON.parse(new TextDecoder().decode(raw)),source));
       }));
+      const scriptKey=await step.do('texte-propre-v2',()=>prepareSpokenScript(this.env,id,sourceKey,generatedScriptKey));
       const judgeKey=await step.do('controle',paidStep,()=>operation(this.env,id,'judge','evaluate',async()=>{
         const source=await checkpoint<SourceText>(this.env,sourceKey), script=await checkpoint<Script>(this.env,scriptKey);
         const raw=await gemini(this.env,JUDGE_PROMPT,{source,script,level:captured.options.level},undefined,()=>active(this.env,id,'evaluate'));

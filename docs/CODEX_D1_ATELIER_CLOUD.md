@@ -90,6 +90,8 @@ Les tests ne prouvent pas la qualité de la voix réelle, la fidélité de Gemin
 
 ## Vérifications
 
+Complément après signalement utilisateur : voir `CODEX_D1_CITATIONS.md` pour les protections contre les identifiants lus à voix haute, la reprise des anciens checkpoints et les résultats actualisés (1 221 tests). Le tableau ci-dessous consigne la validation initiale de `6f7fe3d`.
+
 | Périmètre | Résultat |
 | --- | --- |
 | Worker | `npm test` : 365 tests ; TypeScript réussi ; types Wrangler régénérés |

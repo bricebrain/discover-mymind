@@ -9,6 +9,7 @@ import { active, run } from './store';
 import { checkpoint } from './operations';
 import { concat, mp3Frames } from './mp3';
 import { MODEL, VOICE, type Judge, type Script, type Snapshot, type SourceText } from './types';
+import { assertNoTechnicalIds } from './citations';
 
 export async function publish(env:Env,id:string,sourceKey:string,scriptKey:string,judgeKey:string,audioKeys:string[]) {
   const row=await run(env,id);
@@ -20,6 +21,8 @@ export async function publish(env:Env,id:string,sourceKey:string,scriptKey:strin
   await active(env,id,'publish');
   const {source,options}=JSON.parse(row.snapshot_json) as Snapshot;
   const sourceText=await checkpoint<SourceText>(env,sourceKey), script=await checkpoint<Script>(env,scriptKey), judge=await checkpoint<Judge>(env,judgeKey);
+  // Ne pas nettoyer après la voix : texte et audio doivent provenir du même checkpoint propre.
+  for (const line of script.lines) {assertNoTechnicalIds(line.text);assertNoTechnicalIds(line.fr);}
   const sourceRef=`${source.kind}:${source.ref}`;
   // Réutiliser le contenu de cette source, y compris s'il a d'abord été publié depuis le Mac.
   const known=await env.DB.prepare('SELECT id FROM contents WHERE source_ref=? ORDER BY created_at LIMIT 1').bind(sourceRef).first<{id:string}>();
