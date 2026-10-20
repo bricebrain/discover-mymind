@@ -37,9 +37,9 @@ export function ContentPage() {
       </Notice>}
       <PlaybackControls reader={reader} />
       <DownloadButton detail={query.data} variant={variant} />
-      <VariantTranscript key={`${query.data.publicationId}:${variant.key}`} detail={query.data} variant={variant}
+      <VariantTranscript key={`transcript:${query.data.publicationId}:${variant.key}`} detail={query.data} variant={variant}
         activePositionMs={reader.activePositionMs} verified={reader.verified} playing={reader.playing} onSeek={reader.play} />
-      <VersionLearning key={`${query.data.publicationId}:${variant.key}`} detail={query.data} variant={variant} verified={reader.verified} onSeek={reader.play} />
+      <VersionLearning key={`learning:${query.data.publicationId}:${variant.key}`} detail={query.data} variant={variant} verified={reader.verified} onSeek={reader.play} />
       <div className="mt-6"><DeleteContentButton id={id} title={query.data.content.title} onDeleted={() => navigate(libraryLocation, { replace: true })} /></div>
     </>}
   </motion.div>;

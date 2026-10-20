@@ -59,9 +59,9 @@ export function PreparedEpisode({ contentId, about, onDeleted, showId }: { conte
     </Notice>}
     <PlaybackControls reader={reader} />
     <DownloadButton detail={query.data} variant={variant} />
-    <VariantTranscript key={`${query.data.publicationId}:${variant.key}`} detail={query.data} variant={variant}
+    <VariantTranscript key={`transcript:${query.data.publicationId}:${variant.key}`} detail={query.data} variant={variant}
       activePositionMs={reader.activePositionMs} verified={reader.verified} playing={reader.playing} onSeek={reader.play} />
-    <VersionLearning key={`${query.data.publicationId}:${variant.key}`} detail={query.data} variant={variant} verified={reader.verified} onSeek={reader.play} showId={showId} />
+    <VersionLearning key={`learning:${query.data.publicationId}:${variant.key}`} detail={query.data} variant={variant} verified={reader.verified} onSeek={reader.play} showId={showId} />
     <div className="mt-4"><DeleteContentButton id={contentId} title={query.data.content.title} onDeleted={onDeleted} /></div>
     {about && <div className="mt-8"><p className={overline}>À propos de l’épisode</p>{about}</div>}
   </section>;
