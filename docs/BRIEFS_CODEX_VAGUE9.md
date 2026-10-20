@@ -87,7 +87,11 @@ Lancer `convert/discover_related_calibrer.py` pour exporter un CSV de paires, le
 - En production, avec l'accord de l'utilisateur pour ce lot : sauvegarde de la base `englishfluency` (§ 6, préfixe `ef-`),
   `npx wrangler d1 migrations apply englishfluency --remote`, déploiement du Worker, vérification.
 
-### V9-8 — Discover : choix Clair / Sombre et style « vivant » (demande du 20 octobre 2026)
+### V9-8 — Discover : choix Clair / Sombre et style « vivant » (demande du 20 octobre 2026) — **FAIT par Opus**
+> **Réalisé et déployé par Opus le 20 octobre 2026** (`40c887e`, Worker `6e4a79ba`), sur la base de `codex/v9-6` : `main` contient
+> donc aussi V9-1 à V9-5. **Ne pas refaire V9-8** ; repartir de `main` pour la suite (V9-6 ménage, V9-7 SRT). Fichiers clés : `pwa/src/settings/theme.ts`,
+> `pwa/public/theme-init.js`, `pwa/src/vivid/`, `pwa/src/explorer/HeroCarousel.tsx`, jetons sombres dans `pwa/src/styles/app.css`.
+
 **Remplace la règle « thème clair uniquement ».** L'utilisateur veut choisir dans l'app entre un thème **clair blanc** et un thème
 **sombre**, et trouve le design actuel beaucoup trop sobre : il veut de la vie et des animations, dans l'esprit des pages produit
 d'Apple (sans copier). **Modèle à suivre : EnglishPWA**, déjà refait et publié (`englishPwa/`, commits `1660c0e` et `91bcbd1`) :
