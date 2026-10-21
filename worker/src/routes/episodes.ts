@@ -31,18 +31,16 @@ function decodeCursor(cursor: string): { sortKey: string; id: string } {
 
 /**
  * GET /api/explorer?category=&show=&lang=&state=&cursor=
- * Épisodes du plus récent au plus ancien. Par défaut, les épisodes écartés sont masqués.
+ * Vidéos des chaînes YouTube, de la plus récente à la plus ancienne. Par défaut, les vidéos écartées sont masquées.
+ * Les épisodes de podcast ne sont plus proposés (décision du 21 octobre 2026).
  */
 export async function explorer(req: Request, env: Env): Promise<Response> {
   const p = new URL(req.url).searchParams;
-  const where: string[] = ['s.enabled = 1 OR e.state = \'saved\''];
+  const where: string[] = ["s.source_type = 'youtube'", 's.enabled = 1 OR e.state = \'saved\''];
   const values: unknown[] = [];
 
   const sourceType = p.get('sourceType');
-  if (sourceType) {
-    if (!['podcast', 'youtube'].includes(sourceType)) throw new HttpError(400, 'invalid_query', 'Source inconnue.');
-    where.push('s.source_type = ?'); values.push(sourceType);
-  }
+  if (sourceType && sourceType !== 'youtube') throw new HttpError(400, 'invalid_query', 'Source inconnue.');
   const category = p.get('category');
   if (category) {
     if (!(CATEGORIES as readonly string[]).includes(category)) throw new HttpError(400, 'invalid_query', 'Catégorie inconnue.');
@@ -92,7 +90,7 @@ export async function explorer(req: Request, env: Env): Promise<Response> {
 
 /** GET /api/episodes/:id */
 export async function detail(env: Env, id: string): Promise<Response> {
-  const e = await env.DB.prepare(`SELECT ${EPISODE_COLUMNS} FROM episodes e JOIN shows s ON s.id = e.show_id ${PROGRESS_JOIN} WHERE e.id = ?`)
+  const e = await env.DB.prepare(`SELECT ${EPISODE_COLUMNS} FROM episodes e JOIN shows s ON s.id = e.show_id ${PROGRESS_JOIN} WHERE e.id = ? AND s.source_type = 'youtube'`)
     .bind(id).first<Record<string, unknown> & { showId: string }>();
   return e ? json({ episode: { ...e, levelSuggestion: await levelSuggestion(env, e.showId) } }) : apiError(404, 'not_found', 'Épisode inconnu.');
 }

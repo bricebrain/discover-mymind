@@ -4,6 +4,7 @@ import type { Category } from './episodes';
 import { levelSuggestionKey } from '../levels/keys';
 import type { LevelSuggestion } from '../levels/types';
 
+/** Chaîne YouTube suivie : Discover ne suit plus de podcasts depuis le 21 octobre 2026. */
 export interface Show {
   sourceType: 'podcast' | 'youtube';
   channelId: string | null;
@@ -33,38 +34,25 @@ export const AUTO_PRESETS: Record<AutoPreset, { label: string; cost: string }> =
   condensed8: { label: 'Condensé · 8 min', cost: '≈ 0,19 USD de voix Deepgram par épisode' },
 };
 
-export interface Candidate {
-  appleId: number;
-  title: string;
-  publisher: string | null;
-  imageUrl: string | null;
-  feedUrl: string;
-}
-
 export interface ShowPreview {
-  sourceType: 'podcast' | 'youtube';
-  channelId: string | null;
+  sourceType: 'youtube';
+  channelId: string;
   feedUrl: string;
   title: string;
   publisher: string | null;
-  appleId: number | null;
   imageUrl: string | null;
   language: 'fr' | 'en' | null;
   medianMinutes: number | null;
   episodesPerWeek: number | null;
-  hasTranscripts: boolean;
   latest: { title: string; publishedAt: string | null; durationSec: number | null }[];
 }
 
-export type ResolveResult = { kind: 'candidates'; candidates: Candidate[] } | { kind: 'preview'; preview: ShowPreview };
-
 export interface NewShow {
-  sourceType?: 'podcast' | 'youtube';
-  channelId?: string | null;
+  sourceType: 'youtube';
+  channelId: string;
   feedUrl: string;
   title: string;
   publisher: string | null;
-  appleId: number | null;
   imageUrl: string | null;
   language: 'fr' | 'en';
   category: Category;
@@ -83,13 +71,7 @@ export function useLevelSuggestion(showId: string) {
 }
 
 export function useResolveShow() {
-  return useMutation({ mutationFn: (input: string) => api<ResolveResult>('/api/shows/resolve', { method: 'POST', body: { input } }) });
-}
-
-export function usePreviewShow() {
-  return useMutation({
-    mutationFn: (c: Candidate) => api<{ preview: ShowPreview }>('/api/shows/preview', { method: 'POST', body: c }),
-  });
+  return useMutation({ mutationFn: (input: string) => api<{ kind: 'preview'; preview: ShowPreview }>('/api/shows/resolve', { method: 'POST', body: { input } }) });
 }
 
 export function useCreateShow() {

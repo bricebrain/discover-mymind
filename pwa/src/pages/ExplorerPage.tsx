@@ -7,12 +7,12 @@ import { ExplorerFeed } from '../explorer/ExplorerFeed';
 import { cn } from '@/lib/utils';
 
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as Category[];
-type Source = 'all' | 'podcast' | 'youtube' | 'article';
-const SOURCES: [Source, string][] = [['all', 'Tout'], ['podcast', 'Podcasts'], ['youtube', 'YouTube'], ['article', 'Articles']];
+type Source = 'all' | 'youtube' | 'article';
+const SOURCES: [Source, string][] = [['all', 'Tout'], ['youtube', 'YouTube'], ['article', 'Articles']];
 
 /** Sélecteur segmenté de la maquette : la pastille blanche glisse vers le choix actif (Motion). */
 function Segmented({ value, onChange }: { value: Source; onChange: (s: Source) => void }) {
-  return <div role="tablist" aria-label="Type de contenu" className="grid h-10 grid-cols-4 rounded-xl bg-muted p-1">
+  return <div role="tablist" aria-label="Type de contenu" className="grid h-10 grid-cols-3 rounded-xl bg-muted p-1">
     {SOURCES.map(([id, label]) => {
       const on = id === value;
       return <button key={id} type="button" role="tab" aria-selected={on} onClick={() => onChange(id)}
@@ -34,12 +34,12 @@ function Chip({ label, active, color, onClick }: { label: string; active: boolea
   </button>;
 }
 
-/** Explorer : podcasts, vidéos YouTube et articles dans un même fil, filtrables par type, catégorie et langue. */
+/** Explorer : vidéos YouTube et articles dans un même fil, filtrables par type, catégorie et langue. */
 export function ExplorerPage() {
   const shows = useShows();
   const [params, setParams] = useSearchParams();
   const raw = params.get('source');
-  const source: Source = raw === 'podcast' || raw === 'youtube' || raw === 'article' ? raw : 'all';
+  const source: Source = raw === 'youtube' || raw === 'article' ? raw : 'all';
   const show = params.get('show') ?? undefined;
   const category = (params.get('cat') as Category | null) ?? undefined;
   const lang = (params.get('lang') as 'fr' | 'en' | null) ?? undefined;
@@ -76,11 +76,11 @@ export function ExplorerPage() {
   </div>;
 
   return <ExplorerFeed
-    filters={{ category, lang, sourceType: source === 'podcast' || source === 'youtube' ? source : undefined, show }}
+    filters={{ category, lang, sourceType: source === 'youtube' ? source : undefined, show }}
     withEpisodes={source !== 'article'}
     withArticles={(source === 'all' || source === 'article') && !category && !show}
-    showResume={(source === 'all' || source === 'podcast') && !category && !lang}
+    showResume={source === 'all' && !category && !lang}
     header={header}
     empty={source === 'article' ? 'Les articles de The Guardian, The Conversation et ProPublica arrivent au fil de l’heure.'
-      : 'Aucun contenu pour l’instant. Ajoute un podcast ou une chaîne YouTube dans Abonnements.'} />;
+      : 'Aucun contenu pour l’instant. Ajoute une chaîne YouTube dans Abonnements.'} />;
 }

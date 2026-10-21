@@ -19,8 +19,7 @@ function status(show: Show): string {
   if (!show.enabled) return 'En pause';
   if (show.lastError) return `Erreur : ${show.lastError}`;
   if (!show.lastSuccessAt) return 'Première vérification dans quelques minutes';
-  const unit = show.sourceType === 'youtube' ? 'vidéo' : 'épisode';
-  return `${show.episodeCount} ${unit}${show.episodeCount > 1 ? 's' : ''} · vérifiée ${formatWhen(show.lastSuccessAt)}`;
+  return `${show.episodeCount} vidéo${show.episodeCount > 1 ? 's' : ''} · vérifiée ${formatWhen(show.lastSuccessAt)}`;
 }
 
 function ShowRow({ show, busy, onToggle, onDelete }: { show: Show; busy: boolean; onToggle: (v: boolean) => void; onDelete: () => void }) {
@@ -32,7 +31,7 @@ function ShowRow({ show, busy, onToggle, onDelete }: { show: Show; busy: boolean
       <span className="min-w-0 flex-1">
         <span className="line-clamp-2 text-[15px] font-semibold leading-snug">{show.title}</span>
         <span className="block truncate text-xs text-muted-foreground">
-          {show.sourceType === 'youtube' ? 'YouTube' : 'Podcast'} · {show.language.toUpperCase()}{show.titleFilter ? ` · filtre : ${show.titleFilter.join(', ')}` : ''}
+          YouTube · {show.language.toUpperCase()}{show.titleFilter ? ` · filtre : ${show.titleFilter.join(', ')}` : ''}
         </span>
         <span className={cn('mt-0.5 flex items-center gap-1 text-xs', show.lastError ? 'text-amber-700' : 'text-muted-foreground')}>
           {show.lastError && <AlertTriangle className="size-3.5 shrink-0" />}<span className="truncate">{status(show)}</span>
@@ -60,10 +59,10 @@ export function ShowsPage() {
   const max = shows.data?.max ?? 50;
 
   return <div className="mx-auto max-w-[760px] px-4 pb-8 pt-3">
-    <h1 className="sr-only">Mes abonnements</h1>
+    <h1 className="sr-only">Mes chaînes YouTube</h1>
     <div className="mb-4 flex items-center gap-3">
       <p className="m-0 flex-1 text-[13px] leading-snug text-muted-foreground">
-        <span className="font-semibold text-foreground">{count} / {max}</span> sources actives. Vérification à tour de rôle, environ toutes les 30 à 60 minutes.
+        <span className="font-semibold text-foreground">{count} / {max}</span> chaînes YouTube actives. Vérification à tour de rôle, environ toutes les 30 à 60 minutes.
       </p>
       <Button onClick={() => setAdding(true)} disabled={count >= max}><Plus className="size-4" />Ajouter</Button>
     </div>

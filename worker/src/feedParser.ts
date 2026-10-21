@@ -1,8 +1,9 @@
 /**
- * Lecture en flux d'un RSS de podcast (§ 7.1) : on analyse les <item> au fil de l'eau
- * et on arrête dès que c'est suffisant (nombre d'épisodes, GUID déjà connu, plafond
+ * Lecture en flux d'un flux Atom de chaîne YouTube (§ 7.1) : on analyse les <entry> au fil de l'eau
+ * et on arrête dès que c'est suffisant (nombre de vidéos, GUID déjà connu, plafond
  * d'octets). Extraction par indexOf : le pire cas mesuré venait des expressions
  * régulières appliquées à de très longues descriptions.
+ * Les flux RSS de podcasts ne sont plus lus (Discover suit seulement YouTube depuis le 21 octobre 2026).
  */
 
 export interface ChannelInfo {
@@ -21,8 +22,6 @@ export interface FeedItem {
   durationSec: number | null;
   audioUrl: string;
   imageUrl: string | null;
-  transcriptUrl: string | null;
-  transcriptType: 'srt' | 'vtt' | null;
 }
 
 export type StopReason = 'max_items' | 'known_guid' | 'eof' | 'max_bytes';
@@ -38,10 +37,9 @@ export interface ParseOptions {
   maxItems: number;
   knownGuids?: ReadonlySet<string>;
   maxBytes?: number;
-  atom?: { parseItem: (xml: string) => FeedItem | null; parseChannel: (xml: string) => ChannelInfo };
+  atom: { parseItem: (xml: string) => FeedItem | null; parseChannel: (xml: string) => ChannelInfo };
 }
 
-const DESCRIPTION_MAX = 2000;
 const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
 
 export function decodeEntities(s: string): string {
@@ -117,76 +115,17 @@ export function stripHtml(s: string): string {
   return decodeEntities(s.replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim();
 }
 
-/** itunes:duration → secondes : « 1:02:03 », « 62:03 » ou « 3723 ». */
-export function parseDuration(v: string | null): number | null {
-  if (!v) return null;
-  const t = v.trim();
-  if (/^\d+(\.\d+)?$/.test(t)) return Math.round(Number(t));
-  const parts = t.split(':').map((p) => Number(p));
-  if (parts.length < 2 || parts.length > 3 || parts.some((p) => !Number.isFinite(p) || p < 0)) return null;
-  return parts.reduce((acc, p) => acc * 60 + p, 0);
-}
-
 export function parseDate(v: string | null): string | null {
   if (!v) return null;
   const ms = Date.parse(v);
   return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
 }
 
-function pickTranscript(item: string): { url: string; type: 'srt' | 'vtt' } | null {
-  let vtt: string | null = null;
-  for (const tag of openTags(item, 'podcast:transcript')) {
-    const url = attrOf(tag, 'url');
-    const type = (attrOf(tag, 'type') ?? '').toLowerCase();
-    if (!url) continue;
-    if (type.includes('srt') || type.includes('subrip')) return { url, type: 'srt' };
-    if (type.includes('vtt')) vtt ??= url;
-  }
-  return vtt ? { url: vtt, type: 'vtt' } : null;
-}
-
-export function parseItem(item: string): FeedItem | null {
-  const enclosure = openTags(item, 'enclosure')[0];
-  const audioUrl = enclosure ? attrOf(enclosure, 'url') : null;
-  if (!audioUrl) return null;
-  const title = text(item, 'title');
-  if (!title) return null;
-  const guid = text(item, 'guid') ?? audioUrl;
-  // La description est coupée AVANT le nettoyage : c'était le coût du pire cas mesuré.
-  const rawDescription = text(item, 'description', DESCRIPTION_MAX * 3) ?? text(item, 'itunes:summary', DESCRIPTION_MAX * 3);
-  const description = rawDescription ? stripHtml(rawDescription).slice(0, DESCRIPTION_MAX) || null : null;
-  const transcript = pickTranscript(item);
-  const itemImage = openTags(item, 'itunes:image')[0];
-  return {
-    guid: guid.slice(0, 500),
-    title: stripHtml(title).slice(0, 300),
-    description,
-    publishedAt: parseDate(text(item, 'pubDate')),
-    durationSec: parseDuration(text(item, 'itunes:duration')),
-    audioUrl,
-    imageUrl: itemImage ? attrOf(itemImage, 'href') : null,
-    transcriptUrl: transcript?.url ?? null,
-    transcriptType: transcript?.type ?? null,
-  };
-}
-
-export function parseChannel(header: string): ChannelInfo {
-  const image = openTags(header, 'itunes:image')[0];
-  return {
-    title: text(header, 'title') ? stripHtml(text(header, 'title')!).slice(0, 200) : null,
-    author: text(header, 'itunes:author'),
-    language: text(header, 'language'),
-    imageUrl: (image ? attrOf(image, 'href') : null) ?? text(rawTag(header, 'image') ?? '', 'url'),
-  };
-}
-
-const ITEM_OPEN = /<item[\s>]/;
-
 export async function parseFeedStream(body: ReadableStream<Uint8Array>, opts: ParseOptions): Promise<ParseResult> {
   const maxBytes = opts.maxBytes ?? 1_000_000;
-  const itemOpen = opts.atom ? /<entry[\s>]/ : ITEM_OPEN;
-  const itemClose = opts.atom ? '</entry>' : '</item>';
-  const channelParser = opts.atom?.parseChannel ?? parseChannel;
+  const itemOpen = /<entry[\s>]/;
+  const itemClose = '</entry>';
+  const channelParser = opts.atom.parseChannel;
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buf = '';
@@ -215,7 +154,7 @@ export async function parseFeedStream(body: ReadableStream<Uint8Array>, opts: Pa
           buf = buf.slice(start);
           break;
         }
-        const item = (opts.atom?.parseItem ?? parseItem)(buf.slice(start, end));
+        const item = opts.atom.parseItem(buf.slice(start, end));
         buf = buf.slice(end + itemClose.length);
         if (item) {
           if (opts.knownGuids?.has(item.guid)) {

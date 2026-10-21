@@ -7,7 +7,8 @@ const ep = 'c'.repeat(20);
 
 beforeEach(async () => {
   await env.DB.prepare('DELETE FROM prepare_queue').run();
-  await env.DB.prepare("INSERT OR IGNORE INTO episodes (id,show_id,guid,title,audio_url,duration_sec,created_at) SELECT ?,id,'atelier-browse','Épisode depuis l’Atelier','https://example.com/a.mp3',3000,'2026-10-18' FROM shows WHERE enabled=1 LIMIT 1").bind(ep).run();
+  await env.DB.prepare("INSERT OR IGNORE INTO shows (id,title,feed_url,language,category,next_check_at,created_at,source_type) VALUES ('atelier-yt','Chaîne','https://www.youtube.com/feeds/videos.xml?channel_id=UCatelierbrowse0000000000','en','tech','2026-10-18','2026-10-18','youtube')").run();
+  await env.DB.prepare("INSERT OR IGNORE INTO episodes (id,show_id,guid,title,audio_url,duration_sec,created_at) SELECT ?,id,'atelier-browse','Épisode depuis l’Atelier','https://example.com/a.mp3',3000,'2026-10-18' FROM shows WHERE id='atelier-yt'").bind(ep).run();
 });
 
 it('l’Atelier liste les émissions et les épisodes avec son jeton seulement', async () => {

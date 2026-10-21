@@ -93,7 +93,7 @@ describe('résolution et lecture YouTube', () => {
     const parsed = await parseYoutubeFeed(stream(feed()), { maxItems: 10 });
     expect(parsed.channel?.title).toBe('ARTE');
     expect(parsed.items[0]).toMatchObject({ videoId: VIDEO, guid: `yt:video:${VIDEO}`, title: 'Une vidéo & une idée',
-      audioUrl: `https://www.youtube.com/watch?v=${VIDEO}`, durationSec: null, transcriptUrl: null, description: 'Une description' });
+      audioUrl: `https://www.youtube.com/watch?v=${VIDEO}`, durationSec: null, description: 'Une description' });
   });
   it('s’arrête sur une vidéo connue et ignore les identifiants invalides', async () => {
     const parsed = await parseYoutubeFeed(stream(feed(entry('bad') + entry() + entry('aaaaaaaaaaa'))), { maxItems: 10, knownGuids: new Set([`yt:video:${VIDEO}`]) });
@@ -158,7 +158,7 @@ describe('abonnement → collecte → préparation', () => {
     const result = await (await call('/api/explorer?sourceType=youtube', { cookie })).json<{ episodes: { id: string }[] }>();
     expect(result.episodes).toHaveLength(1);
     expect(result.episodes[0]).toMatchObject({ sourceType: 'youtube', videoId: VIDEO, showTitle: 'ARTE' });
-    expect(await (await call('/api/explorer?sourceType=podcast', { cookie })).json()).toMatchObject({ episodes: [] });
+    expect((await call('/api/explorer?sourceType=podcast', { cookie })).status).toBe(400);
     expect((await call('/api/explorer?sourceType=evil', { cookie })).status).toBe(400);
     expect((await call('/api/shows', { method: 'POST', cookie, body: { title: 'Autre nom', sourceType: 'youtube', channelId: CHANNEL,
       feedUrl: channelFeedUrl(CHANNEL), language: 'fr', category: 'news' } })).status).toBe(409);

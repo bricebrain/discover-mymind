@@ -4,59 +4,25 @@ import { autoPrepareEnabled, setAutoPrepareEnabled } from '../queue/automatic';
 import { channelFeedUrl, parseYoutubeFeed } from '../youtube/feed';
 import { USER_AGENT } from '../collector';
 import type { Env } from '../env';
-import { parseFeedStream } from '../feedParser';
 import { apiError, HttpError, json, noContent, readJson } from '../http';
-import { parseSafeUrl, safeFetch } from '../security/safeUrl';
+import { parseSafeUrl } from '../security/safeUrl';
 
 export const CATEGORIES = ['tech', 'science', 'economy', 'news', 'football', 'stories', 'humour'] as const;
 export type Category = (typeof CATEGORIES)[number];
 export const MAX_SHOWS = 50;
 
+/** Discover suit seulement des chaînes YouTube (décision du 21 octobre 2026) : les podcasts ne sont plus proposés. */
 interface ShowPreview {
-  sourceType: 'podcast' | 'youtube';
-  channelId: string | null;
+  sourceType: 'youtube';
+  channelId: string;
   feedUrl: string;
   title: string;
   publisher: string | null;
-  appleId: number | null;
   imageUrl: string | null;
   language: 'fr' | 'en' | null;
   medianMinutes: number | null;
   episodesPerWeek: number | null;
-  hasTranscripts: boolean;
   latest: { title: string; publishedAt: string | null; durationSec: number | null }[];
-}
-
-interface Candidate {
-  appleId: number;
-  title: string;
-  publisher: string | null;
-  imageUrl: string | null;
-  feedUrl: string;
-}
-
-const APPLE_LINK = /^https:\/\/podcasts\.apple\.com\/.*\/id(\d{3,12})(?:[/?#]|$)/i;
-
-async function appleJson(path: string, fetcher: typeof fetch): Promise<{ results?: Record<string, unknown>[] }> {
-  const res = await safeFetch(`https://itunes.apple.com/${path}`, { headers: { 'User-Agent': USER_AGENT } }, fetcher);
-  if (!res.ok) throw new HttpError(502, 'apple_unavailable', 'Annuaire Apple indisponible.');
-  return res.json();
-}
-
-function toCandidate(r: Record<string, unknown>): Candidate | null {
-  if (typeof r.feedUrl !== 'string' || typeof r.collectionId !== 'number') return null;
-  try {
-    parseSafeUrl(r.feedUrl, { allowHttp: true });
-  } catch {
-    return null;
-  }
-  return {
-    appleId: r.collectionId,
-    title: String(r.collectionName ?? ''),
-    publisher: typeof r.artistName === 'string' ? r.artistName : null,
-    imageUrl: typeof r.artworkUrl600 === 'string' ? r.artworkUrl600 : typeof r.artworkUrl100 === 'string' ? r.artworkUrl100 : null,
-    feedUrl: r.feedUrl,
-  };
 }
 
 const lang = (v: string | null): 'fr' | 'en' | null => {
@@ -64,74 +30,56 @@ const lang = (v: string | null): 'fr' | 'en' | null => {
   return l.startsWith('fr') ? 'fr' : l.startsWith('en') ? 'en' : null;
 };
 
-/** Aperçu d'un flux, sans rien enregistrer : 8 derniers épisodes au plus. */
-export async function previewFeed(feedUrl: string, fetcher: typeof fetch, apple?: Candidate, channelId?: string): Promise<ShowPreview> {
-  const url = parseSafeUrl(feedUrl, { allowHttp: true }).toString();
-  const res = await (channelId ? fetchYoutubeFeed : safeFetch)(url, { allowHttp: true, headers: { 'User-Agent': USER_AGENT } }, fetcher);
+/** Aperçu du flux d'une chaîne, sans rien enregistrer : 8 dernières vidéos au plus. */
+export async function previewFeed(feedUrl: string, fetcher: typeof fetch, channelId: string): Promise<ShowPreview> {
+  const url = parseSafeUrl(feedUrl).toString();
+  const res = await fetchYoutubeFeed(url, { headers: { 'User-Agent': USER_AGENT } }, fetcher);
   if (!res.ok || !res.body) {
     await res.body?.cancel();
     throw new HttpError(422, 'feed_unreachable', `Flux inaccessible (HTTP ${res.status}).`);
   }
-  const { channel, items } = await (channelId ? parseYoutubeFeed : parseFeedStream)(res.body, { maxItems: 8 });
-  if (items.length === 0) throw new HttpError(422, 'feed_empty', 'Aucun épisode lisible dans ce flux.');
+  const { channel, items } = await parseYoutubeFeed(res.body, { maxItems: 8 });
+  if (items.length === 0) throw new HttpError(422, 'feed_empty', 'Aucune vidéo lisible dans ce flux.');
 
   const durations = items.map((i) => i.durationSec).filter((d): d is number => d !== null).sort((a, b) => a - b);
   const dates = items.map((i) => i.publishedAt).filter((d): d is string => d !== null).map(Date.parse).sort((a, b) => b - a);
   const spanDays = dates.length > 2 ? (dates[0]! - dates[dates.length - 1]!) / 86_400_000 : 0;
   return {
-    sourceType: channelId ? 'youtube' : 'podcast', channelId: channelId ?? null,
+    sourceType: 'youtube', channelId,
     feedUrl: url,
-    title: apple?.title || channel?.title || 'Émission sans titre',
-    publisher: apple?.publisher ?? channel?.author ?? null,
-    appleId: apple?.appleId ?? null,
-    imageUrl: apple?.imageUrl ?? channel?.imageUrl ?? null,
+    title: channel?.title || 'Chaîne sans titre',
+    publisher: channel?.author ?? null,
+    imageUrl: channel?.imageUrl ?? null,
     language: lang(channel?.language ?? null),
     medianMinutes: durations.length ? Math.round(durations[Math.floor(durations.length / 2)]! / 60) : null,
     episodesPerWeek: spanDays > 0 ? Math.round(((dates.length - 1) / spanDays) * 7 * 10) / 10 : null,
-    hasTranscripts: items.some((i) => i.transcriptUrl),
     latest: items.slice(0, 3).map((i) => ({ title: i.title, publishedAt: i.publishedAt, durationSec: i.durationSec })),
   };
 }
 
-/** POST /api/shows/resolve — { input } : nom, lien Apple, identifiant Apple ou URL RSS. */
+const NOT_A_CHANNEL = 'Discover suit seulement des chaînes YouTube : colle un lien de chaîne ou son @identifiant.';
+
+/** POST /api/shows/resolve — { input } : lien de chaîne YouTube, @identifiant ou identifiant UC…. */
 export async function resolve(req: Request, fetcher: typeof fetch = fetch): Promise<Response> {
   const { input } = await readJson<{ input?: unknown }>(req, 4096);
   if (typeof input !== 'string' || input.trim().length < 2 || input.length > 2048) {
-    throw new HttpError(400, 'invalid_body', 'Saisis un nom, un lien Apple Podcasts ou une adresse RSS.');
+    throw new HttpError(400, 'invalid_body', NOT_A_CHANNEL);
   }
   const value = input.trim();
-  if (value.startsWith('@') || /^UC[A-Za-z0-9_-]{22}$/.test(value) || /^https?:\/\/(?:www\.|m\.)?youtube\.com(?:\/|$)/i.test(value)) {
-    const id = await resolveChannel(value, fetcher);
-    return json({ kind: 'preview', preview: await previewFeed(channelFeedUrl(id), fetcher, undefined, id) });
+  if (!(value.startsWith('@') || /^UC[A-Za-z0-9_-]{22}$/.test(value) || /^https?:\/\/(?:www\.|m\.)?youtube\.com(?:\/|$)/i.test(value))) {
+    throw new HttpError(422, 'invalid_channel', NOT_A_CHANNEL);
   }
-  const appleId = value.match(APPLE_LINK)?.[1] ?? (/^\d{3,12}$/.test(value) ? value : null);
-
-  if (appleId) {
-    const data = await appleJson(`lookup?id=${appleId}&entity=podcast`, fetcher);
-    const candidate = (data.results ?? []).map(toCandidate).find((c) => c !== null);
-    if (!candidate) throw new HttpError(404, 'not_found', 'Émission introuvable dans l’annuaire Apple, ou sans flux RSS public.');
-    return json({ kind: 'preview', preview: await previewFeed(candidate.feedUrl, fetcher, candidate) });
-  }
-  if (/^https?:\/\//i.test(value)) {
-    return json({ kind: 'preview', preview: await previewFeed(value, fetcher) });
-  }
-  const q = new URLSearchParams({ term: value.slice(0, 100), media: 'podcast', entity: 'podcast', limit: '12', country: 'fr' });
-  const data = await appleJson(`search?${q}`, fetcher);
-  const candidates = (data.results ?? []).map(toCandidate).filter((c): c is Candidate => c !== null);
-  return json({ kind: 'candidates', candidates });
+  const id = await resolveChannel(value, fetcher);
+  return json({ kind: 'preview', preview: await previewFeed(channelFeedUrl(id), fetcher, id) });
 }
 
-/** POST /api/shows/preview — { feedUrl, appleId? } : aperçu d'un candidat choisi. */
+/** POST /api/shows/preview — { feedUrl } : aperçu d'une chaîne déjà résolue. */
 export async function preview(req: Request, fetcher: typeof fetch = fetch): Promise<Response> {
-  const body = await readJson<{ feedUrl?: unknown; title?: unknown; publisher?: unknown; imageUrl?: unknown; appleId?: unknown }>(req, 4096);
+  const body = await readJson<{ feedUrl?: unknown }>(req, 4096);
   if (typeof body.feedUrl !== 'string') throw new HttpError(400, 'invalid_body', 'Adresse du flux attendue.');
-  const apple = typeof body.appleId === 'number' && typeof body.title === 'string'
-    ? { appleId: body.appleId, title: body.title, publisher: typeof body.publisher === 'string' ? body.publisher : null,
-        imageUrl: typeof body.imageUrl === 'string' ? body.imageUrl : null, feedUrl: body.feedUrl }
-    : undefined;
-  let channelId: string | undefined;
-  try { channelId = channelInput(body.feedUrl).id ?? undefined; } catch { /* Flux podcast. */ }
-  return json({ preview: await previewFeed(body.feedUrl, fetcher, apple, channelId) });
+  const channelId = channelInput(body.feedUrl).id;
+  if (!channelId) throw new HttpError(422, 'invalid_channel', NOT_A_CHANNEL);
+  return json({ preview: await previewFeed(channelFeedUrl(channelId), fetcher, channelId) });
 }
 
 function slugify(title: string): string {
@@ -159,28 +107,24 @@ function validLanguage(v: unknown): 'fr' | 'en' {
   return v;
 }
 
-/** POST /api/shows — abonnement. La première collecte a lieu au prochain passage du cron. */
+/** POST /api/shows — abonnement à une chaîne YouTube. La première collecte a lieu au prochain passage du cron. */
 export async function create(req: Request, env: Env): Promise<Response> {
   const b = await readJson<Record<string, unknown>>(req, 8192);
   if (typeof b.feedUrl !== 'string' || typeof b.title !== 'string' || b.title.trim() === '' || b.title.length > 200) {
     throw new HttpError(400, 'invalid_body', 'Adresse du flux et titre attendus.');
   }
-  const feedUrl = parseSafeUrl(b.feedUrl, { allowHttp: true }).toString();
+  const feedUrl = parseSafeUrl(b.feedUrl).toString();
   const imageUrl = typeof b.imageUrl === 'string' && b.imageUrl ? parseSafeUrl(b.imageUrl).toString() : null;
-  const sourceType = b.sourceType ?? 'podcast';
-  if (sourceType !== 'podcast' && sourceType !== 'youtube') throw new HttpError(400, 'invalid_body', 'Source inconnue.');
-  const channelId = sourceType === 'youtube' ? validateChannelFeed(feedUrl, b.channelId) : null;
-  if (sourceType === 'podcast' && (b.channelId || new URL(feedUrl).hostname.endsWith('youtube.com'))) {
-    throw new HttpError(422, 'invalid_channel', 'Choisis une chaîne YouTube pour ce flux.');
-  }
+  if ((b.sourceType ?? 'youtube') !== 'youtube') throw new HttpError(422, 'invalid_channel', NOT_A_CHANNEL);
+  const channelId = validateChannelFeed(feedUrl, b.channelId);
   const category = validCategory(b.category);
   const language = validLanguage(b.language);
   const filter = validTitleFilter(b.titleFilter);
 
-  const count = await env.DB.prepare('SELECT COUNT(*) AS n FROM shows WHERE enabled=1').first<{ n: number }>();
-  if ((count?.n ?? 0) >= MAX_SHOWS) return apiError(409, 'too_many_shows', `${MAX_SHOWS} émissions actives au maximum.`);
+  const count = await env.DB.prepare("SELECT COUNT(*) AS n FROM shows WHERE enabled=1 AND source_type='youtube'").first<{ n: number }>();
+  if ((count?.n ?? 0) >= MAX_SHOWS) return apiError(409, 'too_many_shows', `${MAX_SHOWS} chaînes actives au maximum.`);
   if (await env.DB.prepare('SELECT 1 FROM shows WHERE feed_url = ?').bind(feedUrl).first()) {
-    return apiError(409, 'already_subscribed', 'Tu suis déjà cette émission.');
+    return apiError(409, 'already_subscribed', 'Tu suis déjà cette chaîne.');
   }
 
   const base = slugify(b.title);
@@ -190,11 +134,11 @@ export async function create(req: Request, env: Env): Promise<Response> {
   await env.DB.prepare(
     `INSERT INTO shows (id, title, publisher, apple_id, feed_url, language, category, image_url, title_filter_json,
        auto_prepare, enabled, next_check_at, created_at, source_type, channel_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, 0, 1, ?, ?, 'youtube', ?)`,
   ).bind(
     id, b.title.trim(), typeof b.publisher === 'string' ? b.publisher.slice(0, 200) : null,
-    typeof b.appleId === 'number' ? b.appleId : null, feedUrl, language, category, imageUrl,
-    filter ? JSON.stringify(filter) : null, now, now, sourceType, channelId,
+    feedUrl, language, category, imageUrl,
+    filter ? JSON.stringify(filter) : null, now, now, channelId,
   ).run();
   return json({ show: await getShow(env, id) }, 201);
 }
@@ -222,9 +166,9 @@ async function getShow(env: Env, id: string) {
   return r ? showOut(r) : null;
 }
 
-/** GET /api/shows */
+/** GET /api/shows — chaînes YouTube seulement. */
 export async function list(env: Env): Promise<Response> {
-  const { results } = await env.DB.prepare(`SELECT ${SHOW_COLUMNS} FROM shows s ORDER BY s.category, s.title`).all<ShowOut>();
+  const { results } = await env.DB.prepare(`SELECT ${SHOW_COLUMNS} FROM shows s WHERE s.source_type = 'youtube' ORDER BY s.category, s.title`).all<ShowOut>();
   return json({ shows: results.map(showOut), max: MAX_SHOWS, categories: CATEGORIES, autoPrepareEnabled: await autoPrepareEnabled(env) });
 }
 
@@ -241,7 +185,7 @@ export async function autoPrepareSetting(req: Request, env: Env): Promise<Respon
 /** PATCH /api/shows/:id — enabled, category, language, titleFilter. */
 export async function update(req: Request, env: Env, id: string): Promise<Response> {
   const existing = await env.DB.prepare('SELECT enabled, source_type FROM shows WHERE id = ?').bind(id).first<{ enabled: number; source_type: string }>();
-  if (!existing) return apiError(404, 'not_found', 'Émission inconnue.');
+  if (!existing) return apiError(404, 'not_found', 'Chaîne inconnue.');
   const b = await readJson<Record<string, unknown>>(req, 4096);
   const sets: string[] = [];
   const values: unknown[] = [];
@@ -250,8 +194,8 @@ export async function update(req: Request, env: Env, id: string): Promise<Respon
     sets.push('enabled = ?');
     values.push(b.enabled ? 1 : 0);
     if (b.enabled) {
-      const count = await env.DB.prepare('SELECT COUNT(*) AS n FROM shows WHERE enabled=1').first<{ n: number }>();
-      if (!existing.enabled && (count?.n ?? 0) >= MAX_SHOWS) return apiError(409, 'too_many_shows', `${MAX_SHOWS} émissions actives au maximum.`);
+      const count = await env.DB.prepare("SELECT COUNT(*) AS n FROM shows WHERE enabled=1 AND source_type='youtube'").first<{ n: number }>();
+      if (!existing.enabled && (count?.n ?? 0) >= MAX_SHOWS) return apiError(409, 'too_many_shows', `${MAX_SHOWS} chaînes actives au maximum.`);
       sets.push('next_check_at = ?', 'consecutive_failures = 0');
       values.push(new Date().toISOString());
     }

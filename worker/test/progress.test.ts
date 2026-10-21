@@ -10,8 +10,8 @@ beforeEach(async () => {
     env.DB.prepare('DELETE FROM listening_progress'), env.DB.prepare('DELETE FROM episodes'), env.DB.prepare('DELETE FROM shows'),
     env.DB.prepare('DELETE FROM sessions'), env.DB.prepare('DELETE FROM login_attempts'),
   ]);
-  await env.DB.prepare(`INSERT INTO shows (id, title, feed_url, language, category, next_check_at, created_at)
-    VALUES ('s', 'Show', 'https://feeds.example.com/s.xml', 'fr', 'news', '2026-10-17T00:00:00Z', '2026-10-17T00:00:00Z')`).run();
+  await env.DB.prepare(`INSERT INTO shows (id, title, feed_url, language, category, next_check_at, created_at, source_type)
+    VALUES ('s', 'Show', 'https://feeds.example.com/s.xml', 'fr', 'news', '2026-10-17T00:00:00Z', '2026-10-17T00:00:00Z', 'youtube')`).run();
   await env.DB.prepare(`INSERT INTO episodes (id, show_id, guid, title, audio_url, created_at)
     VALUES (?, 's', 'g', 'Épisode', ?, '2026-10-17T00:00:00Z')`).bind(EP, AUDIO).run();
 });

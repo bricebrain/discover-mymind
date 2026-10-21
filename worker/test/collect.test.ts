@@ -1,32 +1,35 @@
 import { env } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { collectNext, episodeId, imageUrl, matchesTitleFilter } from '../src/collector';
-import { parseDuration, parseFeedStream } from '../src/feedParser';
+import { channelFeedUrl, parseYoutubeFeed } from '../src/youtube/feed';
 import { previewFeed } from '../src/routes/shows';
 import { parseSafeUrl, safeFetch } from '../src/security/safeUrl';
 import { call, login } from './helpers';
 
-// ── Fabrique de flux ─────────────────────────────────────────────────────────
-interface FakeItem { guid: string; title: string; minutes?: number; date?: string; transcript?: string; description?: string }
+// ── Fabrique de flux (Atom de chaîne YouTube) ────────────────────────────────
+interface FakeItem { guid: string; title: string; date?: string; description?: string }
+
+/** Identifiant de vidéo à 11 caractères tiré d'un nom lisible : « ep-2 » → « ep-2_______ ». */
+const vid = (name: string) => name.padEnd(11, '_').slice(0, 11);
+const guid = (name: string) => `yt:video:${vid(name)}`;
+const CHANNEL = 'UCabcdefghijklmnopqrstuv';
 
 function item(i: FakeItem): string {
-  return `<item>
-    <title><![CDATA[${i.title}]]></title>
-    <guid isPermaLink="false">${i.guid}</guid>
-    <pubDate>${i.date ?? 'Fri, 16 Oct 2026 06:00:00 GMT'}</pubDate>
-    <description>${i.description ?? '&lt;p&gt;Résumé &amp; contexte&lt;/p&gt;'}</description>
-    <itunes:duration>${i.minutes ?? 12}:30</itunes:duration>
-    <enclosure url="https://cdn.example.com/${i.guid}.mp3?a=1&amp;b=2" length="1" type="audio/mpeg"/>
-    ${i.transcript ? `<podcast:transcript url="${i.transcript}" type="application/srt" language="en"/>` : ''}
-  </item>`;
+  return `<entry>
+    <id>yt:video:${vid(i.guid)}</id><yt:videoId>${vid(i.guid)}</yt:videoId>
+    <title>${i.title}</title>
+    <published>${new Date(i.date ?? 'Fri, 16 Oct 2026 06:00:00 GMT').toISOString()}</published>
+    <media:group><media:title>${i.title}</media:title>
+      <media:thumbnail url="http://i.ytimg.com/vi/${vid(i.guid)}/hqdefault.jpg" width="480" height="360"/>
+      <media:description>${i.description ?? '&lt;p&gt;Résumé &amp; contexte&lt;/p&gt;'}</media:description></media:group>
+  </entry>`;
 }
 
 function feed(items: FakeItem[], title = 'Émission test'): string {
-  return `<?xml version="1.0"?><rss xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"><channel>
-    <title>${title}</title><language>fr</language><itunes:author>Radio Test</itunes:author>
-    <itunes:image href="https://cdn.example.com/cover.jpg"/>
+  return `<?xml version="1.0"?><feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
+    <title>${title}</title><author><name>Chaîne Test</name></author>
     ${items.map(item).join('\n')}
-  </channel></rss>`;
+  </feed>`;
 }
 
 /** Corps découpé en petits morceaux, pour tester les coupures au milieu des balises. */
@@ -51,35 +54,35 @@ function fakeFetch(handler: (url: string, init?: RequestInit) => Response): type
 
 // ── Analyse du flux ──────────────────────────────────────────────────────────
 describe('lecture en flux', () => {
-  it('extrait chaîne et épisodes, décode CDATA et entités, coupe la description', async () => {
-    const xml = feed([{ guid: 'a', title: 'Le &quot;grand&quot; débat', transcript: 'https://cdn.example.com/a.srt', description: 'x'.repeat(9000) }]);
-    const r = await parseFeedStream(stream(xml), { maxItems: 10 });
-    expect(r.channel).toMatchObject({ title: 'Émission test', language: 'fr', author: 'Radio Test', imageUrl: 'https://cdn.example.com/cover.jpg' });
+  it('extrait chaîne et vidéos, décode entités, coupe la description', async () => {
+    const xml = feed([{ guid: 'a', title: 'Le &quot;grand&quot; débat', description: 'x'.repeat(9000) }]);
+    const r = await parseYoutubeFeed(stream(xml), { maxItems: 10 });
+    expect(r.channel).toMatchObject({ title: 'Émission test', author: 'Chaîne Test' });
     expect(r.items[0]).toMatchObject({
-      guid: 'a', title: 'Le "grand" débat', durationSec: 750, audioUrl: 'https://cdn.example.com/a.mp3?a=1&b=2',
-      transcriptUrl: 'https://cdn.example.com/a.srt', transcriptType: 'srt', publishedAt: '2026-10-16T06:00:00.000Z',
+      guid: guid('a'), videoId: vid('a'), title: 'Le "grand" débat', audioUrl: `https://www.youtube.com/watch?v=${vid('a')}`,
+      publishedAt: '2026-10-16T06:00:00.000Z',
     });
     expect(r.items[0]!.description!.length).toBe(2000);
     expect(r.stoppedAt).toBe('eof');
   });
 
-  it('s’arrête au nombre maximal d’épisodes sans lire la suite', async () => {
+  it('s’arrête au nombre maximal de vidéos sans lire la suite', async () => {
     const xml = feed(items(200));
-    const r = await parseFeedStream(stream(xml, 512), { maxItems: 10 });
+    const r = await parseYoutubeFeed(stream(xml, 512), { maxItems: 10 });
     expect(r.items).toHaveLength(10);
     expect(r.stoppedAt).toBe('max_items');
     expect(r.bytesRead).toBeLessThan(xml.length / 5);
   });
 
   it('s’arrête au premier GUID déjà connu', async () => {
-    const r = await parseFeedStream(stream(feed(items(20))), { maxItems: 15, knownGuids: new Set(['ep-18']) });
-    expect(r.items.map((i) => i.guid)).toEqual(['ep-20', 'ep-19']);
+    const r = await parseYoutubeFeed(stream(feed(items(20))), { maxItems: 15, knownGuids: new Set([guid('ep-18')]) });
+    expect(r.items.map((i) => i.guid)).toEqual([guid('ep-20'), guid('ep-19')]);
     expect(r.stoppedAt).toBe('known_guid');
   });
 
-  it('ignore un épisode sans audio', async () => {
-    const xml = feed([]).replace('</channel>', '<item><title>Sans audio</title><guid>z</guid></item></channel>');
-    expect((await parseFeedStream(stream(xml), { maxItems: 5 })).items).toHaveLength(0);
+  it('ignore une entrée sans identifiant de vidéo valide', async () => {
+    const xml = feed([]).replace('</feed>', '<entry><title>Sans vidéo</title><yt:videoId>court</yt:videoId></entry></feed>');
+    expect((await parseYoutubeFeed(stream(xml), { maxItems: 5 })).items).toHaveLength(0);
   });
 
   it('passe les images http en https', () => {
@@ -88,12 +91,6 @@ describe('lecture en flux', () => {
     expect(imageUrl('http://127.0.0.1/a.jpg')).toBeNull();
   });
 
-  it('comprend les durées en secondes, MM:SS et HH:MM:SS', () => {
-    expect(parseDuration('3723')).toBe(3723);
-    expect(parseDuration('62:03')).toBe(3723);
-    expect(parseDuration('1:02:03')).toBe(3723);
-    expect(parseDuration('abc')).toBeNull();
-  });
 });
 
 // ── safeUrl ──────────────────────────────────────────────────────────────────
@@ -128,7 +125,7 @@ describe('safeUrl', () => {
 const NOW = Date.parse('2026-10-17T12:00:00.000Z');
 
 async function addShow(id: string, extra: Record<string, unknown> = {}) {
-  const cols = { id, title: id, feed_url: `https://feeds.example.com/${id}.xml`, language: 'fr', category: 'news',
+  const cols = { id, title: id, feed_url: `https://feeds.example.com/${id}.xml`, language: 'fr', category: 'news', source_type: 'youtube',
     next_check_at: '2026-10-17T00:00:00.000Z', created_at: '2026-10-17T00:00:00.000Z', ...extra };
   const keys = Object.keys(cols);
   await env.DB.prepare(`INSERT INTO shows (${keys.join(',')}) VALUES (${keys.map(() => '?').join(',')})`).bind(...Object.values(cols)).run();
@@ -157,6 +154,15 @@ describe('collecte', () => {
     expect(await count('SELECT COUNT(*) AS n FROM episodes WHERE show_id = ?', 'b')).toBe(3);
     const show = await env.DB.prepare("SELECT * FROM shows WHERE id = 'b'").first<Record<string, unknown>>();
     expect(show).toMatchObject({ etag: '"v1"', last_error: null, consecutive_failures: 0, next_check_at: '2026-10-17T12:30:00.000Z' });
+  });
+
+  it('ne collecte plus les émissions podcast, même forcées', async () => {
+    await addShow('pod', { source_type: 'podcast', next_check_at: '2026-10-17T09:00:00.000Z' });
+    let called = false;
+    const f = fakeFetch(() => { called = true; return new Response(feed(items(2))); });
+    expect(await collectNext(env, NOW, f)).toEqual({ showId: null, status: 'idle' });
+    expect(await collectNext(env, NOW, f, 'pod')).toEqual({ showId: null, status: 'idle' });
+    expect(called).toBe(false);
   });
 
   it('trois passages sans nouveauté ne créent aucun doublon et ne lisent rien au-delà du premier GUID connu', async () => {
@@ -216,10 +222,10 @@ describe('collecte', () => {
     const f1 = fakeFetch(() => new Response(feed(items(12, 'old'))));
     await collectNext(env, NOW, f1, 'a');
     expect(await count('SELECT COUNT(*) AS n FROM episodes')).toBe(10);
-    await env.DB.prepare("UPDATE episodes SET state = 'saved' WHERE guid = 'old-3'").run();
+    await env.DB.prepare('UPDATE episodes SET state = \'saved\' WHERE guid = ?').bind(guid('old-3')).run();
     const newer = items(12, 'new').map((it) => ({ ...it, date: new Date(Date.parse(it.date!) + 86_400_000).toUTCString() }));
     await collectNext(env, NOW + 3_600_000, fakeFetch(() => new Response(feed(newer))), 'a');
-    expect(await count("SELECT COUNT(*) AS n FROM episodes WHERE guid = 'old-3'")).toBe(1);
+    expect(await count('SELECT COUNT(*) AS n FROM episodes WHERE guid = ?', guid('old-3'))).toBe(1);
     expect(await count("SELECT COUNT(*) AS n FROM episodes WHERE state <> 'saved'")).toBe(10);
   });
 
@@ -234,35 +240,38 @@ describe('collecte', () => {
     expect(await collectNext(env, NOW, fetcher, 'news')).toMatchObject({ status: 'ok' });
     expect(await count("SELECT COUNT(*) AS n FROM episodes WHERE show_id = 'stories'")).toBe(10);
     expect(await count("SELECT COUNT(*) AS n FROM episodes WHERE show_id = 'news'")).toBe(0);
-    expect(await count("SELECT COUNT(*) AS n FROM episodes WHERE guid = 'archive-1'")).toBe(0);
+    expect(await count('SELECT COUNT(*) AS n FROM episodes WHERE guid = ?', guid('archive-1'))).toBe(0);
   });
 });
 
 // ── Aperçu et API ────────────────────────────────────────────────────────────
 describe('émissions et Explorer (API)', () => {
-  it('previewFeed calcule durée médiane, rythme et présence de transcriptions', async () => {
+  it('previewFeed calcule le rythme de publication d’une chaîne', async () => {
     const f = fakeFetch(() => new Response(feed([
-      { guid: '1', title: 'Un', minutes: 10, transcript: 'https://cdn.example.com/1.srt', date: 'Fri, 16 Oct 2026 06:00:00 GMT' },
-      { guid: '2', title: 'Deux', minutes: 20, date: 'Thu, 15 Oct 2026 06:00:00 GMT' },
-      { guid: '3', title: 'Trois', minutes: 30, date: 'Wed, 14 Oct 2026 06:00:00 GMT' },
+      { guid: '1', title: 'Un', date: 'Fri, 16 Oct 2026 06:00:00 GMT' },
+      { guid: '2', title: 'Deux', date: 'Thu, 15 Oct 2026 06:00:00 GMT' },
+      { guid: '3', title: 'Trois', date: 'Wed, 14 Oct 2026 06:00:00 GMT' },
     ])));
-    const p = await previewFeed('https://feeds.example.com/x.xml', f);
-    expect(p).toMatchObject({ title: 'Émission test', language: 'fr', medianMinutes: 21, episodesPerWeek: 7, hasTranscripts: true });
+    const p = await previewFeed(channelFeedUrl(CHANNEL), f, CHANNEL);
+    expect(p).toMatchObject({ sourceType: 'youtube', channelId: CHANNEL, title: 'Émission test', publisher: 'Chaîne Test', episodesPerWeek: 7 });
     expect(p.latest).toHaveLength(3);
   });
 
   it('abonnement, liste, modification et désabonnement', async () => {
     const cookie = await login();
     const created = await call('/api/shows', { method: 'POST', cookie, body: {
-      feedUrl: 'https://feeds.example.com/nouvelle.xml', title: 'Nouvelle Émission', language: 'fr', category: 'tech', titleFilter: ['IA'],
+      sourceType: 'youtube', channelId: CHANNEL, feedUrl: channelFeedUrl(CHANNEL), title: 'Nouvelle Émission', language: 'fr', category: 'tech', titleFilter: ['IA'],
     } });
     expect(created.status).toBe(201);
     const { show } = await created.json<{ show: { id: string; titleFilter: string[] } }>();
     expect(show).toMatchObject({ id: 'nouvelle-emission', titleFilter: ['IA'] });
 
     expect((await call('/api/shows', { method: 'POST', cookie, body: {
-      feedUrl: 'https://feeds.example.com/nouvelle.xml', title: 'Doublon', language: 'fr', category: 'tech',
+      sourceType: 'youtube', channelId: CHANNEL, feedUrl: channelFeedUrl(CHANNEL), title: 'Doublon', language: 'fr', category: 'tech',
     } })).status).toBe(409);
+    expect((await call('/api/shows', { method: 'POST', cookie, body: {
+      sourceType: 'podcast', feedUrl: 'https://feeds.example.com/podcast.xml', title: 'Podcast', language: 'fr', category: 'tech',
+    } })).status).toBe(422);
     expect((await call('/api/shows', { method: 'POST', cookie, body: {
       feedUrl: 'http://127.0.0.1/x', title: 'Interdite', language: 'fr', category: 'tech',
     } })).status).toBe(400);
@@ -278,7 +287,7 @@ describe('émissions et Explorer (API)', () => {
     const cookie = await login();
     await addShow('a');
     await collectNext(env, NOW, fakeFetch(() => new Response(feed(items(2)))), 'a');
-    await env.DB.prepare("UPDATE episodes SET state = 'saved' WHERE guid = 'ep-2'").run();
+    await env.DB.prepare('UPDATE episodes SET state = \'saved\' WHERE guid = ?').bind(guid('ep-2')).run();
     await call('/api/shows/a', { method: 'DELETE', cookie });
     expect(await count("SELECT enabled AS n FROM shows WHERE id = 'a'")).toBe(0);
     expect(await count('SELECT COUNT(*) AS n FROM episodes')).toBe(1);
@@ -300,7 +309,7 @@ describe('émissions et Explorer (API)', () => {
     const eco = await (await call('/api/explorer?category=economy', { cookie })).json<{ episodes: { category: string }[] }>();
     expect(eco.episodes.every((e) => e.category === 'economy')).toBe(true);
 
-    const target = await episodeId('fr1', 'f-15');
+    const target = await episodeId('fr1', guid('f-15'));
     expect((await call(`/api/episodes/${target}/state`, { method: 'POST', cookie, body: { state: 'dismissed' } })).status).toBe(200);
     const after = await (await call('/api/explorer', { cookie })).json<{ episodes: { id: string }[] }>();
     expect(after.episodes.some((e) => e.id === target)).toBe(false);
@@ -311,9 +320,9 @@ describe('émissions et Explorer (API)', () => {
 
 it('conserve un épisode en file malgré son âge et le désabonnement', async () => {
   await addShow('queued');
-  const id=await episodeId('queued','old-queued');
-  await env.DB.prepare("INSERT INTO episodes (id,show_id,guid,title,audio_url,published_at,created_at) VALUES (?,'queued','old-queued','Archive','https://example.com/a.mp3','2020-01-01','2020-01-01')").bind(id).run();
-  await env.DB.prepare("INSERT INTO prepare_queue (id,kind,ref,options_json,created_at,updated_at) VALUES ('queued','episode',?,'{}','2026-10-17','2026-10-17')").bind(id).run();
+  const id=await episodeId('queued',guid('old-queued'));
+  await env.DB.prepare("INSERT INTO episodes (id,show_id,guid,title,audio_url,published_at,created_at,video_id) VALUES (?,'queued',?,'Archive','https://www.youtube.com/watch?v=old-queued_','2020-01-01','2020-01-01',?)").bind(id,guid('old-queued'),vid('old-queued')).run();
+  await env.DB.prepare("INSERT INTO prepare_queue (id,kind,ref,options_json,created_at,updated_at) VALUES ('queued','youtube',?,'{}','2026-10-17','2026-10-17')").bind(vid('old-queued')).run();
   await collectNext(env,NOW,fakeFetch(() => new Response(feed([]))),'queued');
   expect(await count('SELECT COUNT(*) AS n FROM episodes WHERE id=?',id)).toBe(1);
   const cookie=await login();

@@ -32,8 +32,8 @@ beforeEach(async () => {
     env.DB.prepare('DELETE FROM shows'), env.DB.prepare('DELETE FROM sessions'), env.DB.prepare('DELETE FROM login_attempts'),
   ]);
   for (const id of ['s', 'other']) {
-    await env.DB.prepare(`INSERT INTO shows (id,title,feed_url,language,category,next_check_at,created_at)
-      VALUES (?,?,?,'en','news','2026-10-19','2026-10-19')`).bind(id, id, `https://example.com/${id}`).run();
+    await env.DB.prepare(`INSERT INTO shows (id,title,feed_url,language,category,next_check_at,created_at,source_type)
+      VALUES (?,?,?,'en','news','2026-10-19','2026-10-19','youtube')`).bind(id, id, `https://example.com/${id}`).run();
   }
   await env.DB.batch([
     env.DB.prepare(`INSERT INTO episodes (id,show_id,guid,title,audio_url,created_at)

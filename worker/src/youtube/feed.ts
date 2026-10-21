@@ -16,11 +16,10 @@ function parseVideo(xml: string): FeedItem | null {
     publishedAt: parseDate(text(xml, 'published')), durationSec: null,
     audioUrl: `https://www.youtube.com/watch?v=${videoId}`,
     imageUrl: thumbnail ? attrOf(thumbnail, 'url') : null,
-    transcriptUrl: null, transcriptType: null,
   };
 }
 
-export function parseYoutubeFeed(body: ReadableStream<Uint8Array>, options: ParseOptions) {
+export function parseYoutubeFeed(body: ReadableStream<Uint8Array>, options: Omit<ParseOptions, 'atom'>) {
   return parseFeedStream(body, { ...options, atom: {
     parseItem: parseVideo,
     parseChannel: (xml) => ({ title: text(xml, 'title'), author: text(rawTag(xml, 'author') ?? '', 'name'), language: null, imageUrl: null }),
