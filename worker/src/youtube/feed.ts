@@ -4,11 +4,14 @@ export const CHANNEL_ID = /^UC[A-Za-z0-9_-]{22}$/;
 const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
 export const channelFeedUrl = (id: string) => `https://www.youtube.com/feeds/videos.xml?channel_id=${id}`;
 
-/** Atom officiel : les vidéos gardent un lien de page, jamais présenté comme un MP3. */
+/** Un Short se reconnaît à son lien de page `/shorts/<id>` dans le flux, sans appel à l'API YouTube. */
+const isShort = (xml: string) => openTags(xml, 'link').some((tag) => attrOf(tag, 'href')?.startsWith('https://www.youtube.com/shorts/'));
+
+/** Atom officiel : les vidéos gardent un lien de page, jamais présenté comme un MP3. Les Shorts sont écartés (21 octobre 2026). */
 function parseVideo(xml: string): FeedItem | null {
   const videoId = text(xml, 'yt:videoId');
   const title = text(xml, 'title');
-  if (!videoId || !VIDEO_ID.test(videoId) || !title) return null;
+  if (!videoId || !VIDEO_ID.test(videoId) || !title || isShort(xml)) return null;
   const thumbnail = openTags(xml, 'media:thumbnail')[0];
   return {
     videoId, guid: `yt:video:${videoId}`, title: stripHtml(title).slice(0, 300),

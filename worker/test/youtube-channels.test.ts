@@ -95,6 +95,12 @@ describe('résolution et lecture YouTube', () => {
     expect(parsed.items[0]).toMatchObject({ videoId: VIDEO, guid: `yt:video:${VIDEO}`, title: 'Une vidéo & une idée',
       audioUrl: `https://www.youtube.com/watch?v=${VIDEO}`, durationSec: null, description: 'Une description' });
   });
+  it('écarte les Shorts, reconnus à leur lien de page', async () => {
+    const short = entry('shortVideo1').replace('<title>', '<link rel="alternate" href="https://www.youtube.com/shorts/shortVideo1"/><title>');
+    const long = entry().replace('<title>', `<link rel="alternate" href="https://www.youtube.com/watch?v=${VIDEO}"/><title>`);
+    const parsed = await parseYoutubeFeed(stream(feed(short + long)), { maxItems: 10 });
+    expect(parsed.items.map((i) => i.videoId)).toEqual([VIDEO]);
+  });
   it('s’arrête sur une vidéo connue et ignore les identifiants invalides', async () => {
     const parsed = await parseYoutubeFeed(stream(feed(entry('bad') + entry() + entry('aaaaaaaaaaa'))), { maxItems: 10, knownGuids: new Set([`yt:video:${VIDEO}`]) });
     expect(parsed.items).toHaveLength(0); expect(parsed.stoppedAt).toBe('known_guid');
