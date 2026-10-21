@@ -16,6 +16,7 @@ import * as articleFetch from './articleFetch';
 import * as articles from '../articles/routes';
 import { manifest } from '../publications/store';
 import type { Publication } from '../publications/types';
+import { atelierIdentity } from '../events/identity';
 
 /**
  * /atelier/* : uniquement le jeton Bearer de l'Atelier ; les cookies sont ignorés (§ 5.2).
@@ -28,6 +29,13 @@ export async function handleAtelier(req: Request, env: Env, path: string): Promi
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
   if (!token || token.length > 256 || !(await secretsEqual(env.ATELIER_TOKEN, `atelier:${token}`, `atelier:${env.ATELIER_TOKEN}`))) {
     return apiError(401, 'unauthenticated', 'Jeton Atelier invalide.', { 'WWW-Authenticate': 'Bearer' });
+  }
+  if (path === '/atelier/events' && req.method === 'GET') {
+    if (req.headers.get('Upgrade')?.toLowerCase() !== 'websocket') return apiError(426,'upgrade_required','Connexion WebSocket requise.');
+    const headers = new Headers(req.headers);
+    headers.delete('Authorization'); headers.delete('Cookie');
+    headers.set('X-Discover-Identity',JSON.stringify(await atelierIdentity(env)));
+    return env.EVENTS.getByName('personal-library').fetch(new Request(req,{headers}));
   }
   if (path === '/atelier/related/items' && req.method === 'GET') return relatedItems(req,env);
   if (path === '/atelier/related' && req.method === 'POST') return publishRelated(req,env);

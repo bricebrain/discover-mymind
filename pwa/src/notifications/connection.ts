@@ -1,11 +1,14 @@
 /** Connexion active pendant la consultation, reconnexion avec temporisation, arrêt propre. */
-export function watchPreparations(configure:()=>Promise<unknown>,onLive:(live:boolean)=>void,onChange:()=>void) {
+export interface PreparationChange { reason:'connected'|'resume'|'changed'; libraryChanged:boolean }
+export function watchPreparations(configure:()=>Promise<unknown>,onLive:(live:boolean)=>void,onChange:(change:PreparationChange)=>void,onSeen?:(at:string)=>void) {
     const isVisible=()=>document.visibilityState!=='hidden';
     let disposed=false,socket:WebSocket|null=null,retry:ReturnType<typeof setTimeout>|undefined;
     let debounce:ReturnType<typeof setTimeout>|undefined,ping:ReturnType<typeof setInterval>|undefined,attempt=0,connecting=false,pong=true;
-    const invalidate=()=>{
+    let pending:PreparationChange|undefined;
+    const invalidate=(change:PreparationChange)=>{
+      if (!pending || change.reason==='changed') pending={...change,libraryChanged:change.libraryChanged || !!pending?.libraryChanged};
       if(debounce) return;
-      debounce=setTimeout(()=>{debounce=undefined;onChange();},100);
+      debounce=setTimeout(()=>{debounce=undefined;const change=pending;pending=undefined;if(change) onChange(change);},100);
     };
     const close=()=>{clearTimeout(retry);clearInterval(ping);socket?.close();socket=null;onLive(false);};
     const connect=async()=>{
@@ -22,8 +25,9 @@ export function watchPreparations(configure:()=>Promise<unknown>,onLive:(live:bo
           if(data==='pong') {pong=true;return;}
           try {
             const event=JSON.parse(data);
-            if(event.type==='connected') {attempt=0;onLive(true);invalidate();}
-            if(event.type==='queue.changed') invalidate();
+            if(event.type==='connected') {attempt=0;onLive(true);invalidate({reason:'connected',libraryChanged:false});}
+            if(event.type==='queue.changed') invalidate({reason:'changed',libraryChanged:event.status==='done' || typeof event.status!=='string'});
+            if(event.type==='atelier.seen' && typeof event.at==='string' && Number.isFinite(Date.parse(event.at))) onSeen?.(event.at);
           } catch {ws.close();}
         };
         ws.onopen=()=>{if(socket!==ws){ws.close();return;}ping=setInterval(()=>{if(ws.readyState===WebSocket.OPEN) {if(!pong){ws.close();return;}pong=false;ws.send('ping');}},30_000);};
@@ -36,7 +40,7 @@ export function watchPreparations(configure:()=>Promise<unknown>,onLive:(live:bo
       } catch {if(!disposed) retry=setTimeout(()=>void connect(),30_000);}
       finally{connecting=false;}
     };
-    const visibility=()=>{if(!isVisible()) close();else {invalidate();void connect();}};
+    const visibility=()=>{if(!isVisible()) close();else {invalidate({reason:'resume',libraryChanged:false});void connect();}};
     const offline=()=>close();
     document.addEventListener('visibilitychange',visibility);window.addEventListener('online',visibility);window.addEventListener('offline',offline);
     void connect();

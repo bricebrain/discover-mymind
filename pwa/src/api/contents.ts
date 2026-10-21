@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { api } from './client';
 import { cachedSegments, isNetworkFailure, offline } from '../offline';
+import { LIBRARY_QUERY_POLICY } from '../cache/libraryPolicy';
 
 export type ContentSourceType = 'podcast' | 'youtube' | 'reflection' | 'dossier';
 export interface LibraryFilters { type?: ContentSourceType; search?: string }
@@ -33,7 +34,7 @@ export interface DossierSource { id: string; type: 'episode' | 'content' | 'refl
 export interface ContentDetail { episode?: { id: string; showId: string } | null; content: { id: string; title: string; sourceType?: ContentSourceType; sources?: DossierSource[] }; publicationId: string; variants: ContentVariant[] }
 
 export function usePreparedContents(filters: LibraryFilters = {}) {
-  return useInfiniteQuery({ queryKey: ['library','prepared',filters], initialPageParam: 0,
+  return useInfiniteQuery({ ...LIBRARY_QUERY_POLICY, queryKey: ['library','prepared',filters], initialPageParam: 0,
     queryFn: ({ pageParam }) => {
       const params = new URLSearchParams({ offset: String(pageParam) });
       if (filters.type) params.set('type', filters.type);
@@ -43,7 +44,7 @@ export function usePreparedContents(filters: LibraryFilters = {}) {
     getNextPageParam: (page) => page.nextOffset ?? undefined });
 }
 export function useContent(id: string) {
-  return useQuery({ queryKey: ['content',id], queryFn: async () => {
+  return useQuery({ ...LIBRARY_QUERY_POLICY, queryKey: ['content',id], queryFn: async () => {
     try { return await api<ContentDetail>(`/api/contents/${id}`); }
     catch (error) {
       // Hors ligne : l'instantané des versions téléchargées (chantier B).
@@ -60,5 +61,5 @@ export function useContentSegments(publicationId: string, variant: ContentVarian
       const data = await cachedSegments(publicationId, variant!.key) ?? await api<ContentSegments>(variant!.segmentsUrl);
       if (data.variantKey !== variant!.key || !Array.isArray(data.segments)) throw new Error('Transcription incompatible avec cette version.');
       return data;
-    }, staleTime: Infinity });
+    }, ...LIBRARY_QUERY_POLICY, staleTime: Infinity });
 }

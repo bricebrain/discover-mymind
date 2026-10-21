@@ -6,9 +6,9 @@ import type { PrepareOptions } from './types';
 export function usePreparation(target?: PrepTarget) {
   const qc = useQueryClient();
   const live = usePreparationLive();
-  // Une préparation en cours : rafraîchie toutes les 20 s pour suivre l'étape et affiner le temps restant.
+  // Les événements actualisent les étapes ; une lecture espacée couvre une connexion indisponible.
   const query = useQuery({queryKey:['queue',target ? `${target.kind}:${target.id}` : 'all'],queryFn:() => queueApi.list(target),
-    refetchInterval:(q) => (q.state.data?.items.some((i) => i.status==='leased') ? 20_000 : live ? false : 15_000)});
+    refetchInterval: live ? false : 300_000});
   const refresh = () => {
     void qc.invalidateQueries({queryKey:['queue']});
     void qc.invalidateQueries({queryKey:['episode']});
@@ -29,6 +29,6 @@ export function usePreparation(target?: PrepTarget) {
 export function useActivePreparation(kind: 'episode' | 'youtube' | 'reflection', ref: string | null | undefined) {
   const live = usePreparationLive();
   const query = useQuery({queryKey:['queue','all'],queryFn:() => queueApi.list(),
-    refetchInterval:(q) => (q.state.data?.items.some((i) => i.status==='leased') ? 20_000 : live ? false : 15_000)});
+    refetchInterval: live ? false : 300_000});
   return ref ? query.data?.items.find((i) => i.kind===kind && i.ref===ref && (i.status==='leased' || i.status==='pending')) : undefined;
 }

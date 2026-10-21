@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
 import type { QueueItem } from '../queue/types';
+import { usePreparationLive } from '../notifications/PreparationEventsProvider';
 
 export type DossierSourceType = 'episode' | 'content' | 'reflection' | 'article';
 export interface DossierRef { type: DossierSourceType; id: string }
@@ -16,7 +17,8 @@ export function useDossiers() {
   return useQuery({ queryKey: ['dossiers'], queryFn: () => api<{ dossiers: Dossier[] }>('/api/dossiers') });
 }
 export function useDossier(id: string | null) {
-  return useQuery({ queryKey: ['dossier', id], enabled: !!id, refetchInterval: 15_000,
+  const live = usePreparationLive();
+  return useQuery({ queryKey: ['dossier', id], enabled: !!id, refetchInterval: live ? false : 300_000,
     queryFn: () => api<{ dossier: Dossier; runs: DossierRun[] }>(`/api/dossiers/${id}`) });
 }
 export function useDossierCandidates(search: string) {

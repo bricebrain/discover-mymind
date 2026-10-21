@@ -86,8 +86,13 @@ export function progressOf(row: QueueRow & { started_at?: string | null; stage_s
 /** Dernier contact de l'Atelier (bail ou signal de vie) : écrit au plus une fois par minute. */
 export async function markAtelierSeen(env: Env) {
   const now = new Date().toISOString(), staleBefore = new Date(Date.now() - 60_000).toISOString();
-  await env.DB.prepare(`INSERT INTO app_settings (key, value) VALUES ('atelier_seen_at', ?)
+  const result = await env.DB.prepare(`INSERT INTO app_settings (key, value) VALUES ('atelier_seen_at', ?)
     ON CONFLICT(key) DO UPDATE SET value = excluded.value WHERE app_settings.value < ?`).bind(now, staleBefore).run();
+  // Met à jour la présence sans obliger l'app à relire toute la file pendant une longue étape.
+  if (result.meta.changes) {
+    try { await env.EVENTS.getByName('personal-library').atelierSeen(now); }
+    catch { console.warn(JSON.stringify({event:'atelier_presence_deferred'})); }
+  }
 }
 export async function atelierSeenAt(env: Env) {
   return (await env.DB.prepare("SELECT value FROM app_settings WHERE key='atelier_seen_at'").first<{ value: string }>())?.value ?? null;
