@@ -1,5 +1,6 @@
 export interface PrepareOptions {
-  coverage: 'full' | 'condensed' | 'essentials';
+  /** guided : original guidé, le niveau règle seulement les explications. */
+  coverage: 'guided' | 'full' | 'condensed' | 'essentials';
   level: 'A2' | 'B1' | 'B2' | 'C1' | 'original';
   style: 'narration' | 'dialogue';
   targetMinutes: number | null;

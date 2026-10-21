@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Notice, cardCls } from '@/components/ui/kit';
 import { useState } from 'react';
 import { PreparedEpisode } from '../components/PreparedEpisode';
-import { optionsLabel, queueLabel } from '../queue/options';
+import { defaultOptions, optionsLabel, queueLabel } from '../queue/options';
 import { PrepareDialog } from '../queue/PrepareDialog';
 import { usePreparation } from '../queue/usePreparation';
 import { AtelierHint, PreparationProgress } from '../queue/PreparationProgress';
@@ -51,7 +51,7 @@ export function NotePreparation({ id, title, body, synced, englishContentId }: {
     </div>}
     {contentId && <PreparedEpisode contentId={contentId} about={null} onDeleted={() => setDeleted(contentId)} />}
     {open && <PrepareDialog target={{ kind: 'reflection', id }} title={title || 'Note sans titre'} faithfulAllowed
-      initial={{ coverage: 'full', level: 'B1', style: 'narration', targetMinutes: null, faithful: false, keepOriginalCopy: false }}
+      initial={defaultOptions()}
       onClose={() => setOpen(false)} />}
   </section>;
 }

@@ -18,9 +18,11 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
   </label>;
 }
 
-export function VariantTranscript({ detail, variant, activePositionMs, verified, playing, onSeek }: {
+export function VariantTranscript({ detail, variant, activePositionMs, verified, playing, onSeek, hidden = false, onReveal }: {
   detail: ContentDetail; variant: ContentVariant; activePositionMs: number | null;
   verified: boolean; playing: boolean; onSeek: (positionSec: number) => void;
+  /** Écoute sans aide (original guidé) : le texte attend qu'on le demande. */
+  hidden?: boolean; onReveal?: () => void;
 }) {
   const reading = useVariantTranscript(detail, variant, activePositionMs, playing);
   const { segments, translated } = reading;
@@ -34,6 +36,11 @@ export function VariantTranscript({ detail, variant, activePositionMs, verified,
   if (segments.isPending) return <div className="grid place-items-center py-6"><Spinner label="Chargement de la transcription" /></div>;
   if (segments.isError) return <Notice tone="warning" action={<Button size="sm" variant="ghost" onClick={() => void segments.refetch()}>Réessayer</Button>}>{segments.error.message}</Notice>;
   if (!segments.data.segments.length) return <Notice>Aucun texte disponible pour cette version.</Notice>;
+  if (hidden) return <section className="mt-6">
+    <Notice action={onReveal && <Button size="sm" variant="ghost" onClick={onReveal}>Afficher le texte</Button>}>
+      Texte masqué : écoute d’abord sans aide.
+    </Notice>
+  </section>;
 
   return <section className="mt-6">
     <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4">

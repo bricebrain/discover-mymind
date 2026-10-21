@@ -68,6 +68,6 @@ export function PreparationPanel({episode}: {episode?: Episode}) {
     </div>)}</div>
     {(cancel.isError || retry.isError || remove.isError) && <Notice tone="error" className="mt-2">{cancel.error?.message ?? retry.error?.message ?? remove.error?.message}</Notice>}
     {open && episode && target && <PrepareDialog key={episode.id} target={target} title={episode.title}
-      initial={defaultOptions(episode.durationSec,episode.showId)} faithfulAllowed={episode.language==='fr'} onClose={() => setOpen(false)} />}
+      initial={defaultOptions()} faithfulAllowed={episode.language==='fr'} onClose={() => setOpen(false)} />}
   </section>;
 }

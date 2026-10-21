@@ -37,8 +37,9 @@ export function PrepareDialog({target,title,initial,faithfulAllowed,onClose,onQu
   const {prepare,query} = usePreparation(target);
   const cloudStatus = useQuery({queryKey:['cloud-status'],queryFn:cloudApi.status,retry:false,staleTime:60_000});
   const set = <K extends keyof PrepareOptions>(key: K,value: PrepareOptions[K]) => setOptions((o) => ({...o,[key]:value}));
+  const guided = options.coverage==='guided';
   const range = options.coverage==='condensed' ? [8,20] : [3,6];
-  const valid = options.coverage==='full' || (Number.isInteger(options.targetMinutes) && options.targetMinutes!>=range[0]! && options.targetMinutes!<=range[1]!);
+  const valid = options.coverage==='full' || guided || (Number.isInteger(options.targetMinutes) && options.targetMinutes!>=range[0]! && options.targetMinutes!<=range[1]!);
   if (cloud) return <CloudPrepareDialog target={target} title={title} onClose={()=>setCloud(false)} onQueued={()=>{onQueued?.();onClose();}} />;
 
   const seenAt = query.data?.atelierSeenAt ? Date.parse(query.data.atelierSeenAt) : null;
@@ -63,17 +64,21 @@ export function PrepareDialog({target,title,initial,faithfulAllowed,onClose,onQu
     </div>
     <Field label="Version">
       <Select aria-label="Version" value={options.coverage} options={Object.entries(COVERAGES) as [PrepareOptions['coverage'], string][]} onChange={(coverage) =>
-        setOptions((o) => ({...o,coverage,targetMinutes:coverage==='full' ? null : coverage==='condensed' ? 12 : 4}))} />
+        setOptions((o) => ({...o,coverage,targetMinutes:coverage==='full' || coverage==='guided' ? null : coverage==='condensed' ? 12 : 4,
+          ...(coverage==='guided' ? {style:'narration',faithful:false,level:o.level==='original' ? 'B1' : o.level} : {})}))} />
     </Field>
-    <div className="grid grid-cols-2 gap-3">
+    {guided ? <>
+      <Field label="Niveau des explications"><Select value={options.level} options={LEVEL_OPTIONS.filter(([v]) => v!=='original')} onChange={(v) => set('level',v)} /></Field>
+      <p className="m-0 text-xs leading-relaxed text-muted-foreground">L’anglais n’est jamais simplifié : une vidéo anglaise reste l’original, une source française est traduite en anglais naturel et lue en entier. Le guide (passage de 2 à 5 minutes, expressions, quiz) est rédigé à ton niveau.</p>
+    </> : <div className="grid grid-cols-2 gap-3">
       <Field label="Niveau d’anglais"><Select value={options.level} options={LEVEL_OPTIONS} onChange={(v) => set('level',v)} /></Field>
       <Field label="Style"><Select value={options.style} options={STYLE_OPTIONS} onChange={(v) => set('style',v)} /></Field>
-    </div>
-    {options.coverage!=='full' && <Field label="Durée cible en minutes" error={!valid} hint={`Entre ${range[0]} et ${range[1]} minutes`}>
+    </div>}
+    {options.coverage!=='full' && !guided && <Field label="Durée cible en minutes" error={!valid} hint={`Entre ${range[0]} et ${range[1]} minutes`}>
       <input type="number" inputMode="numeric" className={inputCls} value={options.targetMinutes ?? ''} min={range[0]} max={range[1]} step={1}
         aria-invalid={!valid} onChange={(e) => set('targetMinutes',Number(e.target.value))} />
     </Field>}
-    {(faithfulAllowed || target.kind==='episode') && <div className="-my-1">
+    {!guided && (faithfulAllowed || target.kind==='episode') && <div className="-my-1">
       {faithfulAllowed && <Checkbox checked={options.faithful} onChange={(v) => set('faithful',v)} label="Ajouter l’anglais fidèle intégral" />}
       {target.kind==='episode' && <Checkbox checked={options.keepOriginalCopy} onChange={(v) => set('keepOriginalCopy',v)} label="Garder une copie synchronisée de l’original" />}
     </div>}

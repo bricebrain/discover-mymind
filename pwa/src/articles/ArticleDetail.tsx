@@ -16,13 +16,14 @@ import { readingTime } from './readingTime';
 
 type Coverage = PrepareOptions['coverage'];
 const COVERAGE: Record<Coverage, { label: string; minutes: number | null }> = {
+  guided: { label: 'Original guidé', minutes: null },
   essentials: { label: 'L’essentiel · 4 min', minutes: 4 }, condensed: { label: 'Condensé · 8 min', minutes: 8 }, full: { label: 'Intégral', minutes: null },
 };
 const COVERAGE_OPTIONS = (Object.keys(COVERAGE) as Coverage[]).map((c) => [c, COVERAGE[c].label] as const);
 
 function PrepareArticleDialog({ article, onClose }: { article: Article; onClose: () => void }) {
   const { toNote } = useArticleActions(article.id);
-  const [coverage, setCoverage] = useState<Coverage>('essentials');
+  const [coverage, setCoverage] = useState<Coverage>('guided');
   const [level, setLevel] = useState<PrepareOptions['level']>('B1');
   const [done, setDone] = useState<string | null>(null);
   return <Sheet title="Préparer en anglais" onClose={onClose} locked={toNote.isPending} footer={<>
@@ -37,8 +38,11 @@ function PrepareArticleDialog({ article, onClose }: { article: Article; onClose:
       Préparation lancée. L’article est aussi enregistré dans My Mind ; la version anglaise apparaîtra ici et sous la note.
     </Notice> : <>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Version"><Select value={coverage} options={COVERAGE_OPTIONS} onChange={setCoverage} /></Field>
-        <Field label="Niveau d’anglais"><Select value={level} options={LEVEL_OPTIONS} onChange={setLevel} /></Field>
+        <Field label="Version"><Select value={coverage} options={COVERAGE_OPTIONS} onChange={(c) => {
+          setCoverage(c); if (c === 'guided' && level === 'original') setLevel('B1');
+        }} /></Field>
+        <Field label={coverage === 'guided' ? 'Niveau des explications' : 'Niveau d’anglais'}><Select value={level}
+          options={coverage === 'guided' ? LEVEL_OPTIONS.filter(([v]) => v !== 'original') : LEVEL_OPTIONS} onChange={setLevel} /></Field>
       </div>
       <p className="m-0 text-xs leading-relaxed text-muted-foreground">L’Atelier adapte le texte à ton niveau et en fait une version audio, attribuée à {article.publisher}.</p>
     </>}

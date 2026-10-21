@@ -28,7 +28,15 @@ export interface ContentSegment {
   /** Source d'un dossier : passage d'origine et instant dans l'original quand il est connu. */
   provenance?: { sourceId: string; segmentId: string; startMs: number | null; endMs: number | null };
 }
-export interface ContentSegments { schemaVersion: 1; variantKey: string; segments: ContentSegment[] }
+/** Note du guide : passage cité exactement, sens et explication en français. */
+export interface GuideNote { segmentId: string; text: string; meaning?: string; note: string }
+/** Original guidé : passage de travail, expressions et points d'écoute (voix humaine seulement). */
+export interface ContentGuide {
+  level: 'A2' | 'B1' | 'B2' | 'C1'; voice: 'original' | 'synthetic';
+  passage: { fromSegment: string; toSegment: string; reason?: string };
+  expressions: GuideNote[]; listening: GuideNote[];
+}
+export interface ContentSegments { schemaVersion: 1; variantKey: string; segments: ContentSegment[]; guide?: ContentGuide }
 /** Source d'un dossier multisource (chantier A), telle que capturée pour l'exécution publiée. */
 export interface DossierSource { id: string; type: 'episode' | 'content' | 'reflection' | 'article'; ref: string; title: string; capturedAt: string }
 export interface ContentDetail { episode?: { id: string; showId: string } | null; content: { id: string; title: string; sourceType?: ContentSourceType; sources?: DossierSource[] }; publicationId: string; variants: ContentVariant[] }

@@ -1,11 +1,13 @@
 import { ArrowLeft } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Notice, Spinner } from '@/components/ui/kit';
 import { useContent } from '../api/contents';
 import { unreviewed, VariantPills } from '../components/PreparedEpisode';
 import { DeleteContentButton } from '../content/DeleteContentButton';
+import { GuidePanel } from '../content/GuidePanel';
 import { PlaybackControls } from '../content/VariantControls';
 import { VersionLearning } from '../content/VersionLearning';
 import { VariantTranscript } from '../content/VariantTranscript';
@@ -22,6 +24,8 @@ export function ContentPage() {
   const query = useContent(id);
   const reader = useContentReader(query.data);
   const variant = reader.variant;
+  // Écoute sans aide du guide : texte masqué jusqu'à ce qu'on le redemande.
+  const [hideText, setHideText] = useState(false);
   return <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-[760px] px-4 pb-8 pt-2">
     <Button asChild variant="ghost" size="sm" className="-ml-2"><Link to={libraryLocation} className="no-underline"><ArrowLeft className="size-4" />Bibliothèque</Link></Button>
     {query.isPending && <div className="grid place-items-center py-10"><Spinner /></div>}
@@ -37,8 +41,11 @@ export function ContentPage() {
       </Notice>}
       <PlaybackControls reader={reader} />
       <DownloadButton detail={query.data} variant={variant} />
+      <GuidePanel key={`guide:${query.data.publicationId}:${variant.key}`} detail={query.data} variant={variant}
+        playing={reader.playing} positionSec={reader.positionSec} onPlay={reader.play} onHideText={setHideText} />
       <VariantTranscript key={`transcript:${query.data.publicationId}:${variant.key}`} detail={query.data} variant={variant}
-        activePositionMs={reader.activePositionMs} verified={reader.verified} playing={reader.playing} onSeek={reader.play} />
+        activePositionMs={reader.activePositionMs} verified={reader.verified} playing={reader.playing} onSeek={reader.play}
+        hidden={hideText} onReveal={() => setHideText(false)} />
       <VersionLearning key={`learning:${query.data.publicationId}:${variant.key}`} detail={query.data} variant={variant} verified={reader.verified} onSeek={reader.play} />
       <div className="mt-6"><DeleteContentButton id={id} title={query.data.content.title} onDeleted={() => navigate(libraryLocation, { replace: true })} /></div>
     </>}

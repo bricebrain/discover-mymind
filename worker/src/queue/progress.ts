@@ -19,8 +19,8 @@ export function plannedStages(row: Pick<QueueRow, 'kind' | 'executor' | 'options
     faithful = !!options.faithful; guided = options.coverage === 'guided';
   } catch { /* options illisibles : sans fidèle */ }
   const source = row.kind === 'reflection' || row.kind === 'dossier' ? ['download'] : ['download', 'normalize', 'transcribe'];
-  // Original guidé : traduction, guide, puis voix seulement pour une source française (étape sautée sinon).
-  if (guided) return [...source, 'translate', 'guide', 'tts', 'publish'];
+  // Original guidé : traduction, voix (texte ou source française seulement, sautée sinon), guide.
+  if (guided) return [...source, 'translate', 'tts', 'guide', 'publish'];
   return [...source, 'plan', 'extract', 'adapt', 'evaluate', ...(faithful ? ['translate'] : []), 'tts', 'publish'];
 }
 

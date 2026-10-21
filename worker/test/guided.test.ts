@@ -32,8 +32,8 @@ describe('Original guidé', () => {
     expect(validateManifest(fr).variants[0]!.quiz).toBeUndefined();
   });
 
-  it('prévoit traduction, guide et voix éventuelle, sans plan ni adaptation', () => {
+  it('prévoit traduction, voix éventuelle et guide, sans plan ni adaptation', () => {
     expect(plannedStages({ kind: 'youtube', executor: 'mac', options_json: JSON.stringify({ coverage: 'guided' }) } as never))
-      .toEqual(['download', 'normalize', 'transcribe', 'translate', 'guide', 'tts', 'publish']);
+      .toEqual(['download', 'normalize', 'transcribe', 'translate', 'tts', 'guide', 'publish']);
   });
 });

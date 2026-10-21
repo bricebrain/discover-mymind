@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field, Sheet, inputCls } from '@/components/ui/kit';
+import { defaultOptions } from './options';
 import { PrepareDialog } from './PrepareDialog';
 import { youtubeVideoId } from './youtube';
 
@@ -9,7 +10,7 @@ export function AddYoutubeDialog({ onClose, onQueued }: { onClose: () => void; o
   const [video, setVideo] = useState<string | null>(null);
   const id = youtubeVideoId(url);
   if (video) return <PrepareDialog target={{ kind: 'youtube', id: video }} title="Vidéo YouTube" faithfulAllowed={false}
-    initial={{ coverage: 'condensed', level: 'B1', style: 'narration', targetMinutes: 12, faithful: false, keepOriginalCopy: false }}
+    initial={defaultOptions()}
     onQueued={onQueued} onClose={onClose} />;
   const bad = !!url.trim() && !id;
   return <Sheet title="Ajouter un lien YouTube" onClose={onClose} footer={<>
