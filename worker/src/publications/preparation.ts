@@ -12,6 +12,12 @@ export async function assertPrepared(env: Env,p: Publication,m: Manifest) {
     throw new HttpError(422,'source_mismatch','La publication ne correspond pas à la demande préparée.');
   }
   const options = JSON.parse(row.options_json) as PrepareOptions;
+  if (options.coverage==='guided') {
+    // Original guidé : une version anglaise horodatée avec son audio (original, traduction lue ou texte lu) ; aucune adaptation.
+    const english = m.variants.some((v) => v.language.split('-')[0]==='en' && v.audio?.source==='r2' && v.audio.timingSource!=='none');
+    if (!english) throw new HttpError(422,'prepared_variant_missing','La version anglaise horodatée de l’original guidé est requise.');
+    return;
+  }
   const adapted = m.variants.find((v) => v.kind==='adaptation' && v.language==='en' && v.coverage===options.coverage &&
     (v.cefrLevel ?? 'original')===options.level && v.style===options.style &&
     (options.coverage==='full' || v.condensation?.targetMinutes===options.targetMinutes));

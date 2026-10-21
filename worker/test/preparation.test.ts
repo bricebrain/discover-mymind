@@ -92,6 +92,22 @@ it('bloque la publication automatique review/rejected et exige les options réel
  m.variants=[];await expect(assertPrepared(env,p,m)).rejects.toMatchObject({code:'prepared_variant_missing'});
 });
 
+it('termine un original guidé avec une version anglaise horodatée, sans adaptation', async () => {
+ const id=crypto.randomUUID();
+ await env.DB.prepare("INSERT INTO prepare_queue (id,kind,ref,options_json,created_at,updated_at) VALUES (?,'youtube','hVln5puVrMw',?,'2026-10-22','2026-10-22')")
+  .bind(id,JSON.stringify({coverage:'guided',level:'B1',style:'narration',targetMinutes:null,faithful:false,keepOriginalCopy:false})).run();
+ const p:Publication={id:'pub',content_id:'test',revision:'rev',seq:1,status:'uploading',manifest_r2_key:'manifest',queue_item_id:id,lease_token:'token',commit_token:null};
+ const m:Manifest={schemaVersion:1,content:{id:'test',title:'Test',sourceType:'youtube',originalLanguage:'en',rights:'personal_use'},files:{},variants:[{key:'en-source',kind:'source',language:'en',segmentsFile:'segments/en-source.json',audio:{source:'r2',origin:'original',durationMs:1000,file:'audio/en-source.mp3',timingSource:'rss_vtt'}}]};
+ await expect(assertPrepared(env,p,m)).resolves.toBeUndefined();
+ m.variants[0]!.audio!.timingSource='none';
+ await expect(assertPrepared(env,p,m)).rejects.toMatchObject({code:'prepared_variant_missing'});
+ // Source française : l'anglais lu par Deepgram suffit.
+ m.content.originalLanguage='fr';
+ m.variants=[{key:'fr-source',kind:'source',language:'fr',segmentsFile:'segments/fr-source.json',audio:null},
+  {key:'en-faithful',kind:'faithful_translation',language:'en',derivedFrom:'fr-source',segmentsFile:'segments/en-faithful.json',audio:{source:'r2',origin:'deepgram',durationMs:1000,file:'audio/en-faithful.mp3',timingSource:'deepgram'}}];
+ await expect(assertPrepared(env,p,m)).resolves.toBeUndefined();
+});
+
 it('accepte Deepgram synchronisé et refuse une origine/timing incohérents pour terminer une demande', async () => {
  const id=crypto.randomUUID();
  await env.DB.prepare("INSERT INTO prepare_queue (id,kind,ref,options_json,created_at,updated_at) VALUES (?,'episode',?,?,'2026-10-19','2026-10-19')")
