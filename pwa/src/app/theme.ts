@@ -9,7 +9,7 @@ export const fonts = {
 
 /** Couleur discrète par catégorie (pastille, puce). Thème clair uniquement. */
 export const CATEGORY_COLORS: Record<Category, string> = {
-  tech: '#2F5FB3', science: '#7A4FB0', economy: '#2E7D4F', news: '#B4442F', football: '#1F6E8C', stories: '#A8611A', humour: '#846344',
+  tech: '#2F5FB3', science: '#7A4FB0', economy: '#2E7D4F', news: '#B4442F', football: '#1F6E8C', stories: '#A8611A', humour: '#846344', study: '#B03A6F',
 };
 
 /** Le second paramètre (ancien mode clair/sombre) est ignoré : l'app est en thème clair uniquement. */

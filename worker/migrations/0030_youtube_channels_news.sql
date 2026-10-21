@@ -2,7 +2,7 @@
 -- Chaque channel_id a été vérifié le 21 octobre 2026 : page youtube.com/@… (métadonnée itemprop=identifier)
 -- puis flux Atom officiel (HTTP 200, 15 vidéos). @HugoDecrypte n'existe pas : la chaîne d'actualité
 -- est @HugoDecrypteActus (« HugoDécrypte - Actus du jour »), à laquelle mène aussi youtube.com/c/HugoDecrypte.
--- BBC Learning English : catégorie « news » provisoire, à confirmer avant l'application en production.
+-- BBC Learning English : nouvelle catégorie « study » (apprendre l'anglais), choisie le 21 octobre 2026.
 -- Préparation automatique coupée par défaut, comme pour un abonnement depuis la PWA. Une chaîne déjà suivie
 -- (même channel_id ou même flux) est ignorée.
 INSERT OR IGNORE INTO shows
@@ -23,4 +23,4 @@ VALUES
 ('fireship','Fireship','Fireship','https://www.youtube.com/feeds/videos.xml?channel_id=UCsBjURrPoezykLs9EqgamOA','en','tech','https://yt3.googleusercontent.com/3fPNbkf_xPyCleq77ZhcxyeorY97NtMHVNUbaAON_RBDH9ydL4hJkjxC8x_4mpuopkB8oI7Ct6Y=s900-c-k-c0x00ffffff-no-rj',0,1,strftime('%Y-%m-%dT%H:%M:%fZ','now'),strftime('%Y-%m-%dT%H:%M:%fZ','now'),'youtube','UCsBjURrPoezykLs9EqgamOA'),
 ('the-athletic-fc','The Athletic FC','The Athletic FC','https://www.youtube.com/feeds/videos.xml?channel_id=UC6ZMmQaL9wZYo4iLw8n8xiA','en','football','https://yt3.googleusercontent.com/CfTlIHjMC8yBQJpJQFoaA1ZH3vevROEiAdto_qhMI62tKo2mdeV5NmmiFJu0cVSNbFrt4pvZ=s900-c-k-c0x00ffffff-no-rj',0,1,strftime('%Y-%m-%dT%H:%M:%fZ','now'),strftime('%Y-%m-%dT%H:%M:%fZ','now'),'youtube','UC6ZMmQaL9wZYo4iLw8n8xiA'),
 ('bbc-sport','BBC Sport','BBC Sport','https://www.youtube.com/feeds/videos.xml?channel_id=UCW6-BQWFA70Dyyc7ZpZ9Xlg','en','football','https://yt3.googleusercontent.com/7MVBSLQu23KEmav1jgqQkNSE-JsxRTqyfdKX_DVCl0oSAxALtPKwLhERmLOGgILKTjxdvcjD56k=s900-c-k-c0x00ffffff-no-rj',0,1,strftime('%Y-%m-%dT%H:%M:%fZ','now'),strftime('%Y-%m-%dT%H:%M:%fZ','now'),'youtube','UCW6-BQWFA70Dyyc7ZpZ9Xlg'),
-('bbc-learning-english','BBC Learning English','BBC Learning English','https://www.youtube.com/feeds/videos.xml?channel_id=UCHaHD477h-FeBbVh9Sh7syA','en','news','https://yt3.googleusercontent.com/ANAs2cAwxesjyoe3vsyhZGzlTafbicnuGMzPNSAuJdpTwg8CesHkViMTCrYqAJEGaKXG6_KEUg=s900-c-k-c0x00ffffff-no-rj',0,1,strftime('%Y-%m-%dT%H:%M:%fZ','now'),strftime('%Y-%m-%dT%H:%M:%fZ','now'),'youtube','UCHaHD477h-FeBbVh9Sh7syA');
+('bbc-learning-english','BBC Learning English','BBC Learning English','https://www.youtube.com/feeds/videos.xml?channel_id=UCHaHD477h-FeBbVh9Sh7syA','en','study','https://yt3.googleusercontent.com/ANAs2cAwxesjyoe3vsyhZGzlTafbicnuGMzPNSAuJdpTwg8CesHkViMTCrYqAJEGaKXG6_KEUg=s900-c-k-c0x00ffffff-no-rj',0,1,strftime('%Y-%m-%dT%H:%M:%fZ','now'),strftime('%Y-%m-%dT%H:%M:%fZ','now'),'youtube','UCHaHD477h-FeBbVh9Sh7syA');

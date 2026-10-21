@@ -135,11 +135,11 @@ export async function collectNext(env: Env, now = Date.now(), fetcher: typeof fe
         `UPDATE shows SET etag = ?, last_modified = ?, last_success_at = ?, last_error = NULL, consecutive_failures = 0,
            image_url = COALESCE(image_url, ?) WHERE id = ?`,
       ).bind(res.headers.get('ETag'), res.headers.get('Last-Modified'), iso(now), imageUrl(parsed.channel?.imageUrl ?? null), show.id),
-      // Les histoires et anecdotes restent écoutables en archive ; les autres catégories expirent après 30 jours.
+      // Les histoires, anecdotes et leçons restent écoutables en archive ; les autres catégories expirent après 30 jours.
       env.DB.prepare(
         `DELETE FROM episodes WHERE show_id = ? AND state <> 'saved' AND content_id IS NULL
            AND NOT EXISTS (SELECT 1 FROM prepare_queue q WHERE q.kind='youtube' AND q.ref=episodes.video_id AND q.status IN ('pending','leased'))
-           AND ((? NOT IN ('stories', 'humour') AND COALESCE(published_at, created_at) < ?)
+           AND ((? NOT IN ('stories', 'humour', 'study') AND COALESCE(published_at, created_at) < ?)
                 OR id NOT IN (SELECT id FROM episodes WHERE show_id = ? ORDER BY COALESCE(published_at, created_at) DESC LIMIT ?))`,
       ).bind(show.id, show.category, iso(now - RETENTION_MS), show.id, RETENTION_PER_SHOW),
     );

@@ -7,7 +7,7 @@ import type { Env } from '../env';
 import { apiError, HttpError, json, noContent, readJson } from '../http';
 import { parseSafeUrl } from '../security/safeUrl';
 
-export const CATEGORIES = ['tech', 'science', 'economy', 'news', 'football', 'stories', 'humour'] as const;
+export const CATEGORIES = ['tech', 'science', 'economy', 'news', 'football', 'stories', 'humour', 'study'] as const;
 export type Category = (typeof CATEGORIES)[number];
 export const MAX_SHOWS = 50;
 

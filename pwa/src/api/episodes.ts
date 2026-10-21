@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
 
-export type Category = 'tech' | 'science' | 'economy' | 'news' | 'football' | 'stories' | 'humour';
+export type Category = 'tech' | 'science' | 'economy' | 'news' | 'football' | 'stories' | 'humour' | 'study';
 export type EpisodeState = 'new' | 'seen' | 'saved' | 'dismissed';
 
 export const CATEGORY_LABELS: Record<Category, string> = {
@@ -12,6 +12,7 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   football: 'Football',
   stories: 'Histoires',
   humour: 'Humour et anecdotes',
+  study: 'Apprendre l’anglais',
 };
 
 export interface Episode {
