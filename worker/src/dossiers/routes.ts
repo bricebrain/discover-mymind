@@ -56,7 +56,7 @@ export async function route(req:Request,env:Env,path:string):Promise<Response|nu
  }
  if(match[2]&&req.method==='POST') {
   const options=prepareOptions(await readJson(req,4096),'en',null);
-  if(options.coverage==='full'||options.faithful||options.keepOriginalCopy) throw new HttpError(422,'invalid_options','Un dossier propose un condensé ou l’essentiel, sans copie ni traduction intégrale des originaux.');
+  if(options.coverage==='full'||options.coverage==='guided'||options.faithful||options.keepOriginalCopy) throw new HttpError(422,'invalid_options','Un dossier propose un condensé ou l’essentiel, sans copie ni traduction intégrale des originaux.');
   const serialized=JSON.stringify(options);
   let run=await env.DB.prepare('SELECT id FROM dossier_runs WHERE dossier_id=? AND version=? AND options_json=?').bind(d.id,d.version,serialized).first<{id:string}>();
   if(!run) {

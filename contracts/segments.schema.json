@@ -117,6 +117,126 @@
         ],
         "additionalProperties": false
       }
+    },
+    "guide": {
+      "type": "object",
+      "description": "Original guidé : passage de travail, expressions et points d'écoute, rédigés au niveau CECRL de l'apprenant.",
+      "properties": {
+        "level": {
+          "enum": [
+            "A2",
+            "B1",
+            "B2",
+            "C1"
+          ]
+        },
+        "voice": {
+          "enum": [
+            "original",
+            "synthetic"
+          ]
+        },
+        "passage": {
+          "type": "object",
+          "properties": {
+            "fromSegment": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+            },
+            "toSegment": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          },
+          "required": [
+            "fromSegment",
+            "toSegment"
+          ],
+          "additionalProperties": false
+        },
+        "expressions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "properties": {
+              "segmentId": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "meaning": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300
+              },
+              "note": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600
+              }
+            },
+            "required": [
+              "segmentId",
+              "text",
+              "note"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "listening": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "properties": {
+              "segmentId": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "meaning": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300
+              },
+              "note": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600
+              }
+            },
+            "required": [
+              "segmentId",
+              "text",
+              "note"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "level",
+        "voice",
+        "passage",
+        "expressions",
+        "listening"
+      ],
+      "additionalProperties": false
     }
   },
   "required": [

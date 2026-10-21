@@ -17,16 +17,21 @@ it('automatise seulement la dernière vidéo et ne recrée jamais une demande an
  await automaticPreparation(env,'auto-test',now).run();
  const rows=await env.DB.prepare('SELECT kind,ref,options_json FROM prepare_queue').all<{kind:string;ref:string;options_json:string}>();
  expect(rows.results).toHaveLength(1);expect(rows.results[0]).toMatchObject({kind:'youtube',ref:video});
- expect(JSON.parse(rows.results[0]!.options_json)).toEqual({coverage:'essentials',level:'B1',style:'narration',targetMinutes:4,faithful:false,keepOriginalCopy:false});
+ expect(JSON.parse(rows.results[0]!.options_json)).toEqual({coverage:'guided',level:'B1',style:'narration',targetMinutes:null,faithful:false,keepOriginalCopy:false});
  await env.DB.prepare("UPDATE prepare_queue SET status='cancelled'").run();
  await automaticPreparation(env,'auto-test',now).run();
  expect((await env.DB.prepare('SELECT COUNT(*) AS n FROM prepare_queue').first<{n:number}>())?.n).toBe(1);
 });
-it('suit la formule et le niveau de l’émission, l’interrupteur général et le désabonnement',async()=>{
+it('prépare un original guidé au niveau de l’émission, suit l’interrupteur général et le désabonnement',async()=>{
  await env.DB.prepare("UPDATE shows SET auto_preset='condensed8',auto_level='B2' WHERE id='auto-test'").run();
  await automaticPreparation(env,'auto-test',now).run();
  const row=await env.DB.prepare('SELECT options_json FROM prepare_queue').first<{options_json:string}>();
- expect(JSON.parse(row!.options_json)).toEqual({coverage:'condensed',level:'B2',style:'narration',targetMinutes:8,faithful:false,keepOriginalCopy:false});
+ expect(JSON.parse(row!.options_json)).toEqual({coverage:'guided',level:'B2',style:'narration',targetMinutes:null,faithful:false,keepOriginalCopy:false});
+ // « Anglais non simplifié » n'a pas de sens pour un guide : explications au niveau C1.
+ await env.DB.prepare('DELETE FROM prepare_queue').run();
+ await env.DB.prepare("UPDATE shows SET auto_level='original' WHERE id='auto-test'").run();
+ await automaticPreparation(env,'auto-test',now).run();
+ expect(JSON.parse((await env.DB.prepare('SELECT options_json FROM prepare_queue').first<{options_json:string}>())!.options_json)).toMatchObject({coverage:'guided',level:'C1'});
  await env.DB.prepare('DELETE FROM prepare_queue').run();
  await env.DB.prepare("UPDATE app_settings SET value='0' WHERE key='auto_prepare_enabled'").run();
  await automaticPreparation(env,'auto-test',now).run();

@@ -6,7 +6,7 @@ import { assertLease } from '../publications/store';
 import { markAtelierSeen } from './progress';
 
 export const LEASE_MS = 15 * 60_000;
-const STAGES = ['download','normalize','transcribe','source_ready','plan','extract','translate','adapt','evaluate','review','tts','publish'];
+const STAGES = ['download','normalize','transcribe','source_ready','plan','extract','translate','guide','adapt','evaluate','review','tts','publish'];
 
 export async function source(env: Env, row: QueueRow) {
   if (row.kind === 'dossier') {

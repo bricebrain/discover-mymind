@@ -2,14 +2,14 @@ import type { Env } from '../env';
 
 /** Options d'une préparation automatique, dans l'ordre exact de `prepareOptions` (comparaison des demandes actives). */
 const OPTIONS_SQL = `json_object(
-  'coverage', CASE s.auto_preset WHEN 'condensed8' THEN 'condensed' ELSE 'essentials' END,
-  'level', s.auto_level, 'style', 'narration',
-  'targetMinutes', CASE s.auto_preset WHEN 'condensed8' THEN 8 ELSE 4 END,
+  'coverage', 'guided',
+  'level', CASE s.auto_level WHEN 'original' THEN 'C1' ELSE s.auto_level END, 'style', 'narration',
+  'targetMinutes', json('null'),
   'faithful', json('false'), 'keepOriginalCopy', json('false'))`;
 
 /**
  * Une seule demande par vidéo, y compris après échec/annulation ou demande manuelle ; seule la dernière vidéo
- * de la chaîne est automatisée. Formule et niveau viennent de la chaîne (L'essentiel 4 min ou Condensé 8 min) ;
+ * de la chaîne est automatisée. Formule unique : original guidé, au niveau d'explication choisi pour la chaîne ;
  * l'interrupteur général coupe tout. La demande est identique à un envoi manuel (`kind` youtube, identifiant de vidéo).
  */
 export function automaticPreparation(env: Env,showId: string,now: number) {

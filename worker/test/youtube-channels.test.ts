@@ -177,7 +177,7 @@ describe('abonnement → collecte → préparation', () => {
     const { results } = await env.DB.prepare('SELECT kind, ref, options_json FROM prepare_queue').all<{ kind: string; ref: string; options_json: string }>();
     expect(results).toHaveLength(1);
     expect(results[0]).toMatchObject({ kind: 'youtube', ref: VIDEO });
-    expect(JSON.parse(results[0]!.options_json)).toMatchObject({ coverage: 'condensed', level: 'B2', targetMinutes: 8 });
+    expect(JSON.parse(results[0]!.options_json)).toMatchObject({ coverage: 'guided', level: 'B2', targetMinutes: null });
     await collectNext(env, NOW + 1_800_000, fetcher(() => new Response(null, { status: 304 })), id);
     expect(await env.DB.prepare('SELECT COUNT(*) AS n FROM prepare_queue').first()).toMatchObject({ n: 1 });
   });

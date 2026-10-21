@@ -25,7 +25,13 @@ export interface Segment {
   startMs: number | null; endMs: number | null; sourceSegments?: string[];
   provenance?: {sourceId:string;segmentId:string;startMs:number|null;endMs:number|null};
 }
-export interface Segments { schemaVersion: 1; variantKey: string; segments: Segment[]; keyVocab?: string[] }
+export interface GuideNote { segmentId: string; text: string; meaning?: string; note: string }
+export interface Guide {
+  level: 'A2' | 'B1' | 'B2' | 'C1'; voice: 'original' | 'synthetic';
+  passage: { fromSegment: string; toSegment: string; reason?: string };
+  expressions: GuideNote[]; listening: GuideNote[];
+}
+export interface Segments { schemaVersion: 1; variantKey: string; segments: Segment[]; keyVocab?: string[]; guide?: Guide }
 export interface Publication {
   id: string; content_id: string; revision: string; seq: number; status: string;
   manifest_r2_key: string; queue_item_id: string | null; lease_token: string | null; commit_token: string | null;

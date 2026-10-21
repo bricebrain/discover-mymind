@@ -22,7 +22,7 @@ export function validateManifest(input: unknown, context: ValidationContext = {}
   const variants = (input as { variants?: unknown } | null)?.variants;
   if (Array.isArray(variants)) for (const v of variants) {
     if (v && typeof v === 'object' && 'quiz' in v &&
-        (v.kind !== 'adaptation' || v.language !== 'en' || !validQuiz(v.quiz))) delete v.quiz;
+        (baseLanguage(String(v.language ?? '')) !== 'en' || !validQuiz(v.quiz))) delete v.quiz;
   }
   if (!manifestSchema(input)) {
     const issue = manifestSchema.errors?.[0];
@@ -101,6 +101,14 @@ export function validateSegments(input: unknown, variant: Variant, sourceIds?: S
     } else if (s.startMs !== null || s.endMs !== null) reject('invalid_timing');
     if ((variant.coverage ?? 'full') !== 'full' && !s.sourceSegments?.length) reject('missing_source_segments');
     if (s.sourceSegments?.some((id) => !sourceIds?.has(id))) reject('invalid_source_segments');
+  }
+  if (doc.guide) {
+    // Guide : version anglaise horodatée, passage dans l'ordre, renvois vers des passages existants.
+    const index = new Map(doc.segments.map((s, i) => [s.id, i]));
+    const from = index.get(doc.guide.passage.fromSegment), to = index.get(doc.guide.passage.toSegment);
+    if (baseLanguage(variant.language) !== 'en' || !timed || from === undefined || to === undefined || from > to) reject('invalid_guide');
+    if ([...doc.guide.expressions, ...doc.guide.listening].some((n) => !index.has(n.segmentId))) reject('invalid_guide');
+    if (doc.guide.voice === 'synthetic' && doc.guide.listening.length) reject('invalid_guide');
   }
   return doc;
 }

@@ -6,16 +6,21 @@ import type { QueueRow } from './store';
  * Les durées viennent des préparations précédentes (journal des étapes) ; à défaut, de valeurs prudentes.
  */
 const DEFAULTS: Record<string, number> = {
-  download: 30, normalize: 20, transcribe: 240, plan: 40, extract: 60, adapt: 120, evaluate: 40, translate: 90, tts: 150, publish: 20,
+  download: 30, normalize: 20, transcribe: 240, plan: 40, extract: 60, adapt: 120, evaluate: 40, translate: 90, guide: 45, tts: 150, publish: 20,
 };
 // Dans le cloud, le contrôle de fidélité tourne pendant la voix (étape « tts »).
 const CLOUD_DEFAULTS: Record<string, number> = { transcribe: 60, adapt: 40, tts: 40, publish: 10 };
 
 export function plannedStages(row: Pick<QueueRow, 'kind' | 'executor' | 'options_json'>): string[] {
   if (row.executor === 'cloud') return ['transcribe', 'adapt', 'tts', 'publish'];
-  let faithful = false;
-  try { faithful = !!(JSON.parse(row.options_json) as { faithful?: boolean }).faithful; } catch { /* options illisibles : sans fidèle */ }
+  let faithful = false, guided = false;
+  try {
+    const options = JSON.parse(row.options_json) as { faithful?: boolean; coverage?: string };
+    faithful = !!options.faithful; guided = options.coverage === 'guided';
+  } catch { /* options illisibles : sans fidèle */ }
   const source = row.kind === 'reflection' || row.kind === 'dossier' ? ['download'] : ['download', 'normalize', 'transcribe'];
+  // Original guidé : traduction, guide, puis voix seulement pour une source française (étape sautée sinon).
+  if (guided) return [...source, 'translate', 'guide', 'tts', 'publish'];
   return [...source, 'plan', 'extract', 'adapt', 'evaluate', ...(faithful ? ['translate'] : []), 'tts', 'publish'];
 }
 

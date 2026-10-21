@@ -264,5 +264,291 @@
         "timingSource": "macwhisper_srt"
       }
     }
+  },
+  {
+    "name": "guide-reversed-passage",
+    "code": "invalid_guide",
+    "document": {
+      "schemaVersion": 1,
+      "variantKey": "en-source",
+      "segments": [
+        {
+          "id": "s001",
+          "text": "The bank is expected to hold rates steady.",
+          "startMs": 0,
+          "endMs": 4000
+        },
+        {
+          "id": "s002",
+          "text": "Markets reacted calmly.",
+          "startMs": 4000,
+          "endMs": 7000
+        }
+      ],
+      "guide": {
+        "level": "B1",
+        "voice": "original",
+        "passage": {
+          "fromSegment": "s002",
+          "toSegment": "s001"
+        },
+        "expressions": [
+          {
+            "segmentId": "s001",
+            "text": "is expected to",
+            "meaning": "devrait",
+            "note": "Structure fréquente dans l'actualité."
+          }
+        ],
+        "listening": [
+          {
+            "segmentId": "s001",
+            "text": "expected to",
+            "note": "À écouter : « to » est souvent réduit."
+          }
+        ]
+      }
+    },
+    "variant": {
+      "key": "en-source",
+      "kind": "source",
+      "language": "en",
+      "segmentsFile": "segments/en-source.json",
+      "audio": {
+        "source": "r2",
+        "file": "audio/en-source.mp3",
+        "origin": "original",
+        "durationMs": 10000,
+        "timingSource": "rss_vtt"
+      }
+    }
+  },
+  {
+    "name": "guide-unknown-segment",
+    "code": "invalid_guide",
+    "document": {
+      "schemaVersion": 1,
+      "variantKey": "en-source",
+      "segments": [
+        {
+          "id": "s001",
+          "text": "The bank is expected to hold rates steady.",
+          "startMs": 0,
+          "endMs": 4000
+        },
+        {
+          "id": "s002",
+          "text": "Markets reacted calmly.",
+          "startMs": 4000,
+          "endMs": 7000
+        }
+      ],
+      "guide": {
+        "level": "B1",
+        "voice": "original",
+        "passage": {
+          "fromSegment": "s001",
+          "toSegment": "s002",
+          "reason": "Dense mais compréhensible."
+        },
+        "expressions": [
+          {
+            "segmentId": "s404",
+            "text": "x",
+            "note": "y"
+          }
+        ],
+        "listening": [
+          {
+            "segmentId": "s001",
+            "text": "expected to",
+            "note": "À écouter : « to » est souvent réduit."
+          }
+        ]
+      }
+    },
+    "variant": {
+      "key": "en-source",
+      "kind": "source",
+      "language": "en",
+      "segmentsFile": "segments/en-source.json",
+      "audio": {
+        "source": "r2",
+        "file": "audio/en-source.mp3",
+        "origin": "original",
+        "durationMs": 10000,
+        "timingSource": "rss_vtt"
+      }
+    }
+  },
+  {
+    "name": "guide-synthetic-listening",
+    "code": "invalid_guide",
+    "document": {
+      "schemaVersion": 1,
+      "variantKey": "en-source",
+      "segments": [
+        {
+          "id": "s001",
+          "text": "The bank is expected to hold rates steady.",
+          "startMs": 0,
+          "endMs": 4000
+        },
+        {
+          "id": "s002",
+          "text": "Markets reacted calmly.",
+          "startMs": 4000,
+          "endMs": 7000
+        }
+      ],
+      "guide": {
+        "level": "B1",
+        "voice": "synthetic",
+        "passage": {
+          "fromSegment": "s001",
+          "toSegment": "s002",
+          "reason": "Dense mais compréhensible."
+        },
+        "expressions": [
+          {
+            "segmentId": "s001",
+            "text": "is expected to",
+            "meaning": "devrait",
+            "note": "Structure fréquente dans l'actualité."
+          }
+        ],
+        "listening": [
+          {
+            "segmentId": "s001",
+            "text": "expected to",
+            "note": "À écouter : « to » est souvent réduit."
+          }
+        ]
+      }
+    },
+    "variant": {
+      "key": "en-source",
+      "kind": "source",
+      "language": "en",
+      "segmentsFile": "segments/en-source.json",
+      "audio": {
+        "source": "r2",
+        "file": "audio/en-source.mp3",
+        "origin": "original",
+        "durationMs": 10000,
+        "timingSource": "rss_vtt"
+      }
+    }
+  },
+  {
+    "name": "guide-untimed",
+    "code": "invalid_guide",
+    "document": {
+      "schemaVersion": 1,
+      "variantKey": "en-source",
+      "segments": [
+        {
+          "id": "s001",
+          "text": "The bank is expected to hold rates steady.",
+          "startMs": null,
+          "endMs": null
+        },
+        {
+          "id": "s002",
+          "text": "Markets reacted calmly.",
+          "startMs": null,
+          "endMs": null
+        }
+      ],
+      "guide": {
+        "level": "B1",
+        "voice": "original",
+        "passage": {
+          "fromSegment": "s001",
+          "toSegment": "s002",
+          "reason": "Dense mais compréhensible."
+        },
+        "expressions": [
+          {
+            "segmentId": "s001",
+            "text": "is expected to",
+            "meaning": "devrait",
+            "note": "Structure fréquente dans l'actualité."
+          }
+        ],
+        "listening": [
+          {
+            "segmentId": "s001",
+            "text": "expected to",
+            "note": "À écouter : « to » est souvent réduit."
+          }
+        ]
+      }
+    },
+    "variant": {
+      "key": "en-source",
+      "kind": "source",
+      "language": "en",
+      "segmentsFile": "segments/en-source.json"
+    }
+  },
+  {
+    "name": "guide-french-variant",
+    "code": "invalid_guide",
+    "document": {
+      "schemaVersion": 1,
+      "variantKey": "fr-source",
+      "segments": [
+        {
+          "id": "s001",
+          "text": "The bank is expected to hold rates steady.",
+          "startMs": 0,
+          "endMs": 4000
+        },
+        {
+          "id": "s002",
+          "text": "Markets reacted calmly.",
+          "startMs": 4000,
+          "endMs": 7000
+        }
+      ],
+      "guide": {
+        "level": "B1",
+        "voice": "original",
+        "passage": {
+          "fromSegment": "s001",
+          "toSegment": "s002",
+          "reason": "Dense mais compréhensible."
+        },
+        "expressions": [
+          {
+            "segmentId": "s001",
+            "text": "is expected to",
+            "meaning": "devrait",
+            "note": "Structure fréquente dans l'actualité."
+          }
+        ],
+        "listening": [
+          {
+            "segmentId": "s001",
+            "text": "expected to",
+            "note": "À écouter : « to » est souvent réduit."
+          }
+        ]
+      }
+    },
+    "variant": {
+      "key": "fr-source",
+      "kind": "source",
+      "language": "fr",
+      "segmentsFile": "segments/en-source.json",
+      "audio": {
+        "source": "r2",
+        "file": "audio/en-source.mp3",
+        "origin": "original",
+        "durationMs": 10000,
+        "timingSource": "rss_vtt"
+      }
+    }
   }
 ]
