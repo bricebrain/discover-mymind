@@ -12,7 +12,12 @@ import { automaticPreparation } from './queue/automatic';
  * Les émissions podcast ne sont plus collectées (Discover suit seulement YouTube depuis le 21 octobre 2026).
  */
 export const CHECK_INTERVAL_MS = 30 * 60_000;
-export const BACKOFF_INTERVAL_MS = 24 * 3_600_000;
+/**
+ * Après 5 échecs : une vérification toutes les 3 h. YouTube renvoie parfois des 404 passagers sur des flux valides
+ * (5 chaînes bloquées un jour entier le 21 octobre 2026 avec l'ancienne attente de 24 h) ; un flux disparu ne coûte
+ * qu'une requête toutes les 3 h.
+ */
+export const BACKOFF_INTERVAL_MS = 3 * 3_600_000;
 const BACKOFF_AFTER_FAILURES = 5;
 const REDUCED_MAX_ITEMS = 3;
 const RETENTION_PER_SHOW = 10;

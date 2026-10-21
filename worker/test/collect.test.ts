@@ -189,14 +189,14 @@ describe('collecte', () => {
     expect(seen?.get('If-Modified-Since')).toBe('Fri, 16 Oct 2026 06:00:00 GMT');
   });
 
-  it('un flux en erreur est noté et n’empêche pas les autres ; 5 échecs ⇒ une vérification par jour', async () => {
+  it('un flux en erreur est noté et n’empêche pas les autres ; 5 échecs ⇒ une vérification toutes les 3 h', async () => {
     await addShow('broken', { next_check_at: '2026-10-17T09:00:00.000Z', consecutive_failures: 4 });
     await addShow('ok', { next_check_at: '2026-10-17T10:00:00.000Z' });
     const f = fakeFetch((url) => url.includes('broken') ? new Response('nope', { status: 404 }) : new Response(feed(items(2))));
     expect(await collectNext(env, NOW, f)).toMatchObject({ showId: 'broken', status: 'error', error: 'HTTP 404' });
     expect(await collectNext(env, NOW, f)).toMatchObject({ showId: 'ok', status: 'ok' });
     const broken = await env.DB.prepare("SELECT * FROM shows WHERE id = 'broken'").first<Record<string, unknown>>();
-    expect(broken).toMatchObject({ consecutive_failures: 5, last_error: 'HTTP 404', next_check_at: '2026-10-18T12:00:00.000Z' });
+    expect(broken).toMatchObject({ consecutive_failures: 5, last_error: 'HTTP 404', next_check_at: '2026-10-17T15:00:00.000Z' });
   });
 
   it('une exécution interrompue (marqueur resté en place) réduit la lecture à 3 épisodes', async () => {
