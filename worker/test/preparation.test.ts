@@ -6,17 +6,17 @@ import type { Manifest,Publication } from '../src/publications/types';
 import { ATELIER_TOKEN,call,login } from './helpers';
 
 const now=Date.parse('2026-10-17T12:00:00Z');
-const ep='c'.repeat(20),older='d'.repeat(20);
+const ep='c'.repeat(20),older='d'.repeat(20),video='latestVideo',olderVideo='olderVideo_';
 beforeEach(async()=>{
  await env.DB.prepare('DELETE FROM prepare_queue').run();
- await env.DB.prepare("INSERT OR IGNORE INTO shows (id,title,feed_url,language,category,auto_prepare,next_check_at,created_at) VALUES ('auto-test','Édito','https://example.com/feed','fr','economy',1,'2026-01-01','2026-01-01')").run();
- await env.DB.prepare("INSERT OR REPLACE INTO episodes (id,show_id,guid,title,audio_url,duration_sec,published_at,created_at) VALUES (?,'auto-test','latest','Édito','https://example.com/a.mp3',120,'2026-10-17','2026-10-17'),(?,'auto-test','older','Ancien','https://example.com/b.mp3',100,'2026-10-16','2026-10-16')").bind(ep,older).run();
+ await env.DB.prepare("INSERT OR IGNORE INTO shows (id,title,feed_url,language,category,auto_prepare,next_check_at,created_at,source_type) VALUES ('auto-test','Édito','https://example.com/feed','fr','economy',1,'2026-01-01','2026-01-01','youtube')").run();
+ await env.DB.prepare("INSERT OR REPLACE INTO episodes (id,show_id,guid,title,audio_url,duration_sec,published_at,created_at,video_id) VALUES (?,'auto-test','latest','Édito','https://www.youtube.com/watch?v=latestVideo',120,'2026-10-17','2026-10-17',?),(?,'auto-test','older','Ancien','https://www.youtube.com/watch?v=olderVideo_',100,'2026-10-16','2026-10-16',?)").bind(ep,video,older,olderVideo).run();
 });
-it('automatise seulement le dernier épisode et ne recrée jamais une demande annulée ou en échec',async()=>{
+it('automatise seulement la dernière vidéo et ne recrée jamais une demande annulée ou en échec',async()=>{
  await automaticPreparation(env,'auto-test',now).run();
  await automaticPreparation(env,'auto-test',now).run();
- const rows=await env.DB.prepare('SELECT ref,options_json FROM prepare_queue').all<{ref:string;options_json:string}>();
- expect(rows.results).toHaveLength(1);expect(rows.results[0]!.ref).toBe(ep);
+ const rows=await env.DB.prepare('SELECT kind,ref,options_json FROM prepare_queue').all<{kind:string;ref:string;options_json:string}>();
+ expect(rows.results).toHaveLength(1);expect(rows.results[0]).toMatchObject({kind:'youtube',ref:video});
  expect(JSON.parse(rows.results[0]!.options_json)).toEqual({coverage:'essentials',level:'B1',style:'narration',targetMinutes:4,faithful:false,keepOriginalCopy:false});
  await env.DB.prepare("UPDATE prepare_queue SET status='cancelled'").run();
  await automaticPreparation(env,'auto-test',now).run();
@@ -37,7 +37,14 @@ it('suit la formule et le niveau de l’émission, l’interrupteur général et
  expect((await env.DB.prepare('SELECT COUNT(*) AS n FROM prepare_queue').first<{n:number}>())?.n).toBe(0);
  await env.DB.prepare("UPDATE shows SET enabled=1 WHERE id='auto-test'").run();
 });
-it('règle la préparation automatique depuis la PWA et l’Atelier, jamais pour une chaîne YouTube',async()=>{
+it('ne prépare pas automatiquement une vidéo déjà demandée à la main',async()=>{
+ const cookie=await login();
+ expect((await call(`/api/episodes/${ep}/prepare`,{method:'POST',cookie,body:{coverage:'full'}})).status).toBe(201);
+ await env.DB.prepare("UPDATE prepare_queue SET status='failed'").run();
+ await automaticPreparation(env,'auto-test',now).run();
+ expect((await env.DB.prepare('SELECT COUNT(*) AS n FROM prepare_queue').first<{n:number}>())?.n).toBe(1);
+});
+it('règle la préparation automatique depuis la PWA et l’Atelier, jamais pour un podcast',async()=>{
  const cookie=await login();const headers={Authorization:`Bearer ${ATELIER_TOKEN}`};
  const patch=await call('/api/shows/auto-test',{method:'PATCH',cookie,body:{autoPrepare:true,autoPreset:'condensed8',autoLevel:'A2'}});
  expect(patch.status,await patch.clone().text()).toBe(200);
@@ -45,8 +52,8 @@ it('règle la préparation automatique depuis la PWA et l’Atelier, jamais pour
  expect((await call('/api/shows/auto-test',{method:'PATCH',cookie,body:{autoPreset:'full'}})).status).toBe(400);
  const fromAtelier=await call('/atelier/shows/auto-test',{method:'PATCH',headers,body:{autoPreset:'essentials4'}});
  expect(fromAtelier.status).toBe(200);
- await env.DB.prepare("INSERT OR IGNORE INTO shows (id,title,feed_url,language,category,next_check_at,created_at,source_type,channel_id) VALUES ('yt-test','Chaîne','https://www.youtube.com/feeds/videos.xml?channel_id=UC1234567890123456789012','en','tech','2026-01-01','2026-01-01','youtube','UC1234567890123456789012')").run();
- expect((await call('/api/shows/yt-test',{method:'PATCH',cookie,body:{autoPrepare:true}})).status).toBe(422);
+ await env.DB.prepare("INSERT OR IGNORE INTO shows (id,title,feed_url,language,category,next_check_at,created_at,source_type,channel_id) VALUES ('pod-test','Podcast','https://example.com/podcast.xml','en','tech','2026-01-01','2026-01-01','podcast',NULL)").run();
+ expect((await call('/api/shows/pod-test',{method:'PATCH',cookie,body:{autoPrepare:true}})).status).toBe(422);
  expect((await (await call('/api/settings/auto-prepare',{method:'PUT',cookie,body:{enabled:false}})).json<{enabled:boolean}>()).enabled).toBe(false);
  expect((await (await call('/api/shows',{cookie})).json<{autoPrepareEnabled:boolean}>()).autoPrepareEnabled).toBe(false);
  expect((await (await call('/atelier/settings/auto-prepare',{method:'PUT',headers,body:{enabled:true}})).json<{enabled:boolean}>()).enabled).toBe(true);

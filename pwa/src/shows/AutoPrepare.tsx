@@ -11,7 +11,7 @@ const levelLabel = (l: AutoLevel) => (l === 'original' ? 'non simplifié' : l);
 /** Carte en tête des abonnements : interrupteur général et rappel du fonctionnement. */
 export function AutoPrepareCard({ enabled, shows }: { enabled: boolean; shows: Show[] }) {
   const setting = useAutoPrepareSetting();
-  const active = shows.filter((s) => s.enabled && s.autoPrepare && s.sourceType === 'podcast');
+  const active = shows.filter((s) => s.enabled && s.autoPrepare);
   return <section className={cn(cardCls, 'mb-5 p-4', enabled && 'border-primary/25 bg-gradient-to-br from-primary-soft/70 to-card')}>
     <div className="flex items-center gap-3">
       <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground"><Sparkles className="size-[18px]" /></span>
@@ -20,18 +20,17 @@ export function AutoPrepareCard({ enabled, shows }: { enabled: boolean; shows: S
     </div>
     <p className="mb-0 mt-2 text-[13px] leading-relaxed text-muted-foreground">
       {enabled
-        ? `${active.length} émission${active.length > 1 ? 's' : ''} préparée${active.length > 1 ? 's' : ''} automatiquement : le dernier épisode est mis en file dès sa parution, puis l’Atelier le prépare et le publie.`
-        : 'Coupé : aucune émission n’est préparée automatiquement. Tes réglages par émission sont conservés.'}
+        ? `${active.length} chaîne${active.length > 1 ? 's' : ''} préparée${active.length > 1 ? 's' : ''} automatiquement : la dernière vidéo est mise en file dès sa parution, puis l’Atelier la prépare et la publie.`
+        : 'Coupé : aucune chaîne n’est préparée automatiquement. Tes réglages par chaîne sont conservés.'}
       {' '}La voix Deepgram reste limitée par ton plafond mensuel ; au-delà, l’Atelier passe sur Kokoro.
     </p>
     {setting.isError && <Notice tone="warning" className="mt-2">{setting.error.message}</Notice>}
   </section>;
 }
 
-/** Pastille d'une émission : réglage actuel, ouvre le volet. Podcasts uniquement. */
+/** Pastille d'une chaîne : réglage actuel, ouvre le volet. */
 export function AutoPrepareChip({ show }: { show: Show }) {
   const [open, setOpen] = useState(false);
-  if (show.sourceType !== 'podcast') return null;
   return <>
     <button type="button" onClick={() => setOpen(true)}
       className={cn('inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-colors active:scale-95',
@@ -55,8 +54,8 @@ function AutoPrepareDialog({ show, onClose }: { show: Show; onClose: () => void 
   </>}>
     <p className="m-0 text-[15px] font-semibold leading-snug">{show.title}</p>
     <div className="flex min-h-11 items-center gap-3">
-      <span className="flex-1 text-sm">Préparer chaque nouvel épisode</span>
-      <Switch checked={on} onChange={setOn} label="Préparer chaque nouvel épisode" />
+      <span className="flex-1 text-sm">Préparer chaque nouvelle vidéo</span>
+      <Switch checked={on} onChange={setOn} label="Préparer chaque nouvelle vidéo" />
     </div>
     <div role="radiogroup" aria-label="Version préparée" className={cn('flex flex-col gap-2 transition-opacity', !on && 'pointer-events-none opacity-45')}>
       {(Object.keys(AUTO_PRESETS) as AutoPreset[]).map((p) => {
@@ -76,7 +75,7 @@ function AutoPrepareDialog({ show, onClose }: { show: Show; onClose: () => void 
     </div>
     <Field label="Niveau d’anglais"><Select value={level} disabled={!on} options={LEVEL_OPTIONS} onChange={setLevel} /></Field>
     <p className="m-0 text-xs leading-relaxed text-muted-foreground">
-      Seul le dernier épisode est préparé, une seule fois. Les coûts sont des estimations ; l’Atelier affiche le coût réel avant chaque génération.
+      Seule la dernière vidéo est préparée, une seule fois. Les coûts sont des estimations ; l’Atelier affiche le coût réel avant chaque génération.
     </p>
     {update.isError && <Notice tone="error">{update.error.message}</Notice>}
   </Sheet>;

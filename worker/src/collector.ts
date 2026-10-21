@@ -24,7 +24,7 @@ export const USER_AGENT = 'discover/1.0 (lecteur personnel)';
 interface ShowRow {
   id: string;
   category: string;
-  source_type: 'podcast' | 'youtube';
+  source_type: 'youtube';
   auto_prepare: number;
   feed_url: string;
   title_filter_json: string | null;
@@ -110,7 +110,7 @@ export async function collectNext(env: Env, now = Date.now(), fetcher: typeof fe
     if (res.status === 304) {
       await env.DB.prepare('UPDATE shows SET last_success_at = ?, last_error = NULL, consecutive_failures = 0 WHERE id = ?')
         .bind(iso(now), show.id).run();
-      if (show.auto_prepare && show.source_type !== 'youtube') await automaticPreparation(env,show.id,now).run();
+      if (show.auto_prepare) await automaticPreparation(env,show.id,now).run();
       return { showId: show.id, status: 'not_modified' };
     }
     if (!res.ok || !res.body) {
@@ -143,7 +143,7 @@ export async function collectNext(env: Env, now = Date.now(), fetcher: typeof fe
                 OR id NOT IN (SELECT id FROM episodes WHERE show_id = ? ORDER BY COALESCE(published_at, created_at) DESC LIMIT ?))`,
       ).bind(show.id, show.category, iso(now - RETENTION_MS), show.id, RETENTION_PER_SHOW),
     );
-    if (show.auto_prepare && show.source_type !== 'youtube') statements.push(automaticPreparation(env,show.id,now));
+    if (show.auto_prepare) statements.push(automaticPreparation(env,show.id,now));
     await env.DB.batch(statements);
     return { showId: show.id, status: 'ok', newItems: fresh.length, bytesRead: parsed.bytesRead, stoppedAt: parsed.stoppedAt };
   } catch (e) {

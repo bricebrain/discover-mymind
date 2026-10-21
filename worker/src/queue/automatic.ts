@@ -8,19 +8,20 @@ const OPTIONS_SQL = `json_object(
   'faithful', json('false'), 'keepOriginalCopy', json('false'))`;
 
 /**
- * Une seule demande par épisode, y compris après échec/annulation ; seul le dernier épisode est automatisé.
- * Formule et niveau viennent de l'émission (L'essentiel 4 min ou Condensé 8 min) ; l'interrupteur général coupe tout.
+ * Une seule demande par vidéo, y compris après échec/annulation ou demande manuelle ; seule la dernière vidéo
+ * de la chaîne est automatisée. Formule et niveau viennent de la chaîne (L'essentiel 4 min ou Condensé 8 min) ;
+ * l'interrupteur général coupe tout. La demande est identique à un envoi manuel (`kind` youtube, identifiant de vidéo).
  */
 export function automaticPreparation(env: Env,showId: string,now: number) {
   const at = new Date(now).toISOString();
   return env.DB.prepare(`INSERT OR IGNORE INTO prepare_queue (id,kind,ref,options_json,created_at,updated_at)
-    SELECT ?,'episode',e.id,${OPTIONS_SQL},?,?
+    SELECT ?,'youtube',e.video_id,${OPTIONS_SQL},?,?
     FROM episodes e JOIN shows s ON s.id=e.show_id
-    WHERE s.id=? AND s.enabled=1 AND s.auto_prepare=1 AND e.content_id IS NULL
+    WHERE s.id=? AND s.enabled=1 AND s.auto_prepare=1 AND s.source_type='youtube' AND e.video_id IS NOT NULL AND e.content_id IS NULL
       AND COALESCE((SELECT value FROM app_settings WHERE key='auto_prepare_enabled'),'1')='1'
       AND e.id=(SELECT id FROM episodes WHERE show_id=s.id ORDER BY COALESCE(published_at,created_at) DESC,id DESC LIMIT 1)
       AND COALESCE(e.published_at,e.created_at)>=?
-      AND NOT EXISTS (SELECT 1 FROM prepare_queue q WHERE q.kind='episode' AND q.ref=e.id)`)
+      AND NOT EXISTS (SELECT 1 FROM prepare_queue q WHERE q.kind='youtube' AND q.ref=e.video_id)`)
     .bind(crypto.randomUUID(),at,at,showId,new Date(now-30*86_400_000).toISOString());
 }
 

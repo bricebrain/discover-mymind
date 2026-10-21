@@ -6,7 +6,7 @@ import type { LevelSuggestion } from '../levels/types';
 
 /** Chaîne YouTube suivie : Discover ne suit plus de podcasts depuis le 21 octobre 2026. */
 export interface Show {
-  sourceType: 'podcast' | 'youtube';
+  sourceType: 'youtube';
   channelId: string | null;
   id: string;
   title: string;
@@ -17,7 +17,7 @@ export interface Show {
   imageUrl: string | null;
   titleFilter: string[] | null;
   enabled: boolean;
-  /** Préparation automatique du dernier épisode (podcasts) : formule et niveau. */
+  /** Préparation automatique de la dernière vidéo : formule et niveau. */
   autoPrepare: boolean;
   autoPreset: AutoPreset;
   autoLevel: AutoLevel;
@@ -30,8 +30,8 @@ export interface Show {
 export type AutoPreset = 'essentials4' | 'condensed8';
 export type AutoLevel = 'A2' | 'B1' | 'B2' | 'C1' | 'original';
 export const AUTO_PRESETS: Record<AutoPreset, { label: string; cost: string }> = {
-  essentials4: { label: 'L’essentiel · 4 min', cost: '≈ 0,09 USD de voix Deepgram par épisode' },
-  condensed8: { label: 'Condensé · 8 min', cost: '≈ 0,19 USD de voix Deepgram par épisode' },
+  essentials4: { label: 'L’essentiel · 4 min', cost: '≈ 0,09 USD de voix Deepgram par vidéo' },
+  condensed8: { label: 'Condensé · 8 min', cost: '≈ 0,19 USD de voix Deepgram par vidéo' },
 };
 
 export interface ShowPreview {

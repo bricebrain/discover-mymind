@@ -213,10 +213,10 @@ export async function update(req: Request, env: Env, id: string): Promise<Respon
     sets.push('title_filter_json = ?');
     values.push(f && f.length ? JSON.stringify(f) : null);
   }
-  // Préparation automatique par émission (podcasts seulement) : formule et niveau.
+  // Préparation automatique de la dernière vidéo de la chaîne : formule et niveau.
   if ('autoPrepare' in b) {
     if (typeof b.autoPrepare !== 'boolean') throw new HttpError(400, 'invalid_body', 'autoPrepare : booléen attendu.');
-    if (b.autoPrepare && existing.source_type === 'youtube') throw new HttpError(422, 'auto_prepare_unsupported', 'La préparation automatique concerne les podcasts.');
+    if (b.autoPrepare && existing.source_type !== 'youtube') throw new HttpError(422, 'auto_prepare_unsupported', 'La préparation automatique concerne les chaînes YouTube.');
     sets.push('auto_prepare = ?');
     values.push(b.autoPrepare ? 1 : 0);
   }

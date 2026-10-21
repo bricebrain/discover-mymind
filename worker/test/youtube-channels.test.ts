@@ -163,6 +163,18 @@ describe('abonnement → collecte → préparation', () => {
     expect((await call('/api/shows', { method: 'POST', cookie, body: { title: 'Autre nom', sourceType: 'youtube', channelId: CHANNEL,
       feedUrl: channelFeedUrl(CHANNEL), language: 'fr', category: 'news' } })).status).toBe(409);
   });
+  it('prépare automatiquement la dernière vidéo d’une chaîne qui le demande, comme un envoi manuel', async () => {
+    const cookie = await login(); const id = await subscribe(cookie);
+    expect((await call(`/api/shows/${id}`, { method: 'PATCH', cookie, body: { autoPrepare: true, autoPreset: 'condensed8', autoLevel: 'B2' } })).status).toBe(200);
+    const older = entry('aaaaaaaaaaa').replace('2026-10-18T18:00:24', '2026-10-17T18:00:24');
+    await collectNext(env, NOW, fetcher(() => new Response(feed(entry() + older))), id);
+    const { results } = await env.DB.prepare('SELECT kind, ref, options_json FROM prepare_queue').all<{ kind: string; ref: string; options_json: string }>();
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({ kind: 'youtube', ref: VIDEO });
+    expect(JSON.parse(results[0]!.options_json)).toMatchObject({ coverage: 'condensed', level: 'B2', targetMinutes: 8 });
+    await collectNext(env, NOW + 1_800_000, fetcher(() => new Response(null, { status: 304 })), id);
+    expect(await env.DB.prepare('SELECT COUNT(*) AS n FROM prepare_queue').first()).toMatchObject({ n: 1 });
+  });
   it('envoie une demande YouTube identique au lien manuel, avec titre, langue et catégorie', async () => {
     const cookie = await login(); const id = await subscribe(cookie);
     await collectNext(env, NOW, fetcher(() => new Response(feed())), id);

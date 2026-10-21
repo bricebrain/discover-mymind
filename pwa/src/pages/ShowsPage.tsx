@@ -42,10 +42,10 @@ function ShowRow({ show, busy, onToggle, onDelete }: { show: Show; busy: boolean
         <Trash2 className="size-[18px]" />
       </Button>
     </div>
-    {show.sourceType === 'podcast' && <div className="pl-[60px]">
+    <div className="pl-[60px]">
       <AutoPrepareChip show={show} />
       <LevelSuggestion show={show} busy={busy} />
-    </div>}
+    </div>
   </div>;
 }
 

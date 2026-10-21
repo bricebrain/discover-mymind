@@ -87,7 +87,7 @@ export function AddShowDialog({ onClose }: { onClose: () => void }) {
       <Field label="Filtre de titre (facultatif)" hint="Mots-clés séparés par des virgules, ex. PSG, Paris. Seuls les contenus dont le titre en contient un seront gardés.">
         <input className={inputCls} value={filter} onChange={(e) => setFilter(e.target.value)} />
       </Field>
-      <p className="m-0 text-sm leading-relaxed text-muted-foreground">Les nouvelles vidéos apparaîtront dans Explorer. Tu choisis celles à préparer ; aucun audio n’est généré automatiquement.</p>
+      <p className="m-0 text-sm leading-relaxed text-muted-foreground">Les nouvelles vidéos apparaîtront dans Explorer. Tu choisis celles à préparer, ou tu actives ensuite la préparation automatique de la dernière vidéo.</p>
       {create.isError && <Notice tone="warning">{errorText(create.error)}</Notice>}
     </>}
   </Sheet>;
