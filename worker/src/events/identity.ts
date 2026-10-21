@@ -4,8 +4,15 @@ import { hmacHex, randomToken } from '../security/crypto';
 import { getSession } from '../security/session';
 
 const COOKIE = '__Host-discover_device';
-export interface EventIdentity { deviceId: string; sessionId: string | null; epoch: string; expires: number }
+export interface EventIdentity { deviceId: string; sessionId: string | null; epoch: string; expires: number; role?: 'atelier' }
 export const eventEpoch = (env: Env) => hmacHex(env.SESSION_EPOCH,'events:epoch');
+const atelierEpoch = (env: Env) => hmacHex(env.ATELIER_TOKEN,'events:atelier');
+
+/** Appelé uniquement après validation du Bearer, jamais depuis un en-tête fourni par le client. */
+export async function atelierIdentity(env: Env): Promise<EventIdentity> {
+  return { deviceId: `atelier:${crypto.randomUUID()}`, sessionId: null, role: 'atelier',
+    epoch: await atelierEpoch(env), expires: Date.now() + 3_600_000 };
+}
 
 export async function identity(env: Env, req: Request, create = false) {
   const session = authDisabled(env) ? null : await getSession(env,req);
@@ -19,6 +26,9 @@ export async function identity(env: Env, req: Request, create = false) {
     cookie:!valid ? `${COOKIE}=${value}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=15552000` : null };
 }
 export async function validIdentity(env: Env, identity: EventIdentity) {
+  if (identity.role === 'atelier') {
+    return identity.expires > Date.now() && identity.epoch === await atelierEpoch(env);
+  }
   if (identity.expires<=Date.now() || identity.epoch!==await eventEpoch(env)) return false;
   if (authDisabled(env)) return true;
   if (!identity.sessionId) return false;

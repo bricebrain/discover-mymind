@@ -159,6 +159,9 @@ export default {
       if (path.startsWith('/api/') || path.startsWith('/atelier/')) {
         try {
           const response=path.startsWith('/api/') ? await handleApi(req,env,path) : await handleAtelier(req,env,path);
+          if (response.ok && req.method==='POST' && (
+            /^\/api\/(?:reflections|articles)\/[^/]+\/fetch$/.test(path) || path==='/api/vocabulary/picks'
+          )) ctx.waitUntil(env.EVENTS.getByName('personal-library').notifyAtelier());
           return response.status===101 ? response : withSecurityHeaders(response);
         } finally {
           if(req.method!=='GET' && req.method!=='HEAD' || path==='/api/queue' || path==='/atelier/queue') ctx.waitUntil(flushEvents(env));

@@ -3,7 +3,7 @@ import type { Env } from '../env';
 import { validIdentity,type EventIdentity } from './identity';
 import { deliverPush } from './push';
 
-interface EventRow {id:number;queue_id:string;notification:'ready'|'review'|'failed'|null;created_at:string}
+interface EventRow {id:number;queue_id:string;status:string;notification:'ready'|'review'|'failed'|null;created_at:string}
 
 /** Un coordinateur pour la bibliothèque personnelle, pas pour les préparations elles-mêmes (D1). */
 export class PreparationEvents extends DurableObject<Env> {
@@ -37,6 +37,26 @@ export class PreparationEvents extends DurableObject<Env> {
   }
   override webSocketError(ws:WebSocket) {ws.close(1011,'Reconnexion requise');}
 
+  async atelierSeen(at: string) {
+    for (const ws of this.ctx.getWebSockets()) {
+      const a = ws.deserializeAttachment() as EventIdentity;
+      if (a?.role === 'atelier') continue;
+      if (a && await validIdentity(this.env,a)) {
+        try { ws.send(JSON.stringify({type:'atelier.seen',at})); } catch { ws.close(1011,'Reconnexion requise'); }
+      }
+    }
+  }
+
+  /** Les demandes de texte et de vocabulaire réveillent le Mac sans lire la file D1. */
+  async notifyAtelier() {
+    for (const ws of this.ctx.getWebSockets()) {
+      const a = ws.deserializeAttachment() as EventIdentity;
+      if (a?.role !== 'atelier') continue;
+      if (!await validIdentity(this.env,a)) { ws.close(1008,'Reconnexion requise'); continue; }
+      try { ws.send(JSON.stringify({type:'work.changed'})); } catch { ws.close(1011,'Reconnexion requise'); }
+    }
+  }
+
   flush():Promise<void> {
     this.requested=true;
     if(!this.running) this.running=(async()=>{do{this.requested=false;await this.drain();}while(this.requested);})().finally(()=>{this.running=null;});
@@ -49,13 +69,13 @@ export class PreparationEvents extends DurableObject<Env> {
     const valid:WebSocket[]=[],visible=new Set<string>();
     for(const ws of this.ctx.getWebSockets()) {
       const a=ws.deserializeAttachment() as EventIdentity;
-      if(a && await validIdentity(this.env,a)) {valid.push(ws);visible.add(a.deviceId);}
+      if(a && await validIdentity(this.env,a)) {valid.push(ws);if(a.role!=='atelier') visible.add(a.deviceId);}
       else ws.close(1008,'Session expirée');
     }
-    const events=await this.env.DB.prepare('SELECT id,queue_id,notification,created_at FROM queue_events WHERE dispatched_at IS NULL ORDER BY id LIMIT 50').all<EventRow>();
+    const events=await this.env.DB.prepare('SELECT id,queue_id,status,notification,created_at FROM queue_events WHERE dispatched_at IS NULL ORDER BY id LIMIT 50').all<EventRow>();
     for(const event of events.results) {
       for(const ws of valid) {
-        try{ws.send(JSON.stringify({type:'queue.changed',eventId:event.id}));}catch{ws.close(1011,'Reconnexion requise');}
+        try{ws.send(JSON.stringify({type:'queue.changed',eventId:event.id,status:event.status}));}catch{ws.close(1011,'Reconnexion requise');}
       }
       const statements:D1PreparedStatement[]=[this.env.DB.prepare(`UPDATE push_deliveries SET finished_at=?
         WHERE finished_at IS NULL AND event_id IN (SELECT CAST(id AS TEXT) FROM queue_events WHERE queue_id=? AND id<?)`)

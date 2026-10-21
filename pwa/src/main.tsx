@@ -8,12 +8,16 @@ import { createRoot } from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
 import { ApiError } from './api/client';
 import { App } from './app/App';
+import { clearLibraryCache, startLibraryPersistence } from './cache/libraryPersistence';
 
 const queryClient: QueryClient = new QueryClient({
   // Une session expirée ou révoquée ailleurs renvoie l'utilisateur vers l'écran de connexion.
   queryCache: new QueryCache({
     onError: (error) => {
-      if (error instanceof ApiError && error.status === 401) queryClient.setQueryData(['auth', 'session'], { session: null, authDisabled: false });
+      if (error instanceof ApiError && error.status === 401) {
+        void clearLibraryCache(queryClient);
+        queryClient.setQueryData(['auth', 'session'], { session: null, authDisabled: false });
+      }
     },
   }),
   defaultOptions: { queries: { refetchOnWindowFocus: true } },
@@ -21,10 +25,12 @@ const queryClient: QueryClient = new QueryClient({
 
 registerSW({ immediate: true });
 
-createRoot(document.getElementById('root')!).render(
+const root = createRoot(document.getElementById('root')!);
+const render = () => root.render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <App />
     </QueryClientProvider>
   </StrictMode>,
 );
+void startLibraryPersistence(queryClient).then(render, render);

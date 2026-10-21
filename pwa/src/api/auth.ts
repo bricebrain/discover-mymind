@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from './client';
 import { offline } from '../offline';
+import { clearLibraryCache } from '../cache/libraryPersistence';
 
 export interface SessionInfo {
   id: string;
@@ -22,16 +23,19 @@ export interface AuthState {
 
 /** État de connexion ; `session: null` si non connecté. */
 export function useSession() {
+  const qc = useQueryClient();
   return useQuery({
     queryKey: SESSION_KEY,
     queryFn: async (): Promise<AuthState> => {
       try {
         const r = await api<{ session: SessionInfo | null; authDisabled?: boolean }>('/api/auth/session');
+        if (!r.session && r.authDisabled !== true) await clearLibraryCache(qc);
         return { session: r.session, authDisabled: r.authDisabled === true };
       } catch (e) {
         if (e instanceof ApiError && e.status === 401) {
           // Session refusée : les téléchargements de cet appareil sont effacés (chantier B).
           await offline.purge().catch(() => {});
+          await clearLibraryCache(qc);
           return { session: null, authDisabled: false };
         }
         throw e;
@@ -47,7 +51,10 @@ export function useLogin() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (passphrase: string) => api<{ session: SessionInfo }>('/api/auth/login', { method: 'POST', body: { passphrase } }),
-    onSuccess: ({ session }) => qc.setQueryData<AuthState>(SESSION_KEY, { session, authDisabled: false }),
+    onSuccess: async ({ session }) => {
+      await clearLibraryCache(qc);
+      qc.setQueryData<AuthState>(SESSION_KEY, { session, authDisabled: false });
+    },
   });
 }
 
@@ -56,6 +63,7 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => api<void>('/api/auth/logout', { method: 'POST' }),
     onSettled: async () => {
+      await clearLibraryCache(qc);
       await offline.purge().catch(() => {});
       qc.clear();
       qc.setQueryData<AuthState>(SESSION_KEY, { session: null, authDisabled: false });
@@ -74,9 +82,10 @@ export function useRevokeSession() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api<void>(`/api/auth/sessions/${id}`, { method: 'DELETE' }),
-    onSuccess: (_d, id) => {
+    onSuccess: async (_d, id) => {
       const current = qc.getQueryData<AuthState>(SESSION_KEY);
       if (current?.session?.id === id) {
+        await clearLibraryCache(qc);
         qc.clear();
         qc.setQueryData<AuthState>(SESSION_KEY, { session: null, authDisabled: false });
       } else {

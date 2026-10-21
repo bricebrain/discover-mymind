@@ -49,3 +49,25 @@ it('un démontage pendant la configuration ne crée pas de connexion tardive',as
   stop=watchPreparations(()=>configured,()=>{},()=>{});stop();resolve();await vi.advanceTimersByTimeAsync(0);
   expect(FakeSocket.sockets).toHaveLength(0);
 });
+it('un signal de présence met à jour l’Atelier sans relire la file',async()=>{
+  const changed=vi.fn(),seen=vi.fn();
+  stop=watchPreparations(async()=>{},()=>{},changed,seen);
+  await vi.advanceTimersByTimeAsync(0);
+  const ws=FakeSocket.sockets[0]!;
+  ws.message('{"type":"atelier.seen","at":"2026-10-20T20:00:00.000Z"}');
+  ws.message('{"type":"atelier.seen","at":"invalid"}');
+  await vi.advanceTimersByTimeAsync(100);
+  expect(seen).toHaveBeenCalledExactlyOnceWith('2026-10-20T20:00:00.000Z');
+  expect(changed).not.toHaveBeenCalled();
+});
+it('distingue une étape intermédiaire d’une publication et conserve la fin dans une rafale',async()=>{
+  const changed=vi.fn();stop=watchPreparations(async()=>{},()=>{},changed);
+  await vi.advanceTimersByTimeAsync(0);const ws=FakeSocket.sockets[0]!;
+  ws.message('{"type":"queue.changed","status":"leased"}');
+  await vi.advanceTimersByTimeAsync(100);
+  expect(changed).toHaveBeenLastCalledWith({reason:'changed',libraryChanged:false});
+  ws.message('{"type":"queue.changed","status":"done"}');
+  ws.message('{"type":"queue.changed","status":"pending"}');
+  await vi.advanceTimersByTimeAsync(100);
+  expect(changed).toHaveBeenLastCalledWith({reason:'changed',libraryChanged:true});
+});
