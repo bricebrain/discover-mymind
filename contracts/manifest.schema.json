@@ -24,7 +24,8 @@
           "enum": [
             "podcast",
             "youtube",
-            "reflection"
+            "reflection",
+            "dossier"
           ]
         },
         "sourceRef": {
@@ -68,6 +69,61 @@
         },
         "rights": {
           "const": "personal_use"
+        },
+        "sources": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 6,
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^d[1-6]$"
+              },
+              "type": {
+                "enum": [
+                  "episode",
+                  "content",
+                  "reflection"
+                ]
+              },
+              "ref": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{3,96}$"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "capturedAt": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "publicationId": {
+                "type": "string",
+                "maxLength": 100
+              },
+              "variantKey": {
+                "type": "string",
+                "maxLength": 32
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "ref",
+              "title",
+              "capturedAt",
+              "sha256"
+            ],
+            "additionalProperties": false
+          }
         }
       },
       "required": [
