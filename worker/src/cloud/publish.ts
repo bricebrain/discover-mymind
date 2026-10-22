@@ -59,7 +59,7 @@ export async function publish(env:Env,id:string,sourceKey:string,scriptKey:strin
     [`${key}.json`]:{bytes:new TextEncoder().encode(JSON.stringify({schemaVersion:1,variantKey:key,segments})),contentType:'application/json'},
     [`${key}.mp3`]:{bytes:concat(chunks),contentType:'audio/mpeg'},
   };
-  const m:Manifest={schemaVersion:1,content:{id:contentId,title:source.title,sourceType:source.kind==='episode' ? 'podcast' : source.kind,sourceRef,
+  const m:Manifest={schemaVersion:1,content:{id:contentId,title:source.title,sourceType:source.kind,sourceRef,
     originalLanguage:sourceText.language,sourceUrl:source.url,rights:'personal_use',editorial:'discovery'},
     variants:[...(old?.variants.filter(v=>v.key!==key) ?? [{key:sourceVariant,kind:'source' as const,language:sourceText.language,segmentsFile:sourcePath,
       generation:{executor:'cloud',transcription:source.kind!=='reflection' ? 'gemini_unverified' : 'saved_text',attribution:source.attribution}}]),

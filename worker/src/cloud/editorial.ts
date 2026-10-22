@@ -11,7 +11,7 @@ export function validateSource(value:unknown,snapshot:Snapshot):SourceText {
   if (typeof v.language!=='string' || !/^[a-z]{2}$/.test(v.language) || !Array.isArray(v.paragraphs) ||
       !v.paragraphs.length || v.paragraphs.length>200 || v.paragraphs.some(p=>!text(p,4000))) throw new Error('Transcription invalide.');
   const paragraphs=v.paragraphs as string[], joined=paragraphs.join('\n');
-  if (joined.length<100 || joined.length>(snapshot.source.kind==='episode' ? 60_000 : 30_000)) throw new Error('Transcription trop courte ou trop longue.');
+  if (joined.length<100 || joined.length>30_000) throw new Error('Transcription trop courte ou trop longue.');
   if (snapshot.source.text && joined.replace(/\s/g,'')!==snapshot.source.text.replace(/\s/g,'')) throw new Error('Le texte de la note a été altéré.');
   return {language:v.language,paragraphs};
 }

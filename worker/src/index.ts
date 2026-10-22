@@ -26,7 +26,6 @@ import * as articleFetch from './routes/articleFetch';
 import * as articles from './articles/routes';
 import { collectArticles } from './articles/collect';
 import * as shows from './routes/shows';
-import { getTranscript } from './routes/transcripts';
 import { handleAtelier } from './routes/atelier';
 import { assertSameOriginWrite } from './security/csrf';
 import { getSession } from './security/session';
@@ -148,10 +147,9 @@ async function handleData(req: Request, env: Env, path: string, m: string): Prom
   if (path === '/api/export' && m === 'GET') return exportData(req, env);
 
   if (path === '/api/explorer' && m === 'GET') return episodes.explorer(req, env);
-  const ep = path.match(/^\/api\/episodes\/([0-9a-f]{20})(\/state|\/transcript)?$/);
+  const ep = path.match(/^\/api\/episodes\/([0-9a-f]{20})(\/state)?$/);
   if (ep?.[1] && !ep[2] && m === 'GET') return episodes.detail(env, ep[1]);
   if (ep?.[1] && ep[2] === '/state' && m === 'POST') return episodes.setState(req, env, ep[1]);
-  if (ep?.[1] && ep[2] === '/transcript' && m === 'GET') return getTranscript(env, ep[1]);
 
   return apiError(404, 'not_found', 'Route inconnue.');
 }

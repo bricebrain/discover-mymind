@@ -1,7 +1,7 @@
 import type { PrepareOptions } from '../queue/options';
 
 export interface CloudSource {
-  kind: 'reflection' | 'youtube' | 'episode'; ref: string; title: string;
+  kind: 'reflection' | 'youtube'; ref: string; title: string;
   text: string | null; url: string | null; durationSec: number | null;
   attribution: string | null;
 }

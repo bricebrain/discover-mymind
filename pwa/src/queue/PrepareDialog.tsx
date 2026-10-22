@@ -59,8 +59,8 @@ export function PrepareDialog({target,title,initial,faithfulAllowed,onClose,onQu
     <div role="radiogroup" aria-label="Lieu de préparation" className="grid grid-cols-2 gap-2.5">
       <PlaceCard icon={<Laptop className="size-5" />} title="Sur le Mac" ok={seenAt === null ? false : macOnline} selected
         hint={macOnline ? 'Atelier en ligne · toutes les options' : 'Mac éteint ? La demande attendra'} onClick={() => {}} />
-      <PlaceCard icon={<Cloud className="size-5" />} title="Sans Mac" ok={c ? !!c.enabled && (cloudLeft === null || cloudLeft > 0) : null} selected={false}
-        hint={`L’essentiel · ${cloudHint}`} onClick={() => setCloud(true)} />
+      {(target.kind==='youtube' || target.kind==='reflection') && <PlaceCard icon={<Cloud className="size-5" />} title="Sans Mac" ok={c ? !!c.enabled && (cloudLeft === null || cloudLeft > 0) : null} selected={false}
+        hint={`L’essentiel · ${cloudHint}`} onClick={() => setCloud(true)} />}
     </div>
     <Field label="Version">
       <Select aria-label="Version" value={options.coverage} options={Object.entries(COVERAGES) as [PrepareOptions['coverage'], string][]} onChange={(coverage) =>

@@ -22,7 +22,6 @@ export function CloudPrepareDialog({target,title,onClose,onQueued}:{target:PrepT
     <p className="m-0 text-[15px] font-semibold">{title}</p>
     <p className="m-0 text-sm text-muted-foreground">L’essentiel en anglais, narration d’environ 4 minutes, traduction française et audio. Une source courte donne une version plus courte. Tu pourras fermer l’app une fois la demande enregistrée.</p>
     {target.kind==='youtube' && <Notice>Vidéo publique terminée, 15 minutes maximum. Gemini tente une transcription même sans sous-titres. Son exactitude reste à vérifier.</Notice>}
-    {target.kind==='episode' && <Notice>Podcast de 30 minutes maximum, avec une durée renseignée et un audio public HTTPS de 80 Mo maximum. Gemini transcrit l’audio ; son exactitude reste à vérifier. La copie audio originale et la version fidèle intégrale restent disponibles sur le Mac.</Notice>}
     {target.kind==='reflection' && <Notice>Seul le texte déjà enregistré est utilisé (100 à 20 000 caractères). Pour un article, vérifie qu’il contient bien le texte souhaité.</Notice>}
     {status.isPending && <Spinner label="Vérification de l’Atelier cloud" />}
     {budget && !budget.enabled && <Notice tone="warning">L’Atelier sans Mac attend son activation sur le serveur.</Notice>}

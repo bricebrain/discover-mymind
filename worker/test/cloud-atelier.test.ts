@@ -45,6 +45,7 @@ describe('autorisation et devis cloud',()=>{
   it('refuse activation absente et options non prises en charge',async()=>{
     await expect(cloudRoute(cloudRequest('quotes',{}),{...cloudEnv,CLOUD_ATELIER_ENABLED:'false'},'/api/cloud/quotes')).rejects.toMatchObject({code:'cloud_disabled'});
     await expect(cloudCall('quotes',{target:{kind:'unsupported',id:'a'.repeat(20)},options})).rejects.toMatchObject({status:422});
+    await expect(cloudCall('quotes',{target:{kind:'episode',id:'a'.repeat(20)},options})).rejects.toMatchObject({status:422,code:'cloud_source'});
     await expect(cloudCall('quotes',{target:{kind:'reflection',id:NOTE},options:{...options,faithful:true}})).rejects.toMatchObject({code:'cloud_options'});
   });
   it('fige la note au devis sans appel IA et refuse ensuite son texte trop court',async()=>{
