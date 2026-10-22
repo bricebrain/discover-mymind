@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ContentDetail, ContentSegments, ContentVariant } from '../api/contents';
-import { activeContentSegment, frenchBySegment, frenchCompanion, timingVerified, variantLabel, variantTrack } from './variants';
+import { activeContentSegment, frenchBySegment, frenchCompanion, timingVerified, variantName, variantLabel, variantTrack } from './variants';
 
 const source: ContentVariant = { key:'en-source',kind:'source',language:'en',segmentsUrl:'/source',timingStatus:'unverified',
   audio:{ source:'publisher_stream',url:'https://cdn.example.com/source.mp3',durationMs:720000,timingSource:'rss_srt' } };
@@ -20,6 +20,9 @@ describe('présentation des versions', () => {
   it('affiche la nature, le niveau, la langue et la durée réelle', () => {
     expect(variantLabel(source)).toBe('Original · Anglais · 12 min');
     expect(variantLabel(faithful)).toBe('Fidèle · Français · Texte seul');
+    expect(variantName({ ...faithful, key:'en-faithful', language:'en', derivedFrom:'fr-source' })).toBe('Anglais');
+    expect(variantName({ ...faithful, language:'en-US' })).toBe('Anglais');
+    expect(variantName({ ...source, key:'fr-source', language:'fr' })).toBe('Original');
     expect(variantLabel(adapted)).toBe('Intégral B1 · Anglais · 12 min');
     expect(variantLabel({ ...adapted,style:'dialogue' })).toBe('Intégral B1 · Anglais · 12 min · Dialogue');
     expect(variantLabel({ ...adapted,cefrLevel:null })).toBe('Intégral · Anglais non simplifié · 12 min');

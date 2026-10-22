@@ -5,7 +5,7 @@ import { isSynced } from '../transcript/subtitles';
 
 export function variantName(v: ContentVariant): string {
   if (v.kind === 'source') return 'Original';
-  if (v.kind === 'faithful_translation') return 'Fidèle';
+  if (v.kind === 'faithful_translation') return v.language.split('-')[0] === 'en' ? 'Anglais' : 'Fidèle';
   const name = v.coverage === 'condensed' ? 'Condensé' : v.coverage === 'essentials' ? 'L’essentiel' : 'Intégral';
   return v.cefrLevel ? `${name} ${v.cefrLevel}` : name;
 }

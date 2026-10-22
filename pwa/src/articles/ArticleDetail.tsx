@@ -11,15 +11,12 @@ import { PreparedEpisode } from '../components/PreparedEpisode';
 import { PublisherThumb } from '../explorer/FeedCards';
 import { LEVEL_OPTIONS } from '../queue/PrepareDialog';
 import type { PrepareOptions } from '../queue/types';
+import { COVERAGES } from '../queue/options';
 import { RelatedList } from '../related/RelatedList';
 import { readingTime } from './readingTime';
 
-type Coverage = PrepareOptions['coverage'];
-const COVERAGE: Record<Coverage, { label: string; minutes: number | null }> = {
-  guided: { label: 'Original guidé', minutes: null },
-  essentials: { label: 'L’essentiel · 4 min', minutes: 4 }, condensed: { label: 'Condensé · 8 min', minutes: 8 }, full: { label: 'Intégral', minutes: null },
-};
-const COVERAGE_OPTIONS = (Object.keys(COVERAGE) as Coverage[]).map((c) => [c, COVERAGE[c].label] as const);
+type Coverage = keyof typeof COVERAGES;
+const COVERAGE_OPTIONS = Object.entries(COVERAGES) as [Coverage, string][];
 
 function PrepareArticleDialog({ article, onClose }: { article: Article; onClose: () => void }) {
   const { toNote } = useArticleActions(article.id);
@@ -29,7 +26,7 @@ function PrepareArticleDialog({ article, onClose }: { article: Article; onClose:
   return <Sheet title="Préparer en anglais" onClose={onClose} locked={toNote.isPending} footer={<>
     <Button variant="ghost" onClick={onClose} disabled={toNote.isPending}>{done ? 'Fermer' : 'Annuler'}</Button>
     {!done && <Button disabled={toNote.isPending} onClick={() => toNote.mutate(
-      { coverage, level, style: 'narration', targetMinutes: COVERAGE[coverage].minutes },
+      { coverage, level, style: 'narration', targetMinutes: coverage === 'guided' ? null : 4 },
       { onSuccess: (r) => setDone(r.noteId) },
     )}>{toNote.isPending ? 'Envoi…' : 'Mettre à préparer'}</Button>}
   </>}>
@@ -44,7 +41,7 @@ function PrepareArticleDialog({ article, onClose }: { article: Article; onClose:
         <Field label={coverage === 'guided' ? 'Niveau des explications' : 'Niveau d’anglais'}><Select value={level}
           options={coverage === 'guided' ? LEVEL_OPTIONS.filter(([v]) => v !== 'original') : LEVEL_OPTIONS} onChange={setLevel} /></Field>
       </div>
-      <p className="m-0 text-xs leading-relaxed text-muted-foreground">L’Atelier adapte le texte à ton niveau et en fait une version audio, attribuée à {article.publisher}.</p>
+      <p className="m-0 text-xs leading-relaxed text-muted-foreground">L’Atelier prépare une version audio attribuée à {article.publisher}. En Original guidé, le texte anglais est lu en entier et le niveau règle les explications ; en mode Découvrir, il est adapté en 4 minutes.</p>
     </>}
     {toNote.isError && <Notice tone="error">{toNote.error.message}</Notice>}
   </Sheet>;

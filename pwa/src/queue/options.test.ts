@@ -1,5 +1,5 @@
 import { describe,expect,it } from 'vitest';
-import { defaultOptions,optionsLabel,queueLabel } from './options';
+import { COVERAGES,EXPLANATION_LEVEL_OPTIONS,defaultOptions,optionsLabel,queueLabel } from './options';
 import type { QueueItem } from './types';
 
 describe('préparation',() => {
@@ -7,6 +7,11 @@ describe('préparation',() => {
     expect(defaultOptions()).toEqual({coverage:'guided',level:'B1',style:'narration',targetMinutes:null,faithful:false,keepOriginalCopy:false});
     expect(optionsLabel(defaultOptions())).toBe('Original guidé · explications B1');
     expect(optionsLabel({...defaultOptions(),coverage:'condensed',targetMinutes:12})).toBe('Condensé · B1 · 12 min');
+  });
+  it('limite les nouvelles formules sans perdre les libellés historiques',() => {
+    expect(COVERAGES).toEqual({guided:'Original guidé',essentials:'L’essentiel · 4 min (Découvrir)'});
+    expect(optionsLabel({...defaultOptions(),coverage:'full'})).toBe('Intégral · B1');
+    expect(EXPLANATION_LEVEL_OPTIONS.map(([value]) => value)).toEqual(['A2','B1','B2','C1']);
   });
   it('ne présente pas une source transcrite comme une préparation achevée',() => {
     expect(queueLabel({status:'pending',stage:'source_ready'} as QueueItem)).toContain('en attente de l’adaptation');

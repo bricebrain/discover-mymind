@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import type { PrepTarget } from '../api/queue';
 import { CloudPrepareDialog } from '../cloud/CloudPrepareDialog';
 import { cloudApi, dollars } from '../cloud/api';
-import { COVERAGES, LEVEL_OPTIONS } from './options';
+import { COVERAGES, EXPLANATION_LEVEL_OPTIONS, LEVEL_OPTIONS } from './options';
 import type { PrepareOptions } from './types';
 import { usePreparation } from './usePreparation';
 
@@ -68,7 +68,7 @@ export function PrepareDialog({target,title,initial,faithfulAllowed,onClose,onQu
           ...(coverage==='guided' ? {style:'narration',faithful:false,level:o.level==='original' ? 'B1' : o.level} : {})}))} />
     </Field>
     {guided ? <>
-      <Field label="Niveau des explications"><Select value={options.level} options={LEVEL_OPTIONS.filter(([v]) => v!=='original')} onChange={(v) => set('level',v)} /></Field>
+      <Field label="Niveau des explications"><Select value={options.level} options={EXPLANATION_LEVEL_OPTIONS} onChange={(v) => set('level',v)} /></Field>
       <p className="m-0 text-xs leading-relaxed text-muted-foreground">L’anglais n’est jamais simplifié : une vidéo anglaise reste l’original, une source française est traduite en anglais naturel et lue en entier. Le guide (passage de 2 à 5 minutes, expressions, quiz) est rédigé à ton niveau.</p>
     </> : <div className="grid grid-cols-2 gap-3">
       <Field label="Niveau d’anglais"><Select value={options.level} options={LEVEL_OPTIONS} onChange={(v) => set('level',v)} /></Field>

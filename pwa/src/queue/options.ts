@@ -1,6 +1,8 @@
 import type { PrepareOptions, QueueItem } from './types';
 
-export const COVERAGES = {guided:'Original guidé',full:'Intégral',condensed:'Condensé',essentials:'L’essentiel'};
+const COVERAGE_LABELS = {guided:'Original guidé',full:'Intégral',condensed:'Condensé',essentials:'L’essentiel'};
+export const COVERAGES = {guided:COVERAGE_LABELS.guided,essentials:'L’essentiel · 4 min (Découvrir)'};
+export const EXPLANATION_LEVEL_OPTIONS = [['A2', 'A2'], ['B1', 'B1'], ['B2', 'B2'], ['C1', 'C1']] as const;
 export const LEVEL_OPTIONS = [['A2', 'A2'], ['B1', 'B1'], ['B2', 'B2'], ['C1', 'C1'], ['original', 'Anglais non simplifié']] as const;
 export const STAGES: Record<string,string> = {
   download:'Téléchargement',normalize:'Préparation audio',transcribe:'Transcription',source_ready:'Source prête dans l’Atelier',
@@ -20,5 +22,5 @@ export function queueLabel(item: QueueItem) {
 }
 export function optionsLabel(o: PrepareOptions) {
   if (o.coverage==='guided') return `Original guidé · explications ${o.level}`;
-  return `${COVERAGES[o.coverage]} · ${o.level==='original' ? 'Anglais non simplifié' : o.level}${o.targetMinutes ? ` · ${o.targetMinutes} min` : ''}`;
+  return `${COVERAGE_LABELS[o.coverage]} · ${o.level==='original' ? 'Anglais non simplifié' : o.level}${o.targetMinutes ? ` · ${o.targetMinutes} min` : ''}`;
 }

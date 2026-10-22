@@ -22,7 +22,7 @@ export function unreviewed(v: ContentVariant): boolean {
 
 const overline = 'm-0 mb-2 text-[11px] font-semibold uppercase tracking-[.08em] text-muted-foreground';
 
-/** Pastilles de version (Condensé B1, Fidèle, Original…), défilantes, avec durée et mention « non relue ». */
+/** Pastilles de version (Anglais, Original, Condensé B1…), défilantes, avec durée et mention « non relue ». */
 export function VariantPills({ variants, value, onSelect }: { variants: ContentVariant[]; value: string; onSelect: (key: string) => void }) {
   return <div role="radiogroup" aria-label="Version à écouter" className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
     {[...variants].sort((a, b) => order(a) - order(b)).map((v) => {

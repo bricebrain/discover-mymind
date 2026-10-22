@@ -8,7 +8,7 @@ import type { QueueItem, QueueWaiting } from './types';
 /** Libellés courts des étapes, pour la frise. */
 const SHORT: Record<string, string> = {
   download: 'Source', normalize: 'Audio', transcribe: 'Transcription', plan: 'Plan', extract: 'Analyse', adapt: 'Adaptation',
-  evaluate: 'Contrôle', translate: 'Fidèle', tts: 'Voix', publish: 'Publication',
+  evaluate: 'Contrôle', translate: 'Traduction', tts: 'Voix', publish: 'Publication',
 };
 
 export function formatRemaining(sec: number) {
