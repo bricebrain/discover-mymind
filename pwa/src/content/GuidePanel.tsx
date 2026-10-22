@@ -47,6 +47,9 @@ export function GuidePanel({ detail, variant, playing, positionSec, onPlay, onHi
   const [slow, setSlow] = useState(false);
   const stopAt = useRef<number | null>(null);
   const normalRate = useRef<number | null>(null);
+  // Le lecteur change d'identité à chaque mise à jour : le nettoyage de sortie passe par une référence.
+  const playerRef = useRef(player);
+  playerRef.current = player;
   const passage = segments.data ? guidePassage(segments.data.guide, segments.data.segments) : null;
 
   // Arrêt à la fin de l'écoute demandée ; toute autre lecture reste libre.
@@ -56,8 +59,8 @@ export function GuidePanel({ detail, variant, playing, positionSec, onPlay, onHi
   }, [playing, positionSec, player]);
   useEffect(() => () => {
     onHideText(false);
-    if (normalRate.current !== null) player.setRate(normalRate.current);
-  }, [onHideText, player]);
+    if (normalRate.current !== null) playerRef.current.setRate(normalRate.current);
+  }, [onHideText]);
 
   const keep = useMutation({
     mutationFn: async (notes: GuideNote[]) => {

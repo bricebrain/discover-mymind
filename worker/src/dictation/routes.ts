@@ -42,8 +42,10 @@ async function analyse(env: Env, sentence: string, typed: string, errors: Mistak
         byIndex.set(e.index as number, { category: e.category as Category, explanation: e.explanation.trim().slice(0, 600) });
     }
     return { byIndex, tip: typeof data.tip === 'string' && data.tip.trim() ? data.tip.trim().slice(0, 400) : null };
-  } catch {
-    return null; // L'analyse est un plus : la correction mot à mot reste disponible.
+  } catch (error) {
+    // L'analyse est un plus : la correction mot à mot reste disponible. La cause reste visible dans les journaux du Worker.
+    console.warn('Analyse de dictée indisponible :', error instanceof Error ? error.message : String(error));
+    return null;
   }
 }
 

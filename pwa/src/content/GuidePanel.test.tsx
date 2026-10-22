@@ -22,7 +22,8 @@ const player = { pause: vi.fn(), rate: 1, setRate: vi.fn() };
 const saveWordPick = vi.fn(async () => ({ pick: {}, alreadySaved: false }));
 const submitDictation = vi.fn();
 vi.mock('../api/contents', () => ({ useContentSegments: () => ({ data: segments }) }));
-vi.mock('../player/PlayerProvider', () => ({ usePlayer: () => player }));
+// Comme le vrai lecteur, un nouvel objet à chaque rendu.
+vi.mock('../player/PlayerProvider', () => ({ usePlayer: () => ({ ...player }) }));
 vi.mock('../vocabulary/api', () => ({ PICKS_KEY: ['picks'], saveWordPick: (...a: unknown[]) => saveWordPick(...(a as [])) }));
 vi.mock('../api/dictation', async (original) => ({ ...(await original<typeof import('../api/dictation')>()),
   submitDictation: (...a: unknown[]) => submitDictation(...a) }));
@@ -85,6 +86,7 @@ it('dicte phrase par phrase, texte masqué, avec arrêt en fin de phrase et lect
   expect(play).toHaveBeenLastCalledWith(10);
   view.rerender(panel({ onPlay: play, onHideText: hide, playing: true, positionSec: 71 }));
   expect(player.pause).toHaveBeenCalled();
+  expect(hide).toHaveBeenLastCalledWith(true); // le texte reste masqué pendant toute la dictée
   fireEvent.click(screen.getByText('Plus lentement'));
   expect(player.setRate).toHaveBeenLastCalledWith(0.8);
   fireEvent.change(screen.getByLabelText('Ce que tu entends'), { target: { value: 'the bank is expected decide' } });
