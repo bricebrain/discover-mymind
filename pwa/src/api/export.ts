@@ -5,7 +5,7 @@ export const EXPORT_SECTIONS = [
   ['shows', 'Émissions suivies'], ['savedEpisodes', 'Épisodes sauvegardés'],
   ['listeningProgress', 'Progression d’écoute'],
 ] as const;
-const COLLECTIONS = [...EXPORT_SECTIONS.map(([key]) => key), 'preparations'] as const;
+const COLLECTIONS = [...EXPORT_SECTIONS.map(([key]) => key), 'preparations', 'dictationAttempts', 'listeningReviews'] as const;
 type Collection = typeof COLLECTIONS[number];
 type Collections = Record<Collection, unknown[]>;
 interface ExportPage extends Collections {
@@ -33,7 +33,7 @@ export async function fetchCompleteExport(): Promise<CompleteExport> {
     result ??= {
       schemaVersion: 2, exportedAt: data.exportedAt, audioNotice: data.audioNotice,
       appSettings: data.appSettings, markdown: '', reflections: [], contents: [], dossiers: [],
-      shows: [], savedEpisodes: [], listeningProgress: [], preparations: [],
+      shows: [], savedEpisodes: [], listeningProgress: [], preparations: [], dictationAttempts: [], listeningReviews: [],
     };
     for (const key of COLLECTIONS) result[key].push(...data[key]);
     for (const [key, text] of Object.entries(data.markdownSections)) {

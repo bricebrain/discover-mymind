@@ -9,6 +9,7 @@ import { usePlayer } from '../player/PlayerProvider';
 import { formatClock } from '../player/MiniPlayer';
 import { PICKS_KEY, saveWordPick } from '../vocabulary/api';
 import { validWordPick } from '../vocabulary/validation';
+import { useReviewPlayback } from './useReviewPlayback';
 import { Dictation } from './Dictation';
 
 export interface GuidePassage { guide: ContentGuide; startMs: number; endMs: number; segments: ContentSegment[] }
@@ -35,22 +36,33 @@ const SLOW_RATE = 0.8;
  * Original guidé : un passage de 2 à 5 minutes travaillé en quatre temps, puis le quiz.
  * La lecture s'arrête à la fin de ce qui est demandé (passage ou phrase) ; le texte est masqué pendant les écoutes sans aide.
  */
-export function GuidePanel({ detail, variant, playing, positionSec, onPlay, onHideText }: {
-  detail: ContentDetail; variant: ContentVariant; playing: boolean; positionSec: number;
+export function GuidePanel({ detail, variant, playing, positionSec, onPlay, onHideText, initialReview = false }: {
+  detail: ContentDetail; variant: ContentVariant; initialReview?: boolean; playing: boolean; positionSec: number;
   onPlay: (positionSec: number) => void; onHideText: (hidden: boolean) => void;
 }) {
   const player = usePlayer();
   const queryClient = useQueryClient();
   const segments = useContentSegments(detail.publicationId, variant);
-  const [step, setStep] = useState<number | null>(null);
+  const [step, setStep] = useState<number | null>(initialReview ? 3 : null);
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [slow, setSlow] = useState(false);
+  const review = useReviewPlayback(detail.content.id, detail.publicationId, variant.key, initialReview && step === 3, playing, positionSec);
+  const openedReview = useRef(false);
   const stopAt = useRef<number | null>(null);
   const normalRate = useRef<number | null>(null);
   // Le lecteur change d'identité à chaque mise à jour : le nettoyage de sortie passe par une référence.
   const playerRef = useRef(player);
   playerRef.current = player;
   const passage = segments.data ? guidePassage(segments.data.guide, segments.data.segments) : null;
+
+  useEffect(() => {
+    if (!initialReview || !passage || openedReview.current) return;
+    openedReview.current = true;
+    onHideText(true);
+    stopAt.current = passage.endMs;
+    review.arm(passage.startMs, passage.endMs);
+    onPlay(passage.startMs / 1000);
+  }, [initialReview, passage, onHideText, onPlay, review]);
 
   // Arrêt à la fin de l'écoute demandée ; toute autre lecture reste libre.
   useEffect(() => {
@@ -90,6 +102,7 @@ export function GuidePanel({ detail, variant, playing, positionSec, onPlay, onHi
   };
   const start = (index: number) => {
     setStep(index);
+    if (index === 3) review.arm(passage.startMs, passage.endMs); else review.cancel();
     onHideText(STEPS[index]!.hide);
     if (index !== DICTATION) playRange(passage.startMs, passage.endMs);
     else player.pause();
@@ -118,10 +131,13 @@ export function GuidePanel({ detail, variant, playing, positionSec, onPlay, onHi
       <li className="px-1 text-sm text-muted-foreground">5. Vérifie avec le quiz en bas de page, puis reviens dans quelques jours pour une réécoute sans texte.</li>
     </ol>
 
+    {review.complete.isError && <Notice tone="error">{review.complete.error.message}<Button onClick={() => review.complete.mutate()}>Réessayer l’enregistrement</Button></Notice>}
+    {review.complete.isSuccess && <Notice tone="success">Réécoute enregistrée. Le prochain rendez-vous est programmé.</Notice>}
+
     {step === DICTATION && <Dictation key={variant.key} contentId={detail.content.id} publicationId={detail.publicationId} variantKey={variant.key}
       segments={passage.segments} units={guide.dictation} onPlayRange={playRange} onSlow={setSlowRate} slow={slow} />}
 
-    {step !== null && step > 0 && step !== DICTATION && <div className="space-y-4">
+    {step === 1 && <div className="space-y-4">
       <div>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h3 className="m-0 text-base font-semibold">Expressions à reconnaître</h3>

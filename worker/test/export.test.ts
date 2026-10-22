@@ -59,7 +59,7 @@ describe('export v2', () => {
   it('ne contient aucun secret (sessions, connexions, push, jetons de bail)', async () => {
     const payload = await (await call('/api/export?v=2', { cookie })).json<Record<string, unknown>>();
     const text = JSON.stringify(payload);
-    expect(Object.keys(payload).sort()).toEqual(['appSettings', 'audioNotice', 'contents', 'dossiers', 'exportedAt', 'listeningProgress', 'markdown', 'preparations', 'reflections', 'savedEpisodes', 'schemaVersion', 'shows'].sort());
+    expect(Object.keys(payload).sort()).toEqual(['dictationAttempts', 'listeningReviews', 'appSettings', 'audioNotice', 'contents', 'dossiers', 'exportedAt', 'listeningProgress', 'markdown', 'preparations', 'reflections', 'savedEpisodes', 'schemaVersion', 'shows'].sort());
     for (const secret of ['session-secret-hmac', 'secret-bucket', 'secret-endpoint', 'secret-p256dh', 'secret-auth', 'secret-lease-token', 'mac-secret', ATELIER_TOKEN, PASSPHRASE]) {
       expect(text).not.toContain(secret);
     }

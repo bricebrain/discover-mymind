@@ -104,3 +104,13 @@ export async function loadAppSettings(env: Env) {
   const values = new Map(results.map((r) => [r.key, r.value]));
   return { autoPrepareEnabled: values.get('auto_prepare_enabled') !== '0' };
 }
+
+/** Essais de dictée et échéances de réécoute, sans données d’authentification. */
+export async function loadDictationAttempts(env: Env, page?: Page) {
+  return (await env.DB.prepare(`SELECT id,content_id,publication_id,variant_key,segment_id,voice,expected,typed,
+    expected_words,correct_words,errors_json,tip,created_at FROM dictation_attempts ORDER BY created_at,id ${pageSql(page)}`).all()).results;
+}
+export async function loadListeningReviews(env: Env, page?: Page) {
+  return (await env.DB.prepare(`SELECT content_id,publication_id,variant_key,step,due_at,last_done_at,last_accuracy,created_at,updated_at
+    FROM listening_reviews ORDER BY due_at,content_id ${pageSql(page)}`).all()).results;
+}

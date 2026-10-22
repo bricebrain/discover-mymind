@@ -42,6 +42,7 @@ export function ContentPage() {
       <PlaybackControls reader={reader} />
       <DownloadButton detail={query.data} variant={variant} />
       <GuidePanel key={`guide:${query.data.publicationId}:${variant.key}`} detail={query.data} variant={variant}
+        initialReview={new URLSearchParams(location.search).get('review') === '1' && new URLSearchParams(location.search).get('step') === '4'}
         playing={reader.playing} positionSec={reader.positionSec} onPlay={reader.play} onHideText={setHideText} />
       <VariantTranscript key={`transcript:${query.data.publicationId}:${variant.key}`} detail={query.data} variant={variant}
         activePositionMs={reader.activePositionMs} verified={reader.verified} playing={reader.playing} onSeek={reader.play}

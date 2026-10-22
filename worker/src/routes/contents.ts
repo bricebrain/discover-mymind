@@ -104,6 +104,8 @@ export async function remove(env: Env, id: string) {
       revision=revision||':deleted:'||?,commit_token=NULL,updated_at=? WHERE content_id=? AND revision NOT LIKE '%:deleted:%'`).bind(now,now,id),
     env.DB.prepare('UPDATE episodes SET content_id=NULL WHERE content_id=?').bind(id),
     env.DB.prepare('UPDATE reflections SET english_content_id=NULL WHERE english_content_id=?').bind(id),
+    env.DB.prepare('DELETE FROM dictation_attempts WHERE content_id=?').bind(id),
+    env.DB.prepare('DELETE FROM listening_reviews WHERE content_id=?').bind(id),
     env.DB.prepare('DELETE FROM quiz_answers WHERE publication_id IN (SELECT id FROM publications WHERE content_id=?)').bind(id),
     env.DB.prepare("DELETE FROM listening_progress WHERE target_type='variant' AND substr(target_id,1,?)=?").bind(id.length+1,id+':'),
     env.DB.prepare("DELETE FROM reflection_links WHERE target_type='content' AND target_id=?").bind(id),

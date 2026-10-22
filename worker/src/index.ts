@@ -1,3 +1,4 @@
+import * as listeningReviews from './listening-reviews/routes';
 import { related, groups as relatedGroups } from './related/routes';
 import { vocabularyRoute } from './vocabulary/routes';
 import { flushEvents,cleanupEvents } from './events/hub';
@@ -100,6 +101,9 @@ async function handleData(req: Request, env: Env, path: string, m: string): Prom
   }
   const dictated = path.match(/^\/api\/contents\/([a-z0-9-]{3,96})\/variants\/([a-z0-9-]{2,32})\/dictation$/);
   if (dictated?.[1] && dictated[2] && m === 'POST') return dictation.submit(req,env,dictated[1],dictated[2]);
+  if (path === '/api/listening-reviews/due' && m === 'GET') return listeningReviews.due(env);
+  const review = path.match(/^\/api\/listening-reviews\/([a-z0-9-]{3,96})\/done$/);
+  if (review?.[1] && m === 'POST') return listeningReviews.done(req,env,review[1]);
   if (path === '/api/dictation/progress' && m === 'GET') return dictation.progress(env);
   const feedback = path.match(/^\/api\/contents\/([a-z0-9-]{3,96})\/variants\/([a-z0-9-]{2,32})\/feedback$/);
   if (feedback?.[1] && feedback[2] && m === 'POST') return saveFeedback(req, env, feedback[1], feedback[2]);

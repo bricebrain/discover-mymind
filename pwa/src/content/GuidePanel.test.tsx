@@ -21,6 +21,8 @@ let segments: ContentSegments = doc;
 const player = { pause: vi.fn(), rate: 1, setRate: vi.fn() };
 const saveWordPick = vi.fn(async () => ({ pick: {}, alreadySaved: false }));
 const submitDictation = vi.fn();
+const completeReview = vi.fn();
+vi.mock('../api/listeningReviews', () => ({ useCompleteListeningReview: () => ({ mutate: completeReview, isError: false, isSuccess: false }) }));
 vi.mock('../api/contents', () => ({ useContentSegments: () => ({ data: segments }) }));
 // Comme le vrai lecteur, un nouvel objet à chaque rendu.
 vi.mock('../player/PlayerProvider', () => ({ usePlayer: () => ({ ...player }) }));
@@ -131,4 +133,22 @@ it('dicte les unités du guide avec leurs propres bornes et envoie unitId', asyn
   fireEvent.click(screen.getByText('Phrase suivante'));
   fireEvent.click(screen.getByText('Écouter la phrase'));
   expect(play).toHaveBeenLastCalledWith(16);
+});
+
+it('ouvre la réécoute à l’étape 4, masque les aides et confirme seulement après le passage', () => {
+  const play = vi.fn(), hide = vi.fn();
+  completeReview.mockClear();
+  const props = { initialReview: true, onPlay: play, onHideText: hide, playing: true };
+  const view = render(panel(props), { wrapper });
+  expect(play).toHaveBeenCalledOnce();
+  expect(play).toHaveBeenCalledWith(10);
+  expect(hide).toHaveBeenCalledWith(true);
+  expect(screen.queryByText('hold rates steady')).toBeNull();
+  expect(completeReview).not.toHaveBeenCalled();
+  view.rerender(panel({ ...props, positionSec: 50 }));
+  expect(completeReview).not.toHaveBeenCalled();
+  view.rerender(panel({ ...props, positionSec: 130, playing: false }));
+  expect(completeReview).toHaveBeenCalledOnce();
+  view.rerender(panel({ ...props, positionSec: 131 }));
+  expect(completeReview).toHaveBeenCalledOnce();
 });

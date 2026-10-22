@@ -1,3 +1,4 @@
+import { scheduleReview, UNDERSTOOD } from '../listening-reviews/routes';
 import type { Env } from '../env';
 import { HttpError, json, readJson } from '../http';
 import { gemini } from '../cloud/gemini';
@@ -81,17 +82,18 @@ export async function submit(req: Request, env: Env, id: string, key: string) {
   const errors: AnalysedMistake[] = found.map((m, index) => ({ ...m,
     category: analysis?.byIndex.get(index)?.category ?? fallbackCategory(m), explanation: analysis?.byIndex.get(index)?.explanation ?? null }));
   const attempt = { id: crypto.randomUUID(), createdAt: new Date().toISOString() };
-  await env.DB.prepare(`INSERT INTO dictation_attempts (id,content_id,publication_id,variant_key,segment_id,voice,expected,typed,
+  await env.DB.batch([env.DB.prepare(`INSERT INTO dictation_attempts (id,content_id,publication_id,variant_key,segment_id,voice,expected,typed,
     expected_words,correct_words,errors_json,tip,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .bind(attempt.id, id, p.id, key, segment.id, voice, segment.text, b.typed, counts.expectedWords, counts.correctWords,
-      JSON.stringify(errors), analysis?.tip ?? null, attempt.createdAt).run();
+      JSON.stringify(errors), analysis?.tip ?? null, attempt.createdAt),
+    scheduleReview(env, id, p.id, key, attempt.createdAt)]);
   return json({ ...attempt, segmentId: b.unitId !== undefined ? (segment as { segmentId: string }).segmentId : segment.id,
     ...(b.unitId !== undefined ? { unitId: segment.id } : {}), expected: segment.text, tokens, ...counts,
     accuracy: counts.expectedWords ? counts.correctWords / counts.expectedWords : 1, errors, tip: analysis?.tip ?? null });
 }
 
 /** Une phrase est « comprise à l'oreille » quand au moins 90 % de ses mots ont été reconnus. */
-export const UNDERSTOOD = 0.9;
+export { UNDERSTOOD } from '../listening-reviews/routes';
 
 export async function progress(env: Env) {
   const since = new Date(Date.now() - 56 * 86_400_000).toISOString();

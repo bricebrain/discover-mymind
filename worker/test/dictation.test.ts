@@ -2,9 +2,8 @@ import { env } from 'cloudflare:workers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { align, mistakes, score, words } from '../src/dictation/align';
 import { fallbackCategory } from '../src/dictation/routes';
-import type { Manifest } from '../src/publications/types';
-import { sha256Hex } from '../src/security/crypto';
-import { ATELIER_TOKEN, call, login } from './helpers';
+import { publishDictation } from './dictation.fixture';
+import { call, login } from './helpers';
 
 const SENTENCE = 'Uh, the Bank of England is expected to hold rates steady at 65 percent, sixty-five.';
 
@@ -33,27 +32,8 @@ describe('route de dictée', () => {
   beforeEach(async () => { await env.DB.prepare('DELETE FROM dictation_attempts').run(); cookie = await login(); });
   afterEach(() => { vi.unstubAllGlobals(); });
 
-  async function publish(guided = false) {
-    const contentId = 'dictation-' + crypto.randomUUID().slice(0, 8);
-    const raw = JSON.stringify({ schemaVersion: 1, variantKey: 'en-source', segments: [
-      { id: 's0001', text: 'The bank is expected to hold rates steady.', startMs: guided ? 0 : null, endMs: guided ? 4000 : null }],
-      ...(guided ? { guide: { level: 'B1', voice: 'original', passage: { fromSegment: 's0001', toSegment: 's0001' },
-        expressions: [{ segmentId: 's0001', text: 'bank', note: 'Banque' }], listening: [], dictation: [{ id: 'd001', segmentId: 's0001', text: 'The bank is expected', startMs: 0, endMs: 2000 }] } } : {}) });
-    const files: Manifest['files'] = { 'segments/en-source.json': { sha256: await sha256Hex(raw), size: raw.length, contentType: 'application/json' } };
-    const manifest: Manifest = { schemaVersion: 1, content: { id: contentId, title: 'Rates', originalLanguage: 'en', sourceType: 'youtube', rights: 'personal_use' },
-      variants: [{ key: 'en-source', kind: 'source', language: 'en', segmentsFile: 'segments/en-source.json',
-        ...(guided ? { audio: { source: 'r2' as const, file: 'audio/source.mp3', origin: 'original' as const, durationMs: 4000, timingSource: 'rss_vtt' as const } } : {}) }], files };
-    if (guided) { const audio = 'ID3-test'; files['audio/source.mp3'] = { sha256: await sha256Hex(audio), size: audio.length, contentType: 'audio/mpeg' }; }
-    const headers = { Authorization: `Bearer ${ATELIER_TOKEN}` };
-    const state = await (await call('/atelier/publications', { method: 'POST', headers, body: { manifest } })).json<{ publicationId: string; missing: string[] }>();
-    for (const path of state.missing) await call(`/atelier/publications/${state.publicationId}/files/${path}`, { method: 'PUT', body: path.startsWith('audio/') ? 'ID3-test' : raw,
-      headers: { ...headers, 'x-content-sha256': files[path]!.sha256, 'Content-Type': files[path]!.contentType } });
-    expect((await call(`/atelier/publications/${state.publicationId}/commit`, { method: 'POST', headers })).status).toBe(200);
-    return { contentId, publicationId: state.publicationId, url: `/api/contents/${contentId}/variants/en-source/dictation` };
-  }
-
   it('corrige l’unité du guide et conserve son identifiant dans la base', async () => {
-    const p = await publish(true);
+    const p = await publishDictation(true);
     const response = await call(p.url, { method: 'POST', cookie,
       body: { publicationId: p.publicationId, unitId: 'd001', typed: 'The bank is expected' } });
     expect(response.status, await response.clone().text()).toBe(200);
@@ -67,7 +47,7 @@ describe('route de dictée', () => {
   });
 
   it('corrige mot à mot, explique chaque erreur avec l’IA et alimente la progression', async () => {
-    const p = await publish();
+    const p = await publishDictation();
     const http = vi.fn()
       // Réponses créées pendant la requête du Worker (un corps créé ailleurs n'y est pas lisible).
       .mockImplementationOnce(async () => Response.json({ totalTokens: 120 }))
@@ -90,7 +70,7 @@ describe('route de dictée', () => {
   });
 
   it('reste utilisable sans IA : correction et catégories déduites', async () => {
-    const p = await publish();
+    const p = await publishDictation();
     vi.stubGlobal('fetch', vi.fn(() => { throw new Error('Gemini indisponible'); }));
     const result = await (await call(p.url, { method: 'POST', cookie, body: { publicationId: p.publicationId, segmentId: 's0001',
       typed: 'The bank is expected to hold rates steady.' } })).json<{ accuracy: number; errors: unknown[]; tip: null }>();
@@ -101,7 +81,7 @@ describe('route de dictée', () => {
   });
 
   it('refuse une phrase inconnue ou un texte trop long', async () => {
-    const p = await publish();
+    const p = await publishDictation();
     expect((await call(p.url, { method: 'POST', cookie, body: { publicationId: p.publicationId, segmentId: 'nope', typed: 'x' } })).status).toBe(404);
     expect((await call(p.url, { method: 'POST', cookie, body: { publicationId: p.publicationId, segmentId: 's0001', typed: 'x'.repeat(1001) } })).status).toBe(400);
   });

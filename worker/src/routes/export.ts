@@ -2,7 +2,7 @@ import type { Env } from '../env';
 import { HttpError, json } from '../http';
 import { exportAll } from './reflections';
 import { AUDIO_NOTICE } from '../export/constants';
-import { loadNotes, loadShows, loadSavedEpisodes, loadProgress, loadPreparations, loadAppSettings } from '../export/data';
+import { loadNotes, loadShows, loadSavedEpisodes, loadProgress, loadPreparations, loadAppSettings, loadDictationAttempts, loadListeningReviews } from '../export/data';
 import { loadContents } from '../export/contents';
 import { loadDossiers } from '../export/dossiers';
 import { buildMarkdown, markdownSections } from '../export/markdown';
@@ -22,8 +22,8 @@ export async function exportData(req: Request, env: Env): Promise<Response> {
     throw new HttpError(400, 'invalid_format', 'Format d’export inconnu.');
   }
   if (page && params.get('format') === 'markdown') throw new HttpError(400, 'invalid_format', 'Utiliser le JSON pour les pages d’export.');
-  const [reflections, shows, savedEpisodes, listeningProgress, preparations, contents, dossiers, appSettings] = await Promise.all([
-    loadNotes(env, page), loadShows(env, page), loadSavedEpisodes(env, page), loadProgress(env, page), loadPreparations(env, page), loadContents(env, page), loadDossiers(env, page), loadAppSettings(env),
+  const [reflections, shows, savedEpisodes, listeningProgress, preparations, contents, dossiers, appSettings, dictationAttempts, listeningReviews] = await Promise.all([
+    loadNotes(env, page), loadShows(env, page), loadSavedEpisodes(env, page), loadProgress(env, page), loadPreparations(env, page), loadContents(env, page), loadDossiers(env, page), loadAppSettings(env), loadDictationAttempts(env, page), loadListeningReviews(env, page),
   ]);
   const markdownData = { notes: reflections, contents, dossiers, shows, saved: savedEpisodes, progress: listeningProgress };
   const exportedAt = new Date().toISOString();
@@ -39,8 +39,8 @@ export async function exportData(req: Request, env: Env): Promise<Response> {
   }
   return json({
     schemaVersion: 2, exportedAt, audioNotice: AUDIO_NOTICE,
-    ...(page ? { pagination: { page: page.index, hasMore: contents.length === 1 || dossiers.length === 1 || [reflections, shows, savedEpisodes, listeningProgress, preparations].some(items => items.length === page.size) }, markdownSections: markdownSections(markdownData) } : {}),
-    reflections, shows, savedEpisodes, listeningProgress, preparations, contents, dossiers, appSettings,
+    ...(page ? { pagination: { page: page.index, hasMore: contents.length === 1 || dossiers.length === 1 || [reflections, shows, savedEpisodes, listeningProgress, preparations, dictationAttempts, listeningReviews].some(items => items.length === page.size) }, markdownSections: markdownSections(markdownData) } : {}),
+    reflections, shows, savedEpisodes, listeningProgress, preparations, contents, dossiers, appSettings, dictationAttempts, listeningReviews,
     ...(!page ? { markdown: buildMarkdown(markdownData) } : {}),
   }, 200, { 'Content-Disposition': `attachment; filename="discover-export-${date}.json"` });
 }
