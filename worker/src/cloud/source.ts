@@ -34,7 +34,7 @@ export async function snapshot(env: Env, body: Record<string, unknown>): Promise
   } else if (target.kind==='youtube' && /^[A-Za-z0-9_-]{11}$/.test(target.id)) {
     if (!env.YOUTUBE_DATA_API_KEY) throw new HttpError(503,'youtube_config','La vérification YouTube n’est pas configurée.');
     const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,status&id=${target.id}`,{
-      headers:{ 'X-Goog-Api-Key':env.YOUTUBE_DATA_API_KEY },redirect:'error',signal:AbortSignal.timeout(15_000),
+      headers:{ 'X-Goog-Api-Key':env.YOUTUBE_DATA_API_KEY },redirect:'manual',signal:AbortSignal.timeout(15_000),
     });
     const data = await boundedJson(response,100_000) as { items?: { snippet?:{title?:string;channelTitle?:string;liveBroadcastContent?:string}; contentDetails?:{duration?:string};status?:{privacyStatus?:string;uploadStatus?:string} }[] };
     const video = data.items?.[0], d=video?.contentDetails?.duration?.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/);

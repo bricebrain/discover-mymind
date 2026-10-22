@@ -37,7 +37,7 @@ export async function uploadPodcast(env:Env,id:string,url:string):Promise<Podcas
   const start=await fetch(`${GOOGLE}/upload/v1beta/files`,{method:'POST',headers:{...headers,
     'Content-Type':'application/json','X-Goog-Upload-Protocol':'resumable','X-Goog-Upload-Command':'start',
     'X-Goog-Upload-Header-Content-Length':String(stored.size),'X-Goog-Upload-Header-Content-Type':mimeType},
-    redirect:'error',signal:AbortSignal.timeout(30_000),body:JSON.stringify({file:{display_name:`discover-${id}`}})});
+    redirect:'manual',signal:AbortSignal.timeout(30_000),body:JSON.stringify({file:{display_name:`discover-${id}`}})});
   const uploadUrl=start.headers.get('X-Goog-Upload-URL');
   await start.body?.cancel();
   if (!start.ok || !uploadUrl || !googleUrl(uploadUrl,'/upload/')) throw new Error('Envoi audio Gemini refusé.');
@@ -46,7 +46,7 @@ export async function uploadPodcast(env:Env,id:string,url:string):Promise<Podcas
   if (!audio) throw new Error('Audio podcast manquant.');
   const result=await boundedJson(await fetch(uploadUrl,{method:'POST',headers:{
     'Content-Length':String(audio.size),'X-Goog-Upload-Offset':'0','X-Goog-Upload-Command':'upload, finalize'},
-    body:audio.body,redirect:'error',signal:AbortSignal.timeout(180_000)})) as {file?:{name?:unknown;uri?:unknown}};
+    body:audio.body,redirect:'manual',signal:AbortSignal.timeout(180_000)})) as {file?:{name?:unknown;uri?:unknown}};
   const file=result.file;
   if (typeof file?.name!=='string' || !/^files\/[a-zA-Z0-9_-]+$/.test(file.name) ||
       typeof file.uri!=='string' || !googleUrl(file.uri,'/v1beta/files/')) throw new Error('Fichier Gemini invalide.');
@@ -61,13 +61,13 @@ function googleUrl(raw:string,prefix:string) {
 export async function podcastReady(env:Env,id:string,file:PodcastFile) {
   await active(env,id,'transcribe');
   const data=await boundedJson(await fetch(`${GOOGLE}/v1beta/${file.name}`,{headers:{'X-Goog-Api-Key':env.GEMINI_API_KEY!},
-    redirect:'error',signal:AbortSignal.timeout(15_000)})) as {state?:string};
+    redirect:'manual',signal:AbortSignal.timeout(15_000)})) as {state?:string};
   if (data.state!=='ACTIVE') throw new Error('Audio Gemini en traitement ou indisponible.');
 }
 
 export async function removePodcastAudio(env:Env,id:string,file:PodcastFile) {
   const response=await fetch(`${GOOGLE}/v1beta/${file.name}`,{method:'DELETE',headers:{'X-Goog-Api-Key':env.GEMINI_API_KEY!},
-    redirect:'error',signal:AbortSignal.timeout(15_000)});
+    redirect:'manual',signal:AbortSignal.timeout(15_000)});
   await response.body?.cancel();
   if (!response.ok && response.status!==404) throw new Error('Suppression audio Gemini différée.');
   await env.FILES.delete(`cloud/${id}/podcast-audio`);
