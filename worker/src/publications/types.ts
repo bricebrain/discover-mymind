@@ -30,7 +30,10 @@ export interface Guide {
   level: 'A2' | 'B1' | 'B2' | 'C1'; voice: 'original' | 'synthetic';
   passage: { fromSegment: string; toSegment: string; reason?: string };
   expressions: GuideNote[]; listening: GuideNote[];
+  /** Dictée phrase par phrase ; absente des guides publiés avant elle (on dicte alors segment par segment). */
+  dictation?: DictationUnit[];
 }
+export interface DictationUnit { id: string; segmentId: string; text: string; startMs: number; endMs: number }
 export interface Segments { schemaVersion: 1; variantKey: string; segments: Segment[]; keyVocab?: string[]; guide?: Guide }
 export interface Publication {
   id: string; content_id: string; revision: string; seq: number; status: string;

@@ -227,6 +227,46 @@
             ],
             "additionalProperties": false
           }
+        },
+        "dictation": {
+          "type": "array",
+          "description": "Dictée phrase par phrase : unités de 3 à 25 mots du passage, horodatées, dans l'ordre, chacune contenue dans le texte de son segment.",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+              },
+              "segmentId": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 400
+              },
+              "startMs": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "endMs": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "id",
+              "segmentId",
+              "text",
+              "startMs",
+              "endMs"
+            ],
+            "additionalProperties": false
+          }
         }
       },
       "required": [

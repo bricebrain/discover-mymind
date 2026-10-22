@@ -3,7 +3,7 @@ import { HttpError } from '../http';
 import { parseSafeUrl } from '../security/safeUrl';
 import manifestSchema from './manifest.generated.js';
 import segmentsSchema from './segments.generated.js';
-import type { Manifest, Segments, Variant } from './types';
+import type { DictationUnit, Manifest, Segments, Variant } from './types';
 
 export function reject(code: string, message = code): never { throw new HttpError(422, code, message); }
 export function validPath(path: string): boolean {
@@ -109,9 +109,26 @@ export function validateSegments(input: unknown, variant: Variant, sourceIds?: S
     if (baseLanguage(variant.language) !== 'en' || !timed || from === undefined || to === undefined || from > to) reject('invalid_guide');
     if ([...doc.guide.expressions, ...doc.guide.listening].some((n) => !index.has(n.segmentId))) reject('invalid_guide');
     if (doc.guide.voice === 'synthetic' && doc.guide.listening.length) reject('invalid_guide');
+    if (doc.guide.dictation) validDictation(doc.guide.dictation, doc.segments, from!, to!);
   }
   return doc;
 }
+
+const normalized = (text: string) => text.split(/\s+/).filter(Boolean).join(' ');
+/** Dictée : unités du passage, de 25 mots au plus, contenues dans leur segment et horodatées à l'intérieur, dans l'ordre. */
+function validDictation(units: DictationUnit[], segments: Segments['segments'], from: number, to: number) {
+  const index = new Map(segments.map((s, i) => [s.id, i]));
+  let lastStart = -1;
+  if (new Set(units.map((u) => u.id)).size !== units.length) reject('invalid_guide');
+  for (const u of units) {
+    const i = index.get(u.segmentId), s = i === undefined ? undefined : segments[i];
+    const words = normalized(u.text).split(' ').filter(Boolean).length;
+    if (!s || i! < from || i! > to || !words || words > DICTATION_MAX_WORDS || !normalized(s.text).includes(normalized(u.text))) reject('invalid_guide');
+    if (u.startMs < s.startMs! || u.endMs > s.endMs! || u.endMs <= u.startMs || u.startMs <= lastStart) reject('invalid_guide');
+    lastStart = u.startMs;
+  }
+}
+export const DICTATION_MAX_WORDS = 25;
 
 /** Tri récursif des clés ; valeurs et ordre des tableaux conservés. */
 export function canonicalJson(value: unknown): string {
