@@ -30,23 +30,41 @@ describe('alignement d’une dictée', () => {
 
 describe('route de dictée', () => {
   let cookie: string;
-  beforeEach(async () => { cookie = await login(); });
+  beforeEach(async () => { await env.DB.prepare('DELETE FROM dictation_attempts').run(); cookie = await login(); });
   afterEach(() => { vi.unstubAllGlobals(); });
 
-  async function publish() {
+  async function publish(guided = false) {
     const contentId = 'dictation-' + crypto.randomUUID().slice(0, 8);
     const raw = JSON.stringify({ schemaVersion: 1, variantKey: 'en-source', segments: [
-      { id: 's0001', text: 'The bank is expected to hold rates steady.', startMs: null, endMs: null }] });
+      { id: 's0001', text: 'The bank is expected to hold rates steady.', startMs: guided ? 0 : null, endMs: guided ? 4000 : null }],
+      ...(guided ? { guide: { level: 'B1', voice: 'original', passage: { fromSegment: 's0001', toSegment: 's0001' },
+        expressions: [{ segmentId: 's0001', text: 'bank', note: 'Banque' }], listening: [], dictation: [{ id: 'd001', segmentId: 's0001', text: 'The bank is expected', startMs: 0, endMs: 2000 }] } } : {}) });
     const files: Manifest['files'] = { 'segments/en-source.json': { sha256: await sha256Hex(raw), size: raw.length, contentType: 'application/json' } };
     const manifest: Manifest = { schemaVersion: 1, content: { id: contentId, title: 'Rates', originalLanguage: 'en', sourceType: 'youtube', rights: 'personal_use' },
-      variants: [{ key: 'en-source', kind: 'source', language: 'en', segmentsFile: 'segments/en-source.json' }], files };
+      variants: [{ key: 'en-source', kind: 'source', language: 'en', segmentsFile: 'segments/en-source.json',
+        ...(guided ? { audio: { source: 'r2' as const, file: 'audio/source.mp3', origin: 'original' as const, durationMs: 4000, timingSource: 'rss_vtt' as const } } : {}) }], files };
+    if (guided) { const audio = 'ID3-test'; files['audio/source.mp3'] = { sha256: await sha256Hex(audio), size: audio.length, contentType: 'audio/mpeg' }; }
     const headers = { Authorization: `Bearer ${ATELIER_TOKEN}` };
     const state = await (await call('/atelier/publications', { method: 'POST', headers, body: { manifest } })).json<{ publicationId: string; missing: string[] }>();
-    for (const path of state.missing) await call(`/atelier/publications/${state.publicationId}/files/${path}`, { method: 'PUT', body: raw,
-      headers: { ...headers, 'x-content-sha256': files[path]!.sha256, 'Content-Type': 'application/json' } });
+    for (const path of state.missing) await call(`/atelier/publications/${state.publicationId}/files/${path}`, { method: 'PUT', body: path.startsWith('audio/') ? 'ID3-test' : raw,
+      headers: { ...headers, 'x-content-sha256': files[path]!.sha256, 'Content-Type': files[path]!.contentType } });
     expect((await call(`/atelier/publications/${state.publicationId}/commit`, { method: 'POST', headers })).status).toBe(200);
     return { contentId, publicationId: state.publicationId, url: `/api/contents/${contentId}/variants/en-source/dictation` };
   }
+
+  it('corrige l’unité du guide et conserve son identifiant dans la base', async () => {
+    const p = await publish(true);
+    const response = await call(p.url, { method: 'POST', cookie,
+      body: { publicationId: p.publicationId, unitId: 'd001', typed: 'The bank is expected' } });
+    expect(response.status, await response.clone().text()).toBe(200);
+    expect(await response.json()).toMatchObject({ unitId: 'd001', segmentId: 's0001', expected: 'The bank is expected', accuracy: 1 });
+    expect(await env.DB.prepare('SELECT segment_id, expected FROM dictation_attempts WHERE content_id=?').bind(p.contentId).first())
+      .toMatchObject({ segment_id: 'd001', expected: 'The bank is expected' });
+    for (const target of [{}, { unitId: 'd001', segmentId: 's0001' }, { unitId: null }, { unitId: 4 }]) {
+      expect((await call(p.url, { method: 'POST', cookie, body: { publicationId: p.publicationId, typed: '', ...target } })).status).toBe(400);
+    }
+    expect((await call(p.url, { method: 'POST', cookie, body: { publicationId: p.publicationId, unitId: 'absent', typed: '' } })).status).toBe(404);
+  });
 
   it('corrige mot à mot, explique chaque erreur avec l’IA et alimente la progression', async () => {
     const p = await publish();

@@ -61,15 +61,18 @@ async function segmentsOf(env: Env, publicationId: string, key: string) {
 }
 
 export async function submit(req: Request, env: Env, id: string, key: string) {
-  const b = await readJson<{ publicationId?: unknown; segmentId?: unknown; typed?: unknown } | null>(req, 4096);
+  const b = await readJson<{ publicationId?: unknown; segmentId?: unknown; unitId?: unknown; typed?: unknown } | null>(req, 4096);
   if (!b || typeof b !== 'object' || typeof b.publicationId !== 'string' || !/^[0-9a-f-]{36}$/.test(b.publicationId)
-      || typeof b.segmentId !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(b.segmentId)
+      || (('segmentId' in b) === ('unitId' in b))
+      || typeof (b.unitId ?? b.segmentId) !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test((b.unitId ?? b.segmentId) as string)
       || typeof b.typed !== 'string' || b.typed.length > 1000) {
     throw new HttpError(400, 'invalid_dictation', 'Publication, phrase et texte entendu (1 000 caractères au plus) requis.');
   }
   const p = await visible(env, id, b.publicationId);
   const { variant, doc } = await segmentsOf(env, p.id, key);
-  const segment = doc.segments.find((s) => s.id === b.segmentId);
+  const segment = b.unitId !== undefined
+    ? doc.guide?.dictation?.find((unit) => unit.id === b.unitId)
+    : doc.segments.find((s) => s.id === b.segmentId);
   if (!segment || variant.language.split('-')[0] !== 'en') throw new HttpError(404, 'not_found', 'Phrase anglaise indisponible.');
   const voice = doc.guide?.voice ?? (variant.audio_origin === 'original' ? 'original' : 'synthetic');
   const level = doc.guide?.level ?? 'B1';
@@ -82,7 +85,8 @@ export async function submit(req: Request, env: Env, id: string, key: string) {
     expected_words,correct_words,errors_json,tip,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .bind(attempt.id, id, p.id, key, segment.id, voice, segment.text, b.typed, counts.expectedWords, counts.correctWords,
       JSON.stringify(errors), analysis?.tip ?? null, attempt.createdAt).run();
-  return json({ ...attempt, segmentId: segment.id, expected: segment.text, tokens, ...counts,
+  return json({ ...attempt, segmentId: b.unitId !== undefined ? (segment as { segmentId: string }).segmentId : segment.id,
+    ...(b.unitId !== undefined ? { unitId: segment.id } : {}), expected: segment.text, tokens, ...counts,
     accuracy: counts.expectedWords ? counts.correctWords / counts.expectedWords : 1, errors, tip: analysis?.tip ?? null });
 }
 

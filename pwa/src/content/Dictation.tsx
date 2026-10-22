@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Notice } from '@/components/ui/kit';
 import { cn } from '@/lib/utils';
-import type { ContentSegment } from '../api/contents';
+import type { ContentSegment, DictationUnit } from '../api/contents';
 import { CATEGORY_LABELS, DICTATION_PROGRESS_KEY, submitDictation, type DictationResult, type DictationToken } from '../api/dictation';
 
 const percent = (n: number) => `${Math.round(n * 100)} %`;
@@ -25,20 +25,21 @@ function Comparison({ tokens }: { tokens: DictationToken[] }) {
  * Dictée du passage : écouter une phrase (texte masqué), taper ce qu'on entend, puis voir mot à mot ce qui a échappé
  * à l'oreille et pourquoi. Chaque essai nourrit la mesure de progression.
  */
-export function Dictation({ contentId, publicationId, variantKey, segments, onPlayRange, onSlow, slow }: {
-  contentId: string; publicationId: string; variantKey: string; segments: ContentSegment[];
+export function Dictation({ contentId, publicationId, variantKey, segments, units, onPlayRange, onSlow, slow }: {
+  contentId: string; publicationId: string; variantKey: string; segments: ContentSegment[]; units?: DictationUnit[];
   onPlayRange: (startMs: number, endMs: number) => void; onSlow: (slow: boolean) => void; slow: boolean;
 }) {
   const queryClient = useQueryClient();
+  const phrases = units?.length ? units : segments;
   const [index, setIndex] = useState(0);
   const [typed, setTyped] = useState('');
   const [results, setResults] = useState<DictationResult[]>([]);
   const check = useMutation({
-    mutationFn: () => submitDictation(contentId, variantKey, { publicationId, segmentId: segments[index]!.id, typed }),
+    mutationFn: () => submitDictation(contentId, variantKey, { publicationId, ...(units?.length ? { unitId: phrases[index]!.id } : { segmentId: phrases[index]!.id }), typed }),
     onSuccess: (r) => { setResults((all) => [...all, r]); void queryClient.invalidateQueries({ queryKey: DICTATION_PROGRESS_KEY }); },
   });
-  const segment = segments[index];
-  const result = check.data?.segmentId === segment?.id ? check.data : undefined;
+  const segment = phrases[index];
+  const result = (check.data?.unitId ?? check.data?.segmentId) === segment?.id ? check.data : undefined;
   const done = results.length;
   const play = () => segment && segment.startMs != null && segment.endMs != null && onPlayRange(segment.startMs, segment.endMs);
   const next = () => { setIndex((i) => i + 1); setTyped(''); check.reset(); };
@@ -50,7 +51,7 @@ export function Dictation({ contentId, publicationId, variantKey, segments, onPl
 
   return <div className="space-y-3">
     <p className="m-0 text-sm text-muted-foreground">
-      Phrase {index + 1} / {segments.length}{done ? ` · ${percent(results.reduce((a, r) => a + r.correctWords, 0) / Math.max(1, results.reduce((a, r) => a + r.expectedWords, 0)))} des mots reconnus jusqu’ici` : ''}
+      Phrase {index + 1} / {phrases.length}{done ? ` · ${percent(results.reduce((a, r) => a + r.correctWords, 0) / Math.max(1, results.reduce((a, r) => a + r.expectedWords, 0)))} des mots reconnus jusqu’ici` : ''}
     </p>
     <div className="flex flex-wrap gap-2">
       <Button onClick={play}><Play className="size-4" />Écouter la phrase</Button>

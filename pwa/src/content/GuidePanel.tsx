@@ -119,7 +119,7 @@ export function GuidePanel({ detail, variant, playing, positionSec, onPlay, onHi
     </ol>
 
     {step === DICTATION && <Dictation key={variant.key} contentId={detail.content.id} publicationId={detail.publicationId} variantKey={variant.key}
-      segments={passage.segments} onPlayRange={playRange} onSlow={setSlowRate} slow={slow} />}
+      segments={passage.segments} units={guide.dictation} onPlayRange={playRange} onSlow={setSlowRate} slow={slow} />}
 
     {step !== null && step > 0 && step !== DICTATION && <div className="space-y-4">
       <div>

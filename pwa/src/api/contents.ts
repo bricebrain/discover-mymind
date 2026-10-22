@@ -31,7 +31,9 @@ export interface ContentSegment {
 /** Note du guide : passage cité exactement, sens et explication en français. */
 export interface GuideNote { segmentId: string; text: string; meaning?: string; note: string }
 /** Original guidé : passage de travail, expressions et points d'écoute (voix humaine seulement). */
+export interface DictationUnit { id: string; segmentId: string; text: string; startMs: number; endMs: number }
 export interface ContentGuide {
+  dictation?: DictationUnit[];
   level: 'A2' | 'B1' | 'B2' | 'C1'; voice: 'original' | 'synthetic';
   passage: { fromSegment: string; toSegment: string; reason?: string };
   expressions: GuideNote[]; listening: GuideNote[];

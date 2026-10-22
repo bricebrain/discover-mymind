@@ -9,7 +9,7 @@ export const CATEGORY_LABELS: Record<DictationCategory, string> = {
 export interface DictationToken { expected?: string; typed?: string; status: 'ok' | 'missing' | 'wrong' | 'extra' }
 export interface DictationError { expected: string; heard: string; category: DictationCategory; explanation: string | null }
 export interface DictationResult {
-  id: string; segmentId: string; expected: string; tokens: DictationToken[]; expectedWords: number; correctWords: number;
+  id: string; segmentId: string; unitId?: string; expected: string; tokens: DictationToken[]; expectedWords: number; correctWords: number;
   accuracy: number; errors: DictationError[]; tip: string | null;
 }
 export interface DictationProgress {
@@ -19,7 +19,7 @@ export interface DictationProgress {
   recent: { createdAt: string; contentId: string; title: string | null; expected: string; typed: string; accuracy: number }[];
 }
 
-export const submitDictation = (contentId: string, variantKey: string, body: { publicationId: string; segmentId: string; typed: string }) =>
+export const submitDictation = (contentId: string, variantKey: string, body: { publicationId: string; typed: string } & ({ segmentId: string; unitId?: never } | { unitId: string; segmentId?: never })) =>
   api<DictationResult>(`/api/contents/${encodeURIComponent(contentId)}/variants/${encodeURIComponent(variantKey)}/dictation`, { method: 'POST', body });
 
 export const DICTATION_PROGRESS_KEY = ['dictation-progress'] as const;

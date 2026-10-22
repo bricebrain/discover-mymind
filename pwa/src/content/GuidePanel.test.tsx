@@ -106,3 +106,29 @@ it('n’affiche rien sans guide', () => {
   const view = render(panel(), { wrapper });
   expect(view.container.textContent).toBe('');
 });
+
+it('dicte les unités du guide avec leurs propres bornes et envoie unitId', async () => {
+  segments = { ...doc, guide: { ...guide, dictation: [
+    { id: 'd1', segmentId: 's2', text: 'The bank is expected', startMs: 12000, endMs: 16000 },
+    { id: 'd2', segmentId: 's2', text: 'to decide.', startMs: 16000, endMs: 18000 },
+    { id: 'd3', segmentId: 's3', text: 'It will hold rates steady.', startMs: 70000, endMs: 130000 },
+  ] } };
+  submitDictation.mockResolvedValue({ id: 'a', unitId: 'd1', segmentId: 's2', expectedWords: 4, correctWords: 4,
+    accuracy: 1, tokens: [], errors: [], tip: null });
+  const play = vi.fn();
+  const view = render(panel({ onPlay: play, playing: true }), { wrapper });
+  fireEvent.click(screen.getByText('3. Dictée'));
+  expect(screen.getByText('Phrase 1 / 3')).toBeDefined();
+  fireEvent.click(screen.getByText('Écouter la phrase'));
+  expect(play).toHaveBeenLastCalledWith(12);
+  view.rerender(panel({ onPlay: play, playing: true, positionSec: 17 }));
+  expect(player.pause).toHaveBeenCalled();
+  fireEvent.change(screen.getByLabelText('Ce que tu entends'), { target: { value: 'The bank is expected' } });
+  fireEvent.click(screen.getByText('Vérifier'));
+  await waitFor(() => expect(submitDictation).toHaveBeenCalledWith('c', 'en-source',
+    { publicationId: 'p', unitId: 'd1', typed: 'The bank is expected' }));
+  await waitFor(() => expect(screen.getByText('Phrase suivante')).toBeDefined());
+  fireEvent.click(screen.getByText('Phrase suivante'));
+  fireEvent.click(screen.getByText('Écouter la phrase'));
+  expect(play).toHaveBeenLastCalledWith(16);
+});
