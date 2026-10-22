@@ -8,6 +8,7 @@ import { authDisabled, type Env } from './env';
 import { apiError, HttpError, json, noContent, withSecurityHeaders } from './http';
 import { cleanupPublications } from './publications/cleanup';
 import * as quiz from './quiz/routes';
+import * as dictation from './dictation/routes';
 import * as contents from './routes/contents';
 import { getSuggestion, saveFeedback } from './levels/routes';
 import { weekly } from './weekly/routes';
@@ -98,6 +99,9 @@ async function handleData(req: Request, env: Env, path: string, m: string): Prom
     if (!quizPath[3] && m === 'GET') return quiz.get(req,env,quizPath[1],quizPath[2]);
     if (quizPath[3] && m === 'POST') return quiz.submit(req,env,quizPath[1],quizPath[2]);
   }
+  const dictated = path.match(/^\/api\/contents\/([a-z0-9-]{3,96})\/variants\/([a-z0-9-]{2,32})\/dictation$/);
+  if (dictated?.[1] && dictated[2] && m === 'POST') return dictation.submit(req,env,dictated[1],dictated[2]);
+  if (path === '/api/dictation/progress' && m === 'GET') return dictation.progress(env);
   const feedback = path.match(/^\/api\/contents\/([a-z0-9-]{3,96})\/variants\/([a-z0-9-]{2,32})\/feedback$/);
   if (feedback?.[1] && feedback[2] && m === 'POST') return saveFeedback(req, env, feedback[1], feedback[2]);
   const suggestion = path.match(/^\/api\/shows\/([a-z0-9-]{1,64})\/level-suggestion$/);
