@@ -28,15 +28,25 @@ export async function library(req: Request, env: Env) {
   }
   const where = `FROM contents c JOIN publications p ON p.id=c.current_publication_id WHERE c.deleted_at IS NULL AND p.status='ready'
     ${filters.map((f) => `AND ${f}`).join(' ')}`;
-  const rows = await env.DB.prepare(`SELECT c.id,c.title,c.original_language AS originalLanguage,c.source_type AS sourceType,c.category,c.updated_at AS updatedAt,
-    (SELECT COUNT(*) FROM variants v WHERE v.publication_id=p.id) AS variantCount,
-    -- Visuel de la carte : pochette de l'épisode (ou de l'émission), miniature YouTube ; rien pour les notes et dossiers.
+  const rows = await env.DB.prepare(`WITH matching AS (
+    SELECT c.*,p.id AS publication_id,p.queue_item_id ${where}
+  ), page AS (
+    SELECT * FROM matching ORDER BY updated_at DESC,id LIMIT 30 OFFSET ?
+  )
+  SELECT c.id,c.title,c.original_language AS originalLanguage,c.source_type AS sourceType,c.category,c.updated_at AS updatedAt,
+    (SELECT COUNT(*) FROM variants v WHERE v.publication_id=c.publication_id) AS variantCount,
+    EXISTS (SELECT 1 FROM prepare_queue q WHERE q.id=c.queue_item_id AND json_extract(q.options_json,'$.coverage')='guided') AS guided,
+    EXISTS (SELECT 1 FROM dictation_attempts d WHERE d.content_id=c.id) AS dictated,
     CASE WHEN c.source_type='podcast' THEN (SELECT COALESCE(e.image_url,s.image_url) FROM episodes e JOIN shows s ON s.id=e.show_id
         WHERE e.id=substr(c.source_ref,9) AND c.source_ref LIKE 'episode:%')
       WHEN c.source_type='youtube' AND c.source_ref LIKE 'youtube:%' THEN 'https://i.ytimg.com/vi/' || substr(c.source_ref,9) || '/mqdefault.jpg'
-    END AS imageUrl ${where} ORDER BY c.updated_at DESC,c.id LIMIT 30 OFFSET ?`).bind(...values,offset).all();
-  const count = await env.DB.prepare(`SELECT COUNT(*) AS total ${where}`).bind(...values).first<{ total: number }>();
-  return json({ contents: rows.results, total: count?.total ?? 0, nextOffset: offset+rows.results.length < (count?.total ?? 0) ? offset+rows.results.length : null });
+    END AS imageUrl,totals.total
+    FROM (SELECT COUNT(*) AS total FROM matching) totals LEFT JOIN page c ON 1=1
+    ORDER BY c.updated_at DESC,c.id`).bind(...values,offset).all<{ id: string | null; guided: number; dictated: number; total: number }>();
+  const total = rows.results[0]?.total ?? 0;
+  const contents = rows.results.filter((row) => row.id !== null).map(({ total: _total, guided, dictated, ...content }) =>
+    ({ ...content, guided: Boolean(guided), dictated: Boolean(dictated) }));
+  return json({ contents, total, nextOffset: offset+contents.length < total ? offset+contents.length : null });
 }
 export async function detail(env: Env, id: string) {
   const p = await visible(env,id), m = await manifest(env,p);

@@ -28,6 +28,8 @@ it('filtre par type et titre avant pagination, avec un total exact et sans publi
   const last = await read('type=youtube&q=focus&offset=30');
   expect(last.contents).toHaveLength(1);
   expect(last.nextOffset).toBeNull();
+  expect(await read('type=youtube&offset=300')).toEqual({ contents: [], total: 31, nextOffset: null });
+  expect(await read('q=aucun-résultat')).toEqual({ contents: [], total: 0, nextOffset: null });
   expect(first.contents.some((c) => c.id === last.contents[0]!.id)).toBe(false);
   expect((await read('type=reflection')).contents).toEqual([expect.objectContaining({ id: 'content-32' })]);
   expect((await read('q=%25_')).contents).toEqual([expect.objectContaining({ id: 'content-5' })]);

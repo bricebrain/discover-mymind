@@ -51,6 +51,10 @@ export function PreparedContents({ filters = {} }: { filters?: LibraryFilters })
               <span className="mt-0.5 block text-[13px] text-muted-foreground">
                 {s.label} · {c.originalLanguage.toUpperCase()} · {c.variantCount} version{c.variantCount > 1 ? 's' : ''}
               </span>
+              {(c.guided || c.dictated) && <span className="mt-1 flex flex-wrap gap-1">
+                {c.guided && <span className="rounded-full bg-primary-soft px-2 py-0.5 text-xs font-medium text-primary">Guidé</span>}
+                {c.dictated && <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">Dicté</span>}
+              </span>}
             </span>
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
           </Link>

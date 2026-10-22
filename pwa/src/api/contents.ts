@@ -7,7 +7,7 @@ export type ContentSourceType = 'podcast' | 'youtube' | 'reflection' | 'dossier'
 export interface LibraryFilters { type?: ContentSourceType; search?: string }
 export interface PreparedContent {
   id: string; title: string; originalLanguage: string; sourceType: ContentSourceType; category: string | null;
-  updatedAt: string; variantCount: number; imageUrl?: string | null;
+  updatedAt: string; variantCount: number; imageUrl?: string | null; guided: boolean; dictated: boolean;
 }
 export interface ContentVariant {
   key: string;
