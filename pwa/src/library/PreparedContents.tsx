@@ -12,12 +12,11 @@ import { contentLink } from './ListenStrip';
 const SOURCES = {
   youtube: { label: 'YouTube', Icon: Play, cls: 'bg-youtube-soft text-youtube' },
   reflection: { label: 'Note My Mind', Icon: NotebookPen, cls: 'bg-primary-soft text-primary' },
-  affaire: { label: 'À vous de juger', Icon: NotebookPen, cls: 'bg-primary-soft text-primary' },
   podcast: { label: 'Podcast', Icon: Podcast, cls: 'bg-muted text-foreground' },
   dossier: { label: 'Dossier', Icon: FolderOpen, cls: 'bg-indigo-50 text-indigo-800' },
 } as const;
 /** Teinte de la carte selon le type, quand il n'y a pas de pochette. */
-const TINT = { affaire: 'var(--primary)', youtube: 'var(--youtube)', reflection: 'var(--primary)', podcast: 'var(--primary)', dossier: '#6366f1' } as const;
+const TINT = { youtube: 'var(--youtube)', reflection: 'var(--primary)', podcast: 'var(--primary)', dossier: '#6366f1' } as const;
 
 export function PreparedContents({ filters = {} }: { filters?: LibraryFilters }) {
   const query = usePreparedContents(filters);

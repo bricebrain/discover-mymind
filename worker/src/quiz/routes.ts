@@ -18,14 +18,14 @@ async function answers(env: Env, publicationId: string, key: string) {
 const score = (rows: Answer[], total: number) => ({ correct: rows.filter((a) => a.correct).length, answered: rows.length, total });
 function correction(q: QuizQuestion, a: Answer) {
   return { questionIndex: a.question_index, choice: a.choice, correct: !!a.correct,
-    kind: q.kind, correctChoice: q.correctChoice, explanation: q.explanation, answeredAt: a.answered_at };
+    correctChoice: q.correctChoice, explanation: q.explanation, answeredAt: a.answered_at };
 }
 export async function get(req: Request, env: Env, id: string, key: string) {
   const quiz = await load(req,env,id,key), rows = await answers(env,quiz.publicationId,key);
   return json({ publicationId: quiz.publicationId, variantKey: key,
     questions: quiz.questions.map((q,i) => {
       const answer = rows.find((a) => a.question_index === i);
-      return { kind: q.kind, questionIndex: i, question: q.question, choices: q.choices, segmentIndex: q.segmentIndex,
+      return { questionIndex: i, question: q.question, choices: q.choices, segmentIndex: q.segmentIndex,
         answer: answer ? correction(q,answer) : null };
     }), score: score(rows,quiz.questions.length) });
 }
@@ -33,12 +33,11 @@ export async function submit(req: Request, env: Env, id: string, key: string) {
   const b = await readJson<{ publicationId?: unknown; questionIndex?: unknown; choice?: unknown } | null>(req,1024);
   if (!b || Array.isArray(b) || typeof b !== 'object' || typeof b.publicationId !== 'string' ||
       !/^[0-9a-f-]{36}$/.test(b.publicationId) || !Number.isInteger(b.questionIndex) || Number(b.questionIndex)<0 || Number(b.questionIndex)>2 ||
-      !Number.isInteger(b.choice) || Number(b.choice)<0 || Number(b.choice)>3) {
+      !Number.isInteger(b.choice) || Number(b.choice)<0 || Number(b.choice)>2) {
     throw new HttpError(400,'invalid_answer','Publication, question et choix valides requis.');
   }
   const quiz = await load(req,env,id,key,b.publicationId), index = Number(b.questionIndex), choice = Number(b.choice);
   const question = quiz.questions[index];
-  if (question && choice >= question.choices.length) throw new HttpError(400,'invalid_answer','Choix hors de la question.');
   if (!question) throw new HttpError(404,'quiz_not_found','Question indisponible.');
   // Première réponse conservée : une relance réseau ne modifie ni la réponse ni le score.
   await env.DB.prepare(`INSERT OR IGNORE INTO quiz_answers

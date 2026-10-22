@@ -1,4 +1,3 @@
-import { judgmentUrl } from '../judgments/source';
 import type { Env } from '../env';
 import { HttpError, json, noContent, readJson } from '../http';
 import { prepareOptions, type PrepareOptions } from '../queue/options';
@@ -6,7 +5,7 @@ import { expireExhausted, QUEUE_SELECT, queueOut, type QueueRow } from '../queue
 import { atelierSeenAt, progressOf, stageAverages, waitingOf } from '../queue/progress';
 
 /** Crée (ou retrouve) la demande active d'une source ; refuse d'autres options tant qu'une préparation tourne. */
-export async function insertQueue(env: Env, kind: 'episode' | 'youtube' | 'reflection' | 'dossier' | 'affaire', ref: string, options: PrepareOptions) {
+export async function insertQueue(env: Env, kind: 'episode' | 'youtube' | 'reflection' | 'dossier', ref: string, options: PrepareOptions) {
   const id = crypto.randomUUID(), now = new Date().toISOString();
   await env.DB.prepare(`INSERT OR IGNORE INTO prepare_queue (id,kind,ref,options_json,created_at,updated_at)
     VALUES (?,?,?,?,?,?)`).bind(id,kind,ref,JSON.stringify(options),now,now).run();
@@ -71,13 +70,6 @@ export async function enqueueSource(req: Request, env: Env) {
   if (b.kind === 'youtube') {
     return queueYoutube(env,b);
   }
-  if (b.kind === 'affaire') {
-    const url = judgmentUrl(b.url);
-    const prepared = prepareOptions(options, 'en', null);
-    if (prepared.coverage !== 'guided' || prepared.faithful || prepared.keepOriginalCopy)
-      throw new HttpError(422, 'invalid_options', 'Une affaire est préparée en Original guidé, sans copie originale.');
-    return insertQueue(env, 'affaire', url, prepared);
-  }
   if (b.kind === 'text') {
     const text = typeof b.text === 'string' ? b.text.trim() : '';
     const title = typeof b.title === 'string' ? b.title.trim().slice(0,200) : '';
@@ -88,7 +80,7 @@ export async function enqueueSource(req: Request, env: Env) {
       .bind(id,title || null,text,'observation',JSON.stringify(['importé depuis l’Atelier']),now,now).run();
     return insertQueue(env,'reflection',id,prepared);
   }
-  throw new HttpError(422,'invalid_source','Source attendue : youtube, text ou affaire.');
+  throw new HttpError(422,'invalid_source','Source attendue : youtube ou text.');
 }
 export async function list(req: Request, env: Env) {
   await expireExhausted(env);

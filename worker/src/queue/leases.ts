@@ -9,7 +9,6 @@ export const LEASE_MS = 15 * 60_000;
 const STAGES = ['download','normalize','transcribe','source_ready','plan','extract','translate','guide','adapt','evaluate','review','tts','publish'];
 
 export async function source(env: Env, row: QueueRow) {
-  if (row.kind === 'affaire') return { kind: 'affaire', url: row.ref, title: 'À vous de juger', language: 'en', category: 'stories' };
   if (row.kind === 'dossier') {
     const run=await env.DB.prepare('SELECT title,sources_json FROM dossier_runs WHERE id=?').bind(row.ref).first<{title:string;sources_json:string}>();
     if(!run) throw new HttpError(409,'source_missing','Sources du dossier indisponibles.');

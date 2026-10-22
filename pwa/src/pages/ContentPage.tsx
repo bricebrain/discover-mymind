@@ -7,7 +7,6 @@ import { Notice, Spinner } from '@/components/ui/kit';
 import { useContent } from '../api/contents';
 import { unreviewed, VariantPills } from '../components/PreparedEpisode';
 import { DeleteContentButton } from '../content/DeleteContentButton';
-import { JudgmentSource } from '../content/JudgmentSource';
 import { GuidePanel } from '../content/GuidePanel';
 import { PlaybackControls } from '../content/VariantControls';
 import { VersionLearning } from '../content/VersionLearning';
@@ -34,7 +33,6 @@ export function ContentPage() {
     {query.isSuccess && !variant && <Notice>Aucune version disponible pour ce contenu.</Notice>}
     {query.data && variant && <>
       <h1 className="m-0 mb-1 mt-3 font-display text-[2rem] font-normal leading-[1.1] tracking-tight">{query.data.content.title}</h1>
-      <JudgmentSource url={query.data.content.sourceUrl} licence={query.data.content.licence} />
       {query.data.content.sources && <DossierSourcesList sources={query.data.content.sources} />}
       {reader.unavailableVersion && <Notice className="mt-3">La version demandée n’est plus disponible. Une version présente est affichée.</Notice>}
       <div className="mt-4"><VariantPills variants={query.data.variants} value={variant.key} onSelect={reader.select} /></div>

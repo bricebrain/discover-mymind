@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import affaire from '../../contracts/fixtures/valid-affaire.json';
 import invalid from '../../contracts/fixtures/invalid-manifests.json';
 import invalidSegments from '../../contracts/fixtures/invalid-segments.json';
 import deepgram from '../../contracts/fixtures/valid-deepgram.json';
@@ -16,7 +15,7 @@ import type { Variant } from '../src/publications/types';
 import { validateManifest, validateSegments, canonicalJson } from '../src/publications/validation';
 
 describe('Contrat partagé TS/Python', () => {
-  for (const m of [affaire,deepgram,youtube,podcastFr,podcastEn,podcastHttp,reflection,condensed,dossier,dossierArticle]) it(m.content.id, () => expect(validateManifest(m)).toEqual(m));
+  for (const m of [deepgram,youtube,podcastFr,podcastEn,podcastHttp,reflection,condensed,dossier,dossierArticle]) it(m.content.id, () => expect(validateManifest(m)).toEqual(m));
   for (const f of invalid) it(f.name, () => {
     try { validateManifest(f.manifest,'context' in f ? f.context : {}); expect.fail('Manifeste accepté'); }
     catch (e) { expect(e).toBeInstanceOf(HttpError); expect((e as HttpError).code).toBe(f.code); }

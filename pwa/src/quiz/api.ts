@@ -1,6 +1,6 @@
 import { api } from '../api/client';
-export interface QuizAnswer { kind?: 'judgment'; questionIndex: number; choice: number; correct: boolean; correctChoice: number; explanation: string }
-export interface QuizQuestion { kind?: 'judgment'; questionIndex: number; question: string; choices: string[]; segmentIndex: number; answer: QuizAnswer | null }
+export interface QuizAnswer { questionIndex: number; choice: number; correct: boolean; correctChoice: number; explanation: string }
+export interface QuizQuestion { questionIndex: number; question: string; choices: string[]; segmentIndex: number; answer: QuizAnswer | null }
 export interface QuizScore { correct: number; answered: number; total: number }
 export interface Quiz { publicationId: string; variantKey: string; questions: QuizQuestion[]; score: QuizScore }
 export interface QuizTarget { contentId: string; variantKey: string; publicationId: string }

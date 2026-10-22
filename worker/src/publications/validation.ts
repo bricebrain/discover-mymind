@@ -1,4 +1,3 @@
-import { judgmentUrl } from '../judgments/source';
 import { validQuiz } from '../quiz/validation';
 import { HttpError } from '../http';
 import { parseSafeUrl } from '../security/safeUrl';
@@ -39,12 +38,6 @@ export function validateManifest(input: unknown, context: ValidationContext = {}
   if (m.content.sourceType === 'podcast' && !/^episode:[0-9a-f]{20}$/.test(m.content.sourceRef ?? '')) reject('invalid_source_ref');
   if (m.content.sourceType === 'reflection' && !/^reflection:[0-9a-f-]{36}$/.test(m.content.sourceRef ?? '')) reject('invalid_source_ref');
   if (m.content.sourceType === 'youtube' && m.content.sourceRef != null && !/^youtube:[A-Za-z0-9_-]{11}$/.test(m.content.sourceRef)) reject('invalid_source_ref');
-  if (m.content.sourceType === 'affaire') {
-    if (!m.content.sourceUrl || judgmentUrl(m.content.sourceUrl) !== m.content.sourceUrl ||
-        m.content.sourceRef !== `affaire:${m.content.sourceUrl}` || !m.content.licence?.trim() || source.audio)
-      reject('invalid_judgment');
-    if (!m.variants.some(v => v.judgment)) reject('invalid_judgment');
-  }
   // Dossier : un contenu par exécution, ses sources capturées et rien d'autre (chantier A).
   if (m.content.sourceType === 'dossier') {
     const run = /^dossier:([0-9a-f-]{36})$/.exec(m.content.sourceRef ?? '')?.[1];
@@ -56,9 +49,6 @@ export function validateManifest(input: unknown, context: ValidationContext = {}
   if (Object.values(m.files).reduce((total, f) => total + f.size, 0) > 300_000_000) reject('publication_too_large');
   const used = new Set<string>();
   for (const v of m.variants) {
-    if (v.judgment && (m.content.sourceType !== 'affaire' || v.kind !== 'adaptation' || baseLanguage(v.language) !== 'en' ||
-        !v.judgment.question.trim() || !v.judgment.verdictExplanationFr.trim() || v.judgment.verdict >= v.judgment.choices.length ||
-        v.judgment.choices.some(c => !c.trim()) || new Set(v.judgment.choices.map(c => c.trim().toLowerCase())).size !== v.judgment.choices.length)) reject('invalid_judgment');
     if (v.kind === 'faithful_translation' && (v.derivedFrom !== source.key || baseLanguage(v.language) === baseLanguage(source.language) || v.cefrLevel != null)) reject('invalid_translation');
     if (v.kind === 'adaptation' && (!v.style || baseLanguage(v.language) !== 'en' || !v.derivedFrom || !keys.includes(v.derivedFrom) || v.derivedFrom === v.key)) reject('invalid_adaptation');
     const visited = new Set([v.key]);

@@ -12,7 +12,7 @@ export function QuizCard({ onSeek, ...target }: QuizTarget & { onSeek?: (segment
   if (quiz.isError) return <Notice tone="error" action={<Button variant="ghost" onClick={() => void quiz.refetch()}>Réessayer</Button>}>{quiz.error.message}</Notice>;
   if (!quiz.data.questions.length) return null;
   return <section className={`${cardCls} space-y-5 p-4`} aria-label="Quiz de compréhension">
-    <h2 className="m-0 font-display text-2xl font-normal">{quiz.data.questions[0]?.kind === 'judgment' ? 'Qu’aurais-tu décidé ?' : 'Compréhension'} · {quiz.data.score.correct}/{quiz.data.score.total}</h2>
+    <h2 className="m-0 font-display text-2xl font-normal">Compréhension · {quiz.data.score.correct}/{quiz.data.score.total}</h2>
     {!online && <Notice>Hors ligne : les réponses attendront une connexion.</Notice>}
     {quiz.data.questions.map((q) => <fieldset key={q.questionIndex} className="m-0 min-w-0 space-y-2 border-0 p-0">
       <legend className="mb-2 text-sm font-semibold">{q.questionIndex + 1}. {q.question}</legend>
@@ -23,7 +23,7 @@ export function QuizCard({ onSeek, ...target }: QuizTarget & { onSeek?: (segment
       </Button>)}
       {q.answer && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} role="status" className="space-y-2 text-sm">
         <p>{q.answer.correct ? 'Bonne réponse.' : `Bonne réponse : ${q.choices[q.answer.correctChoice]}`}</p>
-        <p>{q.kind === 'judgment' && <strong>Le véritable verdict : </strong>}{q.answer.explanation}</p>
+        <p>{q.answer.explanation}</p>
         {onSeek && <Button variant="ghost" onClick={() => onSeek(q.segmentIndex)}>Réécouter ce passage</Button>}
       </motion.div>}
     </fieldset>)}

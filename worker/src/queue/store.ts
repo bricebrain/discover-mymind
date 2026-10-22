@@ -2,7 +2,7 @@ import type { Env } from '../env';
 import type { PrepareOptions } from './options';
 
 export interface QueueRow {
-  id: string; kind: 'episode' | 'reflection' | 'youtube' | 'dossier' | 'affaire'; ref: string; options_json: string;
+  id: string; kind: 'episode' | 'reflection' | 'youtube' | 'dossier'; ref: string; options_json: string;
   status: 'pending' | 'leased' | 'done' | 'failed' | 'cancelled'; stage: string | null;
   lease_token: string | null; lease_owner: string | null; lease_expires_at: string | null;
   attempts: number; max_attempts: number; content_id: string | null; error: string | null;
