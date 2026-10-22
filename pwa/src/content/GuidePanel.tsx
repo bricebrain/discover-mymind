@@ -1,58 +1,97 @@
-import { Ear, EyeOff, Headphones, Play, ScrollText } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { BookmarkPlus, Check, Ear, EyeOff, Headphones, Keyboard, Play, ScrollText } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { cardCls } from '@/components/ui/kit';
+import { Notice, cardCls } from '@/components/ui/kit';
 import { cn } from '@/lib/utils';
-import { useContentSegments, type ContentDetail, type ContentGuide, type ContentSegment, type ContentVariant } from '../api/contents';
+import { useContentSegments, type ContentDetail, type ContentGuide, type ContentSegment, type ContentVariant, type GuideNote } from '../api/contents';
 import { usePlayer } from '../player/PlayerProvider';
 import { formatClock } from '../player/MiniPlayer';
+import { PICKS_KEY, saveWordPick } from '../vocabulary/api';
+import { validWordPick } from '../vocabulary/validation';
+import { Dictation } from './Dictation';
 
-export interface GuidePassage { guide: ContentGuide; startMs: number; endMs: number }
+export interface GuidePassage { guide: ContentGuide; startMs: number; endMs: number; segments: ContentSegment[] }
 
 /** Bornes du passage de travail, seulement si le guide renvoie à des passages horodatés de ce document. */
 export function guidePassage(guide: ContentGuide | undefined, segments: ContentSegment[]): GuidePassage | null {
   if (!guide) return null;
-  const from = segments.find((s) => s.id === guide.passage.fromSegment), to = segments.find((s) => s.id === guide.passage.toSegment);
-  if (from?.startMs == null || to?.endMs == null || to.endMs <= from.startMs) return null;
-  return { guide, startMs: from.startMs, endMs: to.endMs };
+  const from = segments.findIndex((s) => s.id === guide.passage.fromSegment), to = segments.findIndex((s) => s.id === guide.passage.toSegment);
+  const first = segments[from], last = segments[to];
+  if (first?.startMs == null || last?.endMs == null || to < from || last.endMs <= first.startMs) return null;
+  return { guide, startMs: first.startMs, endMs: last.endMs, segments: segments.slice(from, to + 1) };
 }
 
 const STEPS = [
   { title: 'Écouter sans le texte', hint: 'Le sujet général, sans chercher chaque mot.', icon: Headphones, hide: true },
   { title: 'Comprendre', hint: 'Réécoute avec le texte ; le français et les expressions seulement là où ça bloque.', icon: ScrollText, hide: false },
+  { title: 'Dictée', hint: 'Tape ce que tu entends, phrase par phrase : tu vois ce qui t’échappe et pourquoi.', icon: Keyboard, hide: true },
   { title: 'Réécouter sans le texte', hint: 'Reconnais-tu maintenant les expressions à l’oreille ?', icon: EyeOff, hide: true },
 ] as const;
+const DICTATION = 2;
+const SLOW_RATE = 0.8;
 
 /**
- * Original guidé : un passage de 2 à 5 minutes travaillé en trois écoutes, puis le quiz.
- * Le lecteur s'arrête à la fin du passage ; le texte est masqué pendant les écoutes sans aide.
+ * Original guidé : un passage de 2 à 5 minutes travaillé en quatre temps, puis le quiz.
+ * La lecture s'arrête à la fin de ce qui est demandé (passage ou phrase) ; le texte est masqué pendant les écoutes sans aide.
  */
 export function GuidePanel({ detail, variant, playing, positionSec, onPlay, onHideText }: {
   detail: ContentDetail; variant: ContentVariant; playing: boolean; positionSec: number;
   onPlay: (positionSec: number) => void; onHideText: (hidden: boolean) => void;
 }) {
   const player = usePlayer();
+  const queryClient = useQueryClient();
   const segments = useContentSegments(detail.publicationId, variant);
   const [step, setStep] = useState<number | null>(null);
-  const listening = useRef(false);
+  const [saved, setSaved] = useState<Set<string>>(new Set());
+  const [slow, setSlow] = useState(false);
+  const stopAt = useRef<number | null>(null);
+  const normalRate = useRef<number | null>(null);
   const passage = segments.data ? guidePassage(segments.data.guide, segments.data.segments) : null;
 
-  // Arrêt à la fin du passage pendant une écoute guidée ; toute autre lecture reste libre.
+  // Arrêt à la fin de l'écoute demandée ; toute autre lecture reste libre.
   useEffect(() => {
-    if (!passage || !listening.current || !playing) return;
-    if (positionSec * 1000 >= passage.endMs) { listening.current = false; player.pause(); }
-  }, [passage, playing, positionSec, player]);
-  useEffect(() => () => onHideText(false), [onHideText]);
+    if (stopAt.current === null || !playing) return;
+    if (positionSec * 1000 >= stopAt.current) { stopAt.current = null; player.pause(); }
+  }, [playing, positionSec, player]);
+  useEffect(() => () => {
+    onHideText(false);
+    if (normalRate.current !== null) player.setRate(normalRate.current);
+  }, [onHideText, player]);
+
+  const keep = useMutation({
+    mutationFn: async (notes: GuideNote[]) => {
+      for (const note of notes) {
+        const index = segments.data!.segments.findIndex((s) => s.id === note.segmentId), sentence = segments.data!.segments[index]?.text ?? '';
+        if (index < 0 || !validWordPick(note.text, sentence)) continue;
+        await saveWordPick({ word: note.text, sentence, contentId: detail.content.id, publicationId: detail.publicationId,
+          variantKey: variant.key, segmentIndex: index, language: 'en' });
+        setSaved((all) => new Set(all).add(note.text));
+      }
+    },
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: PICKS_KEY }),
+  });
 
   if (!passage) return null;
   const { guide } = passage;
-  const segmentStart = (id: string) => segments.data!.segments.find((s) => s.id === id)?.startMs ?? passage.startMs;
+  const playRange = (startMs: number, endMs: number) => { stopAt.current = endMs; onPlay(startMs / 1000); };
+  /** Une expression ou un point d'écoute : sa phrase seulement. */
+  const playSentence = (id: string) => {
+    const s = segments.data!.segments.find((x) => x.id === id);
+    if (s?.startMs != null && s.endMs != null) playRange(s.startMs, s.endMs);
+  };
+  const setSlowRate = (value: boolean) => {
+    if (value && normalRate.current === null) { normalRate.current = player.rate; player.setRate(SLOW_RATE); }
+    if (!value && normalRate.current !== null) { player.setRate(normalRate.current); normalRate.current = null; }
+    setSlow(value);
+  };
   const start = (index: number) => {
     setStep(index);
     onHideText(STEPS[index]!.hide);
-    listening.current = true;
-    onPlay(passage.startMs / 1000);
+    if (index !== DICTATION) playRange(passage.startMs, passage.endMs);
+    else player.pause();
   };
+  const unsaved = guide.expressions.filter((e) => !saved.has(e.text));
 
   return <section aria-label="Original guidé" className={`${cardCls} mt-5 space-y-4 p-4`}>
     <div>
@@ -73,31 +112,46 @@ export function GuidePanel({ detail, variant, playing, positionSec, onPlay, onHi
           <span><span className="block font-semibold">{i + 1}. {s.title}</span><span className="block text-xs font-normal opacity-80">{s.hint}</span></span>
         </Button>
       </li>)}
-      <li className="px-1 text-sm text-muted-foreground">4. Vérifie avec le quiz en bas de page, puis reviens dans quelques jours pour une réécoute sans texte.</li>
+      <li className="px-1 text-sm text-muted-foreground">5. Vérifie avec le quiz en bas de page, puis reviens dans quelques jours pour une réécoute sans texte.</li>
     </ol>
 
-    {step !== null && step > 0 && <div className="space-y-4">
+    {step === DICTATION && <Dictation key={variant.key} contentId={detail.content.id} publicationId={detail.publicationId} variantKey={variant.key}
+      segments={passage.segments} onPlayRange={playRange} onSlow={setSlowRate} slow={slow} />}
+
+    {step !== null && step > 0 && step !== DICTATION && <div className="space-y-4">
       <div>
-        <h3 className="m-0 mb-2 text-base font-semibold">Expressions à reconnaître</h3>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="m-0 text-base font-semibold">Expressions à reconnaître</h3>
+          {unsaved.length > 1 && <Button size="sm" variant="outline" disabled={keep.isPending} onClick={() => keep.mutate(unsaved)}>
+            <BookmarkPlus className="size-4" />Tout ajouter à ma révision
+          </Button>}
+        </div>
         <ul className="m-0 grid list-none gap-2 p-0">
           {guide.expressions.map((e) => <li key={`${e.segmentId}:${e.text}`} className="rounded-xl border border-border/60 p-3">
             <div className="flex items-start justify-between gap-2">
               <p lang="en" className="m-0 font-reading text-[1.05rem] font-semibold">{e.text}</p>
-              <Button variant="ghost" size="icon" aria-label={`Écouter « ${e.text} »`} onClick={() => onPlay(segmentStart(e.segmentId) / 1000)}>
-                <Play className="size-4" />
-              </Button>
+              <div className="flex shrink-0">
+                <Button variant="ghost" size="icon" aria-label={`Écouter « ${e.text} »`} onClick={() => playSentence(e.segmentId)}>
+                  <Play className="size-4" />
+                </Button>
+                <Button variant="ghost" size="icon" disabled={saved.has(e.text) || keep.isPending}
+                  aria-label={saved.has(e.text) ? `« ${e.text} » est dans ta révision` : `Ajouter « ${e.text} » à ma révision`} onClick={() => keep.mutate([e])}>
+                  {saved.has(e.text) ? <Check className="size-4" /> : <BookmarkPlus className="size-4" />}
+                </Button>
+              </div>
             </div>
             {e.meaning && <p className="m-0 text-sm">{e.meaning}</p>}
             <p className="m-0 mt-1 text-sm text-muted-foreground">{e.note}</p>
           </li>)}
         </ul>
+        {keep.isError && <Notice tone="error" className="mt-2">{keep.error.message}</Notice>}
       </div>
       {guide.listening.length > 0 && <div>
         <h3 className="m-0 mb-2 flex items-center gap-2 text-base font-semibold"><Ear className="size-4" />À écouter</h3>
         <ul className="m-0 grid list-none gap-2 p-0">
           {guide.listening.map((n) => <li key={`${n.segmentId}:${n.text}`} className={cn('flex items-start justify-between gap-2 rounded-xl bg-muted/50 p-3')}>
             <div><p lang="en" className="m-0 font-reading font-semibold">{n.text}</p><p className="m-0 text-sm text-muted-foreground">{n.note}</p></div>
-            <Button variant="ghost" size="icon" aria-label={`Écouter « ${n.text} »`} onClick={() => onPlay(segmentStart(n.segmentId) / 1000)}>
+            <Button variant="ghost" size="icon" aria-label={`Écouter « ${n.text} »`} onClick={() => playSentence(n.segmentId)}>
               <Play className="size-4" />
             </Button>
           </li>)}

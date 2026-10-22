@@ -6,6 +6,7 @@ import { isEmptyWeek, weekLabel } from '../weekly/helpers';
 import { useWeekly } from '../weekly/useWeekly';
 import { WeeklyActivities } from '../weekly/WeeklyActivities';
 import { WeeklyMetrics } from '../weekly/WeeklyMetrics';
+import { EarProgress } from '../weekly/EarProgress';
 
 export function WeekPage() {
   const { week, currentWeek, online, query, exportWeek, move, canPrevious, canNext } = useWeekly();
@@ -21,6 +22,7 @@ export function WeekPage() {
       <Button variant="outline" size="icon" aria-label="Semaine suivante" disabled={!canNext} onClick={() => move(1)}><ChevronRight className="size-5" /></Button>
     </nav>
     <p className="mt-3 text-xs text-muted-foreground">Du lundi au dimanche · Europe/Paris</p>
+    {online && <EarProgress />}
     <div className="mt-4 flex flex-col gap-3">
       <Button variant="outline" disabled={!online || exportWeek.isPending} onClick={() => exportWeek.mutate(week)}>
         {exportWeek.isPending ? <Spinner label="Préparation de l’export" /> : <Download className="size-4" />}Exporter pour NotebookLM

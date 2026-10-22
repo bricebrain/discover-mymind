@@ -1,12 +1,15 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { GuidePanel, guidePassage } from './GuidePanel';
 import type { ContentDetail, ContentGuide, ContentSegments, ContentVariant } from '../api/contents';
 
 const guide: ContentGuide = {
   level: 'B1', voice: 'original', passage: { fromSegment: 's2', toSegment: 's3', reason: 'Explique la décision.' },
-  expressions: [{ segmentId: 's3', text: 'hold rates steady', meaning: 'maintenir les taux', note: 'Bloc à retenir.' }],
+  expressions: [{ segmentId: 's3', text: 'hold rates steady', meaning: 'maintenir les taux', note: 'Bloc à retenir.' },
+    { segmentId: 's2', text: 'is expected to', meaning: 'devrait', note: 'Très fréquent.' }],
   listening: [{ segmentId: 's2', text: 'expected to', note: 'À écouter : « to » réduit.' }],
 };
 const doc: ContentSegments = { schemaVersion: 1, variantKey: 'en-source', guide, segments: [
@@ -15,24 +18,32 @@ const doc: ContentSegments = { schemaVersion: 1, variantKey: 'en-source', guide,
   { id: 's3', text: 'It will hold rates steady.', startMs: 70_000, endMs: 130_000 },
 ] };
 let segments: ContentSegments = doc;
-const pause = vi.fn();
+const player = { pause: vi.fn(), rate: 1, setRate: vi.fn() };
+const saveWordPick = vi.fn(async () => ({ pick: {}, alreadySaved: false }));
+const submitDictation = vi.fn();
 vi.mock('../api/contents', () => ({ useContentSegments: () => ({ data: segments }) }));
-vi.mock('../player/PlayerProvider', () => ({ usePlayer: () => ({ pause }) }));
+vi.mock('../player/PlayerProvider', () => ({ usePlayer: () => player }));
+vi.mock('../vocabulary/api', () => ({ PICKS_KEY: ['picks'], saveWordPick: (...a: unknown[]) => saveWordPick(...(a as [])) }));
+vi.mock('../api/dictation', async (original) => ({ ...(await original<typeof import('../api/dictation')>()),
+  submitDictation: (...a: unknown[]) => submitDictation(...a) }));
 const variant: ContentVariant = { key: 'en-source', kind: 'source', language: 'en', timingStatus: 'unverified', segmentsUrl: '/s',
   audio: { source: 'r2', url: '/a', durationMs: 130_000, timingSource: 'rss_vtt' } };
 const detail: ContentDetail = { content: { id: 'c', title: 'Rates' }, publicationId: 'p', variants: [variant] };
-beforeEach(() => { segments = doc; pause.mockReset(); });
+const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={new QueryClient()}>{children}</QueryClientProvider>;
+const panel = (props: Partial<Parameters<typeof GuidePanel>[0]> = {}) =>
+  <GuidePanel detail={detail} variant={variant} playing={false} positionSec={0} onPlay={() => {}} onHideText={() => {}} {...props} />;
+beforeEach(() => { segments = doc; player.pause.mockReset(); player.setRate.mockReset(); saveWordPick.mockClear(); submitDictation.mockReset(); });
 afterEach(cleanup);
 
 it('borne le passage avec les horodatages du document, sinon ne propose rien', () => {
-  expect(guidePassage(guide, doc.segments)).toMatchObject({ startMs: 10_000, endMs: 130_000 });
+  expect(guidePassage(guide, doc.segments)).toMatchObject({ startMs: 10_000, endMs: 130_000, segments: [{ id: 's2' }, { id: 's3' }] });
   expect(guidePassage({ ...guide, passage: { fromSegment: 's3', toSegment: 's2' } }, doc.segments)).toBeNull();
   expect(guidePassage(undefined, doc.segments)).toBeNull();
 });
 
 it('lance l’écoute sans texte au début du passage, puis révèle expressions et points d’écoute', () => {
   const play = vi.fn(), hide = vi.fn();
-  render(<GuidePanel detail={detail} variant={variant} playing={false} positionSec={0} onPlay={play} onHideText={hide} />);
+  render(panel({ onPlay: play, onHideText: hide }), { wrapper });
   expect(screen.getByText('Passage 0:10 – 2:10')).toBeDefined();
   fireEvent.click(screen.getByText('1. Écouter sans le texte'));
   expect(play).toHaveBeenLastCalledWith(10);
@@ -46,15 +57,50 @@ it('lance l’écoute sans texte au début du passage, puis révèle expressions
 });
 
 it('arrête la lecture à la fin du passage pendant une écoute guidée', () => {
-  const props = { detail, variant, onPlay: vi.fn(), onHideText: vi.fn() };
-  const view = render(<GuidePanel {...props} playing positionSec={100} />);
-  fireEvent.click(screen.getByText('3. Réécouter sans le texte'));
-  view.rerender(<GuidePanel {...props} playing positionSec={131} />);
-  expect(pause).toHaveBeenCalledOnce();
+  const view = render(panel({ playing: true, positionSec: 100 }), { wrapper });
+  fireEvent.click(screen.getByText('4. Réécouter sans le texte'));
+  view.rerender(panel({ playing: true, positionSec: 131 }));
+  expect(player.pause).toHaveBeenCalledOnce();
+});
+
+it('ajoute une expression, ou toutes, à la révision avec sa phrase', async () => {
+  render(panel(), { wrapper });
+  fireEvent.click(screen.getByText('2. Comprendre'));
+  fireEvent.click(screen.getByLabelText('Ajouter « hold rates steady » à ma révision'));
+  await waitFor(() => expect(saveWordPick).toHaveBeenCalledWith({ word: 'hold rates steady', sentence: 'It will hold rates steady.',
+    contentId: 'c', publicationId: 'p', variantKey: 'en-source', segmentIndex: 2, language: 'en' }));
+  await waitFor(() => expect(screen.getByLabelText('« hold rates steady » est dans ta révision')).toBeDefined());
+  expect(screen.queryByText('Tout ajouter à ma révision')).toBeNull(); // il n'en reste qu'une
+});
+
+it('dicte phrase par phrase, texte masqué, avec arrêt en fin de phrase et lecture ralentie rétablie', async () => {
+  const play = vi.fn(), hide = vi.fn();
+  submitDictation.mockResolvedValue({ id: 'a', segmentId: 's2', expected: 'The bank is expected to decide.', expectedWords: 6, correctWords: 5,
+    accuracy: 5 / 6, tokens: [{ expected: 'the', typed: 'the', status: 'ok' }, { expected: 'to', status: 'missing' }],
+    errors: [{ expected: 'to', heard: '', category: 'reduced_form', explanation: '« to » est presque avalé.' }], tip: 'Guette les petits mots.' });
+  const view = render(panel({ onPlay: play, onHideText: hide, playing: true }), { wrapper });
+  fireEvent.click(screen.getByText('3. Dictée'));
+  expect(hide).toHaveBeenLastCalledWith(true);
+  fireEvent.click(screen.getByText('Écouter la phrase'));
+  expect(play).toHaveBeenLastCalledWith(10);
+  view.rerender(panel({ onPlay: play, onHideText: hide, playing: true, positionSec: 71 }));
+  expect(player.pause).toHaveBeenCalled();
+  fireEvent.click(screen.getByText('Plus lentement'));
+  expect(player.setRate).toHaveBeenLastCalledWith(0.8);
+  fireEvent.change(screen.getByLabelText('Ce que tu entends'), { target: { value: 'the bank is expected decide' } });
+  fireEvent.click(screen.getByText('Vérifier'));
+  await waitFor(() => expect(screen.getByText('83 % des mots reconnus · 5/6')).toBeDefined());
+  expect(submitDictation).toHaveBeenCalledWith('c', 'en-source', { publicationId: 'p', segmentId: 's2', typed: 'the bank is expected decide' });
+  expect(screen.getByText('Forme réduite')).toBeDefined();
+  expect(screen.getByText('Guette les petits mots.')).toBeDefined();
+  fireEvent.click(screen.getByText('Phrase suivante'));
+  expect(screen.getByText(/Phrase 2 \/ 2/)).toBeDefined();
+  view.unmount();
+  expect(player.setRate).toHaveBeenLastCalledWith(1);
 });
 
 it('n’affiche rien sans guide', () => {
   segments = { ...doc, guide: undefined };
-  const view = render(<GuidePanel detail={detail} variant={variant} playing={false} positionSec={0} onPlay={() => {}} onHideText={() => {}} />);
+  const view = render(panel(), { wrapper });
   expect(view.container.textContent).toBe('');
 });
