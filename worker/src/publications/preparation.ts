@@ -8,6 +8,7 @@ export async function assertPrepared(env: Env,p: Publication,m: Manifest) {
   if (!p.queue_item_id) return;
   const row = await env.DB.prepare('SELECT kind,ref,options_json FROM prepare_queue WHERE id=?').bind(p.queue_item_id).first<{kind:string;ref:string;options_json:string}>();
   if (!row) throw new HttpError(409,'lease_lost','Demande introuvable.');
+  if ((m.content.sourceType==='affaire') !== (row.kind==='affaire')) throw new HttpError(422,'source_mismatch','La publication ne correspond pas à l’affaire demandée.');
   if ((m.content.sourceType==='dossier') !== (row.kind==='dossier') || (row.kind==='dossier' && m.content.sourceRef!==`dossier:${row.ref}`)) {
     throw new HttpError(422,'source_mismatch','La publication ne correspond pas à la demande préparée.');
   }

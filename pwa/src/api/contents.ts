@@ -3,7 +3,7 @@ import { api } from './client';
 import { cachedSegments, isNetworkFailure, offline } from '../offline';
 import { LIBRARY_QUERY_POLICY } from '../cache/libraryPolicy';
 
-export type ContentSourceType = 'podcast' | 'youtube' | 'reflection' | 'dossier';
+export type ContentSourceType = 'podcast' | 'youtube' | 'reflection' | 'dossier' | 'affaire';
 export interface LibraryFilters { type?: ContentSourceType; search?: string }
 export interface PreparedContent {
   id: string; title: string; originalLanguage: string; sourceType: ContentSourceType; category: string | null;
@@ -41,7 +41,7 @@ export interface ContentGuide {
 export interface ContentSegments { schemaVersion: 1; variantKey: string; segments: ContentSegment[]; guide?: ContentGuide }
 /** Source d'un dossier multisource (chantier A), telle que capturée pour l'exécution publiée. */
 export interface DossierSource { id: string; type: 'episode' | 'content' | 'reflection' | 'article'; ref: string; title: string; capturedAt: string }
-export interface ContentDetail { episode?: { id: string; showId: string } | null; content: { id: string; title: string; sourceType?: ContentSourceType; sources?: DossierSource[] }; publicationId: string; variants: ContentVariant[] }
+export interface ContentDetail { episode?: { id: string; showId: string } | null; content: { id: string; title: string; sourceType?: ContentSourceType; sourceUrl?: string | null; licence?: string; sources?: DossierSource[] }; publicationId: string; variants: ContentVariant[] }
 
 export function usePreparedContents(filters: LibraryFilters = {}) {
   return useInfiniteQuery({ ...LIBRARY_QUERY_POLICY, queryKey: ['library','prepared',filters], initialPageParam: 0,

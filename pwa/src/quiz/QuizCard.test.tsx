@@ -52,3 +52,17 @@ describe('QuizCard', () => {
     expect(screen.getByRole('button', { name: 'Réessayer' })).toBeDefined();
   });
 });
+
+it('présente le choix judiciaire et révèle le véritable verdict après une réponse', async () => {
+  const quiz = { ...initial, score: { correct: 0, answered: 0, total: 1 }, questions: [
+    { ...initial.questions[0]!, kind: 'judgment', choices: ['Allow', 'Dismiss', 'Remit', 'Stay'], answer: null } ] };
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(Response.json(quiz)).mockResolvedValueOnce(Response.json({
+    answer: { questionIndex: 0, choice: 3, correct: true, correctChoice: 3, explanation: 'La cour suspend la procédure.' },
+    score: { correct: 1, answered: 1, total: 1 } })));
+  mount();
+  await screen.findByText(/Qu’aurais-tu décidé/);
+  expect(screen.queryByText('Le véritable verdict :')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Stay' }));
+  await screen.findByText('Le véritable verdict :');
+  expect(screen.getByText(/La cour suspend la procédure/)).toBeDefined();
+});

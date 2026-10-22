@@ -17,7 +17,7 @@ export async function library(req: Request, env: Env) {
   const offset = Number(params.get('offset') ?? 0);
   if (!Number.isSafeInteger(offset) || offset < 0) throw new HttpError(400,'invalid_pagination','Pagination invalide.');
   const type = params.get('type');
-  if (type && !['podcast','youtube','reflection','dossier'].includes(type)) throw new HttpError(400,'invalid_type','Type de contenu inconnu.');
+  if (type && !['podcast','youtube','reflection','dossier','affaire'].includes(type)) throw new HttpError(400,'invalid_type','Type de contenu inconnu.');
   const search = (params.get('q') ?? '').trim();
   if (search.length > 200) throw new HttpError(400,'invalid_search','Recherche limitée à 200 caractères.');
   const filters: string[] = [], values: string[] = [];
@@ -57,7 +57,7 @@ export async function detail(env: Env, id: string) {
     WHERE c.id=? AND c.deleted_at IS NULL LIMIT 1`).bind(id).first<{ id: string; showId: string }>();
   return json({ content: m.content, episode, publicationId: p.id, variants: m.variants.map((v) => {
     const base = `/api/contents/${id}/variants/${v.key}`;
-    return { ...v, quiz: undefined, segmentsFile: undefined, segmentsUrl: `${base}/segments?publication=${p.id}`,
+    return { ...v, judgment: undefined, quiz: undefined, segmentsFile: undefined, segmentsUrl: `${base}/segments?publication=${p.id}`,
       timingStatus: statuses.results.find((s) => s.variant_key === v.key)?.timing_status,
       audio: v.audio ? { ...v.audio, file: undefined, url: v.audio.source === 'r2' ? `${base}/audio?publication=${p.id}` : v.audio.url,
         sha256: v.audio.file ? m.files[v.audio.file]?.sha256 : undefined } : null };

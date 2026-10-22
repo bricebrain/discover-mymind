@@ -29,10 +29,13 @@ async function checkSegments(env: Env, m: Manifest, prepared: boolean) {
   for (const v of m.variants) {
     if (v.key !== source.key) {
       const doc = validateSegments(await load(v), v, ids);
-      if (validQuiz(v.quiz,doc.segments.length)) quizzes.set(v.key,JSON.stringify(v.quiz));
+      if (v.judgment) quizzes.set(v.key, JSON.stringify([{ kind: 'judgment', question: v.judgment.question, choices: v.judgment.choices,
+        correctChoice: v.judgment.verdict, explanation: v.judgment.verdictExplanationFr, segmentIndex: 0 }]));
+      if (validQuiz(v.quiz,doc.segments.length) && !v.judgment) quizzes.set(v.key,JSON.stringify(v.quiz));
       if (doc.segments.some((x) => x.provenance)) throw new HttpError(422, 'invalid_provenance', 'Provenance réservée à la source d’un dossier.');
       if (prepared && v.kind==='adaptation' && doc.segments.some((s) => !s.fr?.trim() ||
-          (v.style==='narration' ? s.speaker!=='Narrator' : s.speaker!=='Host' && s.speaker!=='Guest'))) {
+          (m.content.sourceType==='affaire' ? s.speaker!=='Narrator' && s.speaker!=='Guest' :
+            v.style==='narration' ? s.speaker!=='Narrator' : s.speaker!=='Host' && s.speaker!=='Guest'))) {
         throw new HttpError(422,'invalid_adaptation_segments','Traduction française et intervenants conformes au style requis.');
       }
     }

@@ -1,5 +1,5 @@
 export interface QuizQuestion {
-  question: string; choices: [string, string, string]; correctChoice: number;
+  kind?: 'judgment'; question: string; choices: string[]; correctChoice: number;
   explanation: string; segmentIndex: number;
 }
 const text = (v: unknown, max: number): v is string => typeof v === 'string' && !!v.trim() && [...v].length <= max;

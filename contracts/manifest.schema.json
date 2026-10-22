@@ -25,7 +25,8 @@
             "podcast",
             "youtube",
             "reflection",
-            "dossier"
+            "dossier",
+            "affaire"
           ]
         },
         "sourceRef": {
@@ -37,7 +38,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "maxLength": 2048
         },
         "sourceUrl": {
           "anyOf": [
@@ -125,6 +127,11 @@
             ],
             "additionalProperties": false
           }
+        },
+        "licence": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
         }
       },
       "required": [
@@ -366,6 +373,44 @@
                   "minimum": 0,
                   "maximum": 99999
                 }
+              }
+            }
+          },
+          "judgment": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "question",
+              "choices",
+              "verdict",
+              "verdictExplanationFr"
+            ],
+            "properties": {
+              "question": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "choices": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 4,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 300
+                }
+              },
+              "verdict": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 3
+              },
+              "verdictExplanationFr": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
               }
             }
           }

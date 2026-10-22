@@ -4,7 +4,9 @@ export interface VariantAudio {
   origin: 'original' | 'kokoro' | 'deepgram'; durationMs: number;
   timingSource: 'rss_srt' | 'rss_vtt' | 'macwhisper_srt' | 'kokoro' | 'deepgram' | 'none';
 }
+export interface Judgment { question: string; choices: string[]; verdict: number; verdictExplanationFr: string }
 export interface Variant {
+  judgment?: Judgment;
   quiz?: import('../quiz/validation').QuizQuestion[];
   key: string; kind: 'source' | 'faithful_translation' | 'adaptation'; language: string;
   cefrLevel?: string | null; style?: 'narration' | 'dialogue'; derivedFrom?: string | null;
@@ -15,7 +17,8 @@ export interface Variant {
 }
 export interface Manifest {
   schemaVersion: 1;
-  content: { id: string; title: string; originalLanguage: string; sourceType: 'podcast' | 'youtube' | 'reflection' | 'dossier';
+  content: { id: string; title: string; originalLanguage: string; sourceType: 'podcast' | 'youtube' | 'reflection' | 'dossier' | 'affaire';
+    licence?: string;
     sources?: {id:string;type:'episode'|'content'|'reflection'|'article';ref:string;title:string;capturedAt:string;sha256:string;publicationId?:string;variantKey?:string}[];
     sourceRef?: string | null; sourceUrl?: string | null; category?: string | null; editorial?: 'news' | 'discovery'; rights: 'personal_use' };
   variants: Variant[]; files: Record<string, ManifestFile>; removeVariants?: string[];

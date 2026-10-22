@@ -6,6 +6,7 @@ import { Aurora } from '../vivid/Aurora';
 
 /** Fond de carte sans pochette : un dégradé par type de contenu. */
 const TYPE_BG: Record<PreparedContent['sourceType'], { bg: string; label: string; Icon: typeof Play }> = {
+  affaire: { bg: 'linear-gradient(140deg,#0d5f56,#123b5e)', label: 'À vous de juger', Icon: NotebookPen },
   podcast: { bg: 'linear-gradient(140deg,#0d5f56,#123b5e)', label: 'Podcast', Icon: Headphones },
   youtube: { bg: 'linear-gradient(140deg,#b91c1c,#7c1d3c)', label: 'YouTube', Icon: Play },
   reflection: { bg: 'linear-gradient(140deg,#0f766e,#0e9f8b)', label: 'Note My Mind', Icon: NotebookPen },
