@@ -24,6 +24,12 @@ describe('Contrat partagé TS/Python', () => {
     try { validateSegments(f.document,f.variant as Variant); expect.fail('Segments acceptés'); }
     catch (e) { expect(e).toBeInstanceOf(HttpError); expect((e as HttpError).code).toBe(f.code); }
   });
+  it('accepte une dictée phrase par phrase dans le passage', () => {
+    const f = invalidSegments.find((x) => x.name === 'dictation-unordered')!;
+    const document = structuredClone(f.document) as { guide: { dictation: unknown[] } };
+    document.guide.dictation.reverse();
+    expect(validateSegments(document, f.variant as Variant).guide?.dictation).toHaveLength(2);
+  });
   it('normalise récursivement les clés sans changer les tableaux', () => {
     expect(canonicalJson({ z:[{ b:2,a:1 }], a:'é' })).toBe('{"a":"é","z":[{"a":1,"b":2}]}');
   });
