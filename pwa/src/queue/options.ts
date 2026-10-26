@@ -7,11 +7,11 @@ export const LEVEL_OPTIONS = [['A2', 'A2'], ['B1', 'B1'], ['B2', 'B2'], ['C1', '
 export const STAGES: Record<string,string> = {
   download:'Téléchargement',normalize:'Préparation audio',transcribe:'Transcription',source_ready:'Source prête dans l’Atelier',
   plan:'Plan de l’épisode',extract:'Analyse des sources',evaluate:'Contrôle de fidélité',review:'À relire dans l’Atelier',
-  translate:'Traduction fidèle',adapt:'Adaptation',tts:'Création de l’audio',publish:'Publication',
+  guide:'Aides sur toute la transcription et exercices',translate:'Traduction fidèle',adapt:'Adaptation',tts:'Création de l’audio',publish:'Publication',
 };
 /** Original guidé par défaut : l'anglais n'est jamais réécrit, le niveau règle les explications du guide. */
 export function defaultOptions(): PrepareOptions {
-  return {coverage:'guided',level:'B1',style:'narration',targetMinutes:null,faithful:false,keepOriginalCopy:false};
+  return {coverage:'guided',level:'A2',style:'narration',targetMinutes:null,faithful:false,keepOriginalCopy:false};
 }
 export function queueLabel(item: QueueItem) {
   if (item.executor==='cloud' && item.status==='pending') return 'En file · sans Mac';

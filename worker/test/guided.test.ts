@@ -15,6 +15,7 @@ describe('Original guidé', () => {
     expect(prepareOptions({ coverage: 'guided', level: 'B1' }, 'en', 600)).toEqual(
       { coverage: 'guided', level: 'B1', style: 'narration', targetMinutes: null, faithful: false, keepOriginalCopy: false });
     expect(prepareOptions({ coverage: 'guided', level: 'A2' }, 'fr', 3600).coverage).toBe('guided');
+    expect(prepareOptions({ coverage: 'guided' }, 'en', 600).level).toBe('A2');
   });
 
   it('refuse une durée cible, un dialogue ou l’anglais non simplifié', () => {

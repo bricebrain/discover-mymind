@@ -1,3 +1,4 @@
+import { validAnnotations } from './annotations';
 import { validQuiz } from '../quiz/validation';
 import { HttpError } from '../http';
 import { parseSafeUrl } from '../security/safeUrl';
@@ -109,6 +110,7 @@ export function validateSegments(input: unknown, variant: Variant, sourceIds?: S
     if (baseLanguage(variant.language) !== 'en' || !timed || from === undefined || to === undefined || from > to) reject('invalid_guide');
     if ([...doc.guide.expressions, ...doc.guide.listening].some((n) => !index.has(n.segmentId))) reject('invalid_guide');
     if (doc.guide.voice === 'synthetic' && doc.guide.listening.length) reject('invalid_guide');
+    if (doc.guide.annotations) validAnnotations(doc.guide.annotations, doc.segments);
     if (doc.guide.dictation) validDictation(doc.guide.dictation, doc.segments, from!, to!);
   }
   return doc;

@@ -120,7 +120,7 @@
     },
     "guide": {
       "type": "object",
-      "description": "Original guidé : passage de travail, expressions et points d'écoute, rédigés au niveau CECRL de l'apprenant.",
+      "description": "Aides sur toute la transcription ; passage réservé aux exercices. Anciens guides compatibles.",
       "properties": {
         "level": {
           "enum": [
@@ -161,7 +161,7 @@
         },
         "expressions": {
           "type": "array",
-          "minItems": 1,
+          "minItems": 0,
           "maxItems": 8,
           "items": {
             "type": "object",
@@ -267,6 +267,52 @@
             ],
             "additionalProperties": false
           }
+        },
+        "annotations": {
+          "type": "array",
+          "maxItems": 60000,
+          "description": "Aides sur tout le texte. Positions en points de code Unicode, fin exclue ; 0 à 3 aides par segment, sans chevauchement.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "segmentId": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "meaning": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300
+              },
+              "note": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600
+              },
+              "startChar": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "endChar": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "segmentId",
+              "text",
+              "meaning",
+              "note",
+              "startChar",
+              "endChar"
+            ],
+            "additionalProperties": false
+          }
         }
       },
       "required": [
@@ -276,7 +322,21 @@
         "expressions",
         "listening"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "annotations"
+          ]
+        },
+        {
+          "properties": {
+            "expressions": {
+              "minItems": 1
+            }
+          }
+        }
+      ]
     }
   },
   "required": [

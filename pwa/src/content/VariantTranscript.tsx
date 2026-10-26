@@ -1,4 +1,5 @@
-import type { MouseEvent as ReactMouseEvent } from 'react';
+import { useMemo, type MouseEvent as ReactMouseEvent } from 'react';
+import { Button as MuiButton, Typography } from '@mui/material';
 import { BookOpen, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Notice, Spinner, Switch } from '@/components/ui/kit';
@@ -11,6 +12,8 @@ import { formatClock } from '../player/MiniPlayer';
 import { WordPickSheet } from '../vocabulary/WordPickSheet';
 import { usePassageActions } from './usePassageActions';
 import { useVariantTranscript } from './useVariantTranscript';
+import { AnnotatedText } from './AnnotatedText';
+import { annotationsBySegment } from './annotations';
 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
   return <label className="flex min-h-11 items-center gap-2.5 text-sm font-medium">
@@ -26,6 +29,7 @@ export function VariantTranscript({ detail, variant, activePositionMs, verified,
 }) {
   const reading = useVariantTranscript(detail, variant, activePositionMs, playing);
   const { segments, translated } = reading;
+  const annotations = useMemo(() => annotationsBySegment(segments.data?.guide?.annotations), [segments.data]);
   // Dossier multisource : chaque paragraphe renvoie à ses sources (chantier A).
   const passages = useDossierPassages(detail);
   // I3 : original de cette version, pour « Écouter l'original ici » ou lire le passage source.
@@ -51,17 +55,23 @@ export function VariantTranscript({ detail, variant, activePositionMs, verified,
       </div>
     </div>
     {variant.language.split('-')[0] !== 'fr' && !reading.canShowFrench && <p className="m-0 mb-3 text-sm text-muted-foreground">Français non disponible pour cette version.</p>}
+    {segments.data.guide?.annotations !== undefined && <Typography sx={{ mb: 2, fontSize: '0.875rem', color: 'text.secondary' }}>
+      {segments.data.guide.annotations.length ? 'Touche les expressions soulignées pour comprendre leur sens en français, tout au long du texte.'
+        : 'Le texte a été analysé : aucune difficulté particulière n’a été retenue pour ce niveau.'}
+    </Typography>}
     {reading.showFrench && translated.isFetching && <p role="status" className="m-0 text-sm">Chargement du français…</p>}
     {reading.showFrench && translated.isError && <Notice tone="warning" action={<Button size="sm" variant="ghost" onClick={() => void translated.refetch()}>Réessayer</Button>}>La traduction française n’a pas pu être chargée.</Notice>}
     <div className="flex flex-col gap-1">
       {segments.data.segments.map((s, index) => {
         const active = index === reading.active;
+        const notes = annotations.get(s.id) ?? [];
         const navigable = verified && !!variant.audio && s.startMs !== null;
         const text = <>
           {(s.speaker || s.startMs !== null) && <span className="mb-1 block text-xs text-muted-foreground">
             {s.speaker}{s.speaker && s.startMs !== null ? ' · ' : ''}{s.startMs !== null ? formatClock(s.startMs / 1000) : ''}
           </span>}
-          <span data-passage-text lang={variant.language} className="whitespace-pre-wrap font-reading text-[1.08rem] leading-[1.8]">{s.text}</span>
+          <span data-passage-text lang={variant.language} className="whitespace-pre-wrap font-reading text-[1.08rem] leading-[1.8]">{notes.length ? <AnnotatedText key={`${detail.publicationId}:${variant.key}:${s.id}`} detail={detail} variant={variant}
+            segment={s} segmentIndex={index} annotations={notes} onPlay={navigable ? () => onSeek(s.startMs! / 1000) : undefined} /> : s.text}</span>
         </>;
         return <div key={s.id} ref={active ? reading.activeRef : undefined} aria-current={active ? 'true' : undefined}
           onPointerUp={(e) => actions.afterSelection(e.currentTarget, s)}
@@ -72,7 +82,7 @@ export function VariantTranscript({ detail, variant, activePositionMs, verified,
           onClickCapture={(e) => { if (actions.swallowClick()) { e.preventDefault(); e.stopPropagation(); } }}
           className={cn('scroll-my-24 rounded-xl border-l-[3px] p-3 transition-colors duration-300',
             active ? 'border-primary bg-primary-soft' : 'border-transparent')}>
-          {navigable ? <button type="button" onClick={() => onSeek(s.startMs! / 1000)} title={`Écouter depuis ${formatClock(s.startMs! / 1000)}`}
+          {notes.length ? <div>{text}{navigable && <MuiButton size="small" onClick={() => onSeek(s.startMs! / 1000)}>Écouter cette phrase</MuiButton>}</div> : navigable ? <button type="button" onClick={() => onSeek(s.startMs! / 1000)} title={`Écouter depuis ${formatClock(s.startMs! / 1000)}`}
             className="block w-full select-text rounded text-left">{text}</button> : <div>{text}</div>}
           {(english || (original.available && !!s.sourceSegments?.length)) && <Button variant="ghost" size="icon" className="mt-1 text-muted-foreground"
             aria-label={`Actions du passage ${index + 1}`} onClick={(e) => actions.open({ segment: s, anchor: e.currentTarget.parentElement! })}>

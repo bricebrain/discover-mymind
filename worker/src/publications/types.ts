@@ -26,7 +26,11 @@ export interface Segment {
   provenance?: {sourceId:string;segmentId:string;startMs:number|null;endMs:number|null};
 }
 export interface GuideNote { segmentId: string; text: string; meaning?: string; note: string }
+/** Positions en points de code Unicode, fin exclue. */
+export interface GuideAnnotation extends GuideNote { meaning: string; startChar: number; endChar: number }
 export interface Guide {
+  /** Présent pour les guides annotant toute la transcription, même si aucune aide n’est nécessaire. */
+  annotations?: GuideAnnotation[];
   level: 'A2' | 'B1' | 'B2' | 'C1'; voice: 'original' | 'synthetic';
   passage: { fromSegment: string; toSegment: string; reason?: string };
   expressions: GuideNote[]; listening: GuideNote[];

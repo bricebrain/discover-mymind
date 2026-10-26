@@ -32,7 +32,11 @@ export interface ContentSegment {
 export interface GuideNote { segmentId: string; text: string; meaning?: string; note: string }
 /** Original guidé : passage de travail, expressions et points d'écoute (voix humaine seulement). */
 export interface DictationUnit { id: string; segmentId: string; text: string; startMs: number; endMs: number }
+/** Positions en points de code Unicode, fin exclue. */
+export interface GuideAnnotation extends GuideNote { meaning: string; startChar: number; endChar: number }
 export interface ContentGuide {
+  /** Présent pour les guides annotant toute la transcription, même si aucune aide n’est nécessaire. */
+  annotations?: GuideAnnotation[];
   dictation?: DictationUnit[];
   level: 'A2' | 'B1' | 'B2' | 'C1'; voice: 'original' | 'synthetic';
   passage: { fromSegment: string; toSegment: string; reason?: string };

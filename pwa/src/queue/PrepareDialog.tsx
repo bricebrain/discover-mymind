@@ -65,11 +65,11 @@ export function PrepareDialog({target,title,initial,faithfulAllowed,onClose,onQu
     <Field label="Version">
       <Select aria-label="Version" value={options.coverage} options={Object.entries(COVERAGES) as [PrepareOptions['coverage'], string][]} onChange={(coverage) =>
         setOptions((o) => ({...o,coverage,targetMinutes:coverage==='full' || coverage==='guided' ? null : coverage==='condensed' ? 12 : 4,
-          ...(coverage==='guided' ? {style:'narration',faithful:false,level:o.level==='original' ? 'B1' : o.level} : {})}))} />
+          ...(coverage==='guided' ? {style:'narration',faithful:false,level:o.level==='original' ? 'A2' : o.level} : {})}))} />
     </Field>
     {guided ? <>
       <Field label="Niveau des explications"><Select value={options.level} options={EXPLANATION_LEVEL_OPTIONS} onChange={(v) => set('level',v)} /></Field>
-      <p className="m-0 text-xs leading-relaxed text-muted-foreground">L’anglais n’est jamais simplifié : une vidéo anglaise reste l’original, une source française est traduite en anglais naturel et lue en entier. Le guide (passage de 2 à 5 minutes, expressions, quiz) est rédigé à ton niveau.</p>
+      <p className="m-0 text-xs leading-relaxed text-muted-foreground">L’anglais n’est jamais simplifié : une vidéo anglaise reste l’original, une source française est traduite en anglais naturel et lue en entier. Les difficultés sont expliquées en français sur toute la transcription. Pour A2, les aides ciblent A2/A2+. La dictée et le quiz restent des exercices sur un extrait de 2 à 5 minutes.</p>
     </> : <div className="grid grid-cols-2 gap-3">
       <Field label="Niveau d’anglais"><Select value={options.level} options={LEVEL_OPTIONS} onChange={(v) => set('level',v)} /></Field>
       <Field label="Style"><Select value={options.style} options={STYLE_OPTIONS} onChange={(v) => set('style',v)} /></Field>

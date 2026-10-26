@@ -21,7 +21,7 @@ const COVERAGE_OPTIONS = Object.entries(COVERAGES) as [Coverage, string][];
 function PrepareArticleDialog({ article, onClose }: { article: Article; onClose: () => void }) {
   const { toNote } = useArticleActions(article.id);
   const [coverage, setCoverage] = useState<Coverage>('guided');
-  const [level, setLevel] = useState<PrepareOptions['level']>('B1');
+  const [level, setLevel] = useState<PrepareOptions['level']>('A2');
   const [done, setDone] = useState<string | null>(null);
   return <Sheet title="Préparer en anglais" onClose={onClose} locked={toNote.isPending} footer={<>
     <Button variant="ghost" onClick={onClose} disabled={toNote.isPending}>{done ? 'Fermer' : 'Annuler'}</Button>
@@ -36,12 +36,12 @@ function PrepareArticleDialog({ article, onClose }: { article: Article; onClose:
     </Notice> : <>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Version"><Select value={coverage} options={COVERAGE_OPTIONS} onChange={(c) => {
-          setCoverage(c); if (c === 'guided' && level === 'original') setLevel('B1');
+          setCoverage(c); if (c === 'guided' && level === 'original') setLevel('A2');
         }} /></Field>
         <Field label={coverage === 'guided' ? 'Niveau des explications' : 'Niveau d’anglais'}><Select value={level}
           options={coverage === 'guided' ? LEVEL_OPTIONS.filter(([v]) => v !== 'original') : LEVEL_OPTIONS} onChange={setLevel} /></Field>
       </div>
-      <p className="m-0 text-xs leading-relaxed text-muted-foreground">L’Atelier prépare une version audio attribuée à {article.publisher}. En Original guidé, le texte anglais est lu en entier et le niveau règle les explications ; en mode Découvrir, il est adapté en 4 minutes.</p>
+      <p className="m-0 text-xs leading-relaxed text-muted-foreground">L’Atelier prépare une version audio attribuée à {article.publisher}. En Original guidé, le texte anglais est lu en entier et les difficultés sont expliquées en français sur toute la transcription ; en mode Découvrir, il est adapté en 4 minutes.</p>
     </>}
     {toNote.isError && <Notice tone="error">{toNote.error.message}</Notice>}
   </Sheet>;

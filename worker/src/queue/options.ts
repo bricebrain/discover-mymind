@@ -16,7 +16,7 @@ export function prepareOptions(value: unknown, language: string, durationSec: nu
   const allowed = ['coverage', 'level', 'style', 'targetMinutes', 'faithful', 'keepOriginalCopy'];
   if (Object.keys(b).some((k) => !allowed.includes(k))) invalid();
   const coverage = b.coverage === undefined ? (durationSec !== null && durationSec > 1500 ? 'condensed' : 'full') : b.coverage;
-  const level = b.level === undefined ? 'B1' : b.level, style = b.style === undefined ? 'narration' : b.style;
+  const level = b.level === undefined ? (coverage === 'guided' ? 'A2' : 'B1') : b.level, style = b.style === undefined ? 'narration' : b.style;
   if (coverage !== 'full' && coverage !== 'condensed' && coverage !== 'essentials' && coverage !== 'guided') invalid();
   if (level !== 'A2' && level !== 'B1' && level !== 'B2' && level !== 'C1' && level !== 'original') invalid();
   if (style !== 'narration' && style !== 'dialogue') invalid();

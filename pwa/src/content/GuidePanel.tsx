@@ -1,3 +1,4 @@
+import { Alert, Box, Button as MuiButton, Typography } from '@mui/material';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { BookmarkPlus, Check, Ear, EyeOff, Headphones, Keyboard, Play, ScrollText } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -33,7 +34,7 @@ const DICTATION = 2;
 const SLOW_RATE = 0.8;
 
 /**
- * Original guidé : un passage de 2 à 5 minutes travaillé en quatre temps, puis le quiz.
+ * Les nouveaux guides annotent tout le texte ; ce panneau conserve les exercices sur un extrait.
  * La lecture s'arrête à la fin de ce qui est demandé (passage ou phrase) ; le texte est masqué pendant les écoutes sans aide.
  */
 export function GuidePanel({ detail, variant, playing, positionSec, onPlay, onHideText, initialReview = false }: {
@@ -107,9 +108,19 @@ export function GuidePanel({ detail, variant, playing, positionSec, onPlay, onHi
     if (index !== DICTATION) playRange(passage.startMs, passage.endMs);
     else player.pause();
   };
+  const annotated = guide.annotations !== undefined;
   const unsaved = guide.expressions.filter((e) => !saved.has(e.text));
 
   return <section aria-label="Original guidé" className={`${cardCls} mt-5 space-y-4 p-4`}>
+    {annotated && <Box sx={{ mb: 2 }}>
+      <Typography component="h2" variant="h6">Comprendre tout l’audio</Typography>
+      <Typography sx={{ mt: 1, mb: 1 }}>Les difficultés sont expliquées en français directement dans la transcription. Le texte anglais reste intégral.</Typography>
+      <MuiButton variant="outlined" onClick={() => {
+        setStep(null); review.cancel(); stopAt.current = null; setSlowRate(false); onHideText(false); onPlay(0);
+      }}>Écouter tout le contenu avec les aides</MuiButton>
+      <Typography component="h3" variant="subtitle1" sx={{ mt: 3 }}>Entraînement facultatif sur un extrait</Typography>
+      <Typography variant="body2">Les étapes ci-dessous, la dictée et le quiz concernent uniquement cet extrait.</Typography>
+    </Box>}
     <div>
       <p className="m-0 text-[11px] font-semibold uppercase tracking-[.08em] text-muted-foreground">
         Original guidé · {guide.voice === 'original' ? 'audio original' : 'voix de synthèse'} · explications {guide.level}
@@ -137,7 +148,8 @@ export function GuidePanel({ detail, variant, playing, positionSec, onPlay, onHi
     {step === DICTATION && <Dictation key={variant.key} contentId={detail.content.id} publicationId={detail.publicationId} variantKey={variant.key}
       segments={passage.segments} units={guide.dictation} onPlayRange={playRange} onSlow={setSlowRate} slow={slow} />}
 
-    {step === 1 && <div className="space-y-4">
+    {annotated && step === 1 && <Alert severity="info">Les explications sont accessibles en touchant les expressions soulignées dans la transcription.</Alert>}
+    {step === 1 && !annotated && <div className="space-y-4">
       <div>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h3 className="m-0 text-base font-semibold">Expressions à reconnaître</h3>

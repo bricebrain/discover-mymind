@@ -152,3 +152,17 @@ it('ouvre la réécoute à l’étape 4, masque les aides et confirme seulement 
   view.rerender(panel({ ...props, positionSec: 131 }));
   expect(completeReview).toHaveBeenCalledOnce();
 });
+
+it('présente les aides intégrales et garde l’extrait comme exercice facultatif', () => {
+  segments = { ...doc, guide: { ...guide, annotations: [] } };
+  const play = vi.fn(), hide = vi.fn();
+  const view = render(panel({ onPlay: play, onHideText: hide, playing: true }), { wrapper });
+  expect(screen.getByText('Comprendre tout l’audio')).toBeDefined();
+  expect(screen.getByText('Entraînement facultatif sur un extrait')).toBeDefined();
+  fireEvent.click(screen.getByText('1. Écouter sans le texte'));
+  fireEvent.click(screen.getByText('Écouter tout le contenu avec les aides'));
+  expect(play).toHaveBeenLastCalledWith(0);
+  expect(hide).toHaveBeenLastCalledWith(false);
+  view.rerender(panel({ onPlay: play, onHideText: hide, playing: true, positionSec: 131 }));
+  expect(player.pause).not.toHaveBeenCalled();
+});
