@@ -4,6 +4,7 @@ import { HttpError, json, readJson } from '../http';
 import { expireExhausted, queueOut, type QueueRow } from './store';
 import { assertLease } from '../publications/store';
 import { markAtelierSeen } from './progress';
+import { expireCollectedRequests } from '../retention';
 
 export const LEASE_MS = 15 * 60_000;
 const STAGES = ['download','normalize','transcribe','source_ready','plan','extract','translate','guide','adapt','evaluate','review','tts','publish'];
@@ -25,8 +26,9 @@ export async function source(env: Env, row: QueueRow) {
     const note = await env.DB.prepare('SELECT id,title,body_md AS text,origin,source_name AS sourceName,source_url AS sourceUrl FROM reflections WHERE id=? AND deleted_at IS NULL')
       .bind(row.ref).first<{ id: string; title: string | null; text: string; origin: string; sourceName: string | null; sourceUrl: string | null }>();
     if (!note || !note.text.trim()) throw new HttpError(409,'source_missing','La note de la demande a disparu ou est vide.');
-    return { kind: 'reflection', id: note.id, title: note.title || note.text.split('\n')[0]!.replace(/^#+\s*/,'').slice(0,120) || 'Note My Mind',
-      text: note.text, language: null, category: null, origin: note.origin, sourceName: note.sourceName, sourceUrl: note.sourceUrl };
+    const research = await env.DB.prepare("SELECT id FROM articles WHERE reflection_id=? AND source_id='discover-research' LIMIT 1").bind(note.id).first<{ id: string }>();
+    return { ...(research ? { ttsProvider: 'kokoro', articleId: research.id } : {}), kind: 'reflection', id: note.id, title: note.title || note.text.split('\n')[0]!.replace(/^#+\s*/,'').slice(0,120) || 'Note My Mind',
+      text: note.text, language: research ? 'fr' : null, category: null, origin: note.origin, sourceName: note.sourceName, sourceUrl: note.sourceUrl };
   }
   const episode = await env.DB.prepare(`SELECT e.id,e.title,e.audio_url AS audioUrl,e.transcript_url AS transcriptUrl,
     e.transcript_type AS transcriptType,e.duration_sec AS durationSec,s.language,s.category,s.title AS showTitle
@@ -46,6 +48,7 @@ export async function lease(req: Request,env: Env) {
   }
   const now = new Date().toISOString(), expires = new Date(Date.now()+LEASE_MS).toISOString();
   await markAtelierSeen(env);
+  await expireCollectedRequests(env,Date.parse(now));
   await expireExhausted(env,now);
   await resolveArticleTexts(env);
   const row = await env.DB.prepare(`UPDATE prepare_queue SET status='leased',lease_token=?,lease_owner=?,

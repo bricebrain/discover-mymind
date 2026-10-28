@@ -41,3 +41,11 @@ it('le retour dans l’app revalide une bibliothèque périmée',async()=>{
     await vi.waitFor(()=>expect(request).toHaveBeenCalledTimes(1));
   } finally {unsubscribe();}
 });
+
+it('la publication actualise aussi les articles visibles dans Explorer',()=>{
+  const client=new QueryClient();clients.push(client);
+  for (const key of [['article','research-id'],['articles',{}]]) client.setQueryData(key,{});
+  refreshPreparations(client,{reason:'changed',libraryChanged:true});
+  expect(client.getQueryState(['article','research-id'])?.isInvalidated).toBe(true);
+  expect(client.getQueryState(['articles',{}])?.isInvalidated).toBe(true);
+});

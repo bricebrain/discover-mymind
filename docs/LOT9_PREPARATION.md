@@ -29,7 +29,7 @@ L’étape `review` ne reçoit aucun bail automatiquement ; seule une action exp
 
 ## Automatisation
 
-Après collecte, seules les émissions déjà configurées avec `auto_prepare=1` alimentent la file. En production, il s’agit de **L’édito éco**. Seul le dernier épisode récent (30 jours) est retenu, avec B1 intégral jusqu’à 25 min et condensé de 12 min au-delà. Aucun historique n’est importé en masse. Une demande annulée, échouée ou déjà terminée n’est jamais recréée automatiquement. Le Mac doit être allumé avec l’Atelier lancé pour la préparation.
+Après collecte, seules les émissions déjà configurées avec `auto_prepare=1` alimentent la file. En production, il s’agit de **L’édito éco**. Seule la dernière vidéo publiée dans les 24 dernières heures est retenue, avec un original guidé au niveau d’explication choisi pour la chaîne. Aucun historique n’est importé en masse. Une demande annulée, échouée ou déjà terminée n’est jamais recréée automatiquement. Le Mac doit être allumé avec l’Atelier lancé pour la préparation.
 
 ## Vérification
 

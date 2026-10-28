@@ -3,6 +3,7 @@ import type { Env } from '../env';
 import { HttpError, json, readJson } from '../http';
 import { prepareOptions } from '../queue/options';
 import { insertQueue } from '../routes/queue';
+import { publishedResearch } from '../research/publish';
 
 const LIST = `SELECT a.id, a.title, a.summary, a.author, a.url, a.published_at AS publishedAt, a.content_status AS contentStatus,
   a.reflection_id AS reflectionId, length(a.content_text) AS contentLength, s.id AS sourceId, s.publisher, s.language,
@@ -37,7 +38,7 @@ export async function list(req: Request, env: Env): Promise<Response> {
 export async function detail(env: Env, id: string) {
   const data = await article(env, id);
   await articleStatement(env, id, 'read').run();
-  return json({ article: data });
+  return json({ article: { ...data, research: data.sourceId === 'discover-research' ? await publishedResearch(env, id) : null } });
 }
 
 /** POST /api/articles/:id/fetch — texte complet demandé à l'Atelier (The Guardian ne le met pas dans son flux). */

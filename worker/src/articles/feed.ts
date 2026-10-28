@@ -1,3 +1,5 @@
+import { isRecentItem } from '../retention';
+
 /** Flux d'articles RSS 2.0 ou Atom : quelques champs par entrée, texte complet quand le flux le fournit. */
 export interface ArticleItem { guid: string; url: string; title: string; summary: string | null; author: string | null; publishedAt: string | null; content: string | null }
 
@@ -33,7 +35,7 @@ const plain = (raw: string | null, max: number) => (raw ? htmlToText(raw).slice(
  * `known` : identifiants déjà en base, écartés AVANT toute conversion (le Worker gratuit n'a que 10 ms de calcul) ;
  * au plus `maxItems` nouveaux articles convertis par passage, les suivants viendront au prochain.
  */
-export function parseArticleFeed(xml: string, maxItems = 20, known: Set<string> = new Set()): ArticleItem[] {
+export function parseArticleFeed(xml: string, maxItems = 20, known: Set<string> = new Set(), now?: number): ArticleItem[] {
   const items: ArticleItem[] = [];
   for (const m of xml.matchAll(/<(item|entry)\b[^>]*>([\s\S]*?)<\/\1>/gi)) {
     if (items.length >= maxItems) break;
@@ -43,6 +45,8 @@ export function parseArticleFeed(xml: string, maxItems = 20, known: Set<string> 
     if (!url || !/^https?:\/\//.test(url)) continue;
     const guid = decode(unwrap(tag(b, atom ? 'id' : 'guid') ?? url).trim()).slice(0, 500) || url;
     if (known.has(guid)) continue;
+    const publishedAt = isoDate(tag(b, 'pubDate') ?? tag(b, 'published') ?? tag(b, 'updated') ?? tag(b, 'dc:date'));
+    if (now !== undefined && !isRecentItem(publishedAt, now)) continue;
     const title = plain(tag(b, 'title'), 300);
     if (!title) continue;
     const content = plain(tag(b, 'content:encoded') ?? (atom ? tag(b, 'content') : null), 100_000);
@@ -50,7 +54,7 @@ export function parseArticleFeed(xml: string, maxItems = 20, known: Set<string> 
       guid, url: url.slice(0, 2048), title,
       summary: plain(tag(b, atom ? 'summary' : 'description'), 1200),
       author: plain(tag(b, 'dc:creator') ?? tag(tag(b, 'author') ?? '', 'name') ?? tag(b, 'author'), 200),
-      publishedAt: isoDate(tag(b, 'pubDate') ?? tag(b, 'published') ?? tag(b, 'updated') ?? tag(b, 'dc:date')),
+      publishedAt,
       // Un « contenu » à peine plus long que le résumé n'est pas l'article complet.
       content: content && content.length >= 1500 ? content : null,
     });

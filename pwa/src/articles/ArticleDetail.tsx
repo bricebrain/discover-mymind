@@ -14,6 +14,8 @@ import type { PrepareOptions } from '../queue/types';
 import { COVERAGES } from '../queue/options';
 import { RelatedList } from '../related/RelatedList';
 import { readingTime } from './readingTime';
+import { ArticlePreparationStatus } from './ArticlePreparationStatus';
+import { ResearchArticleBody } from '../research/ResearchArticleBody';
 
 type Coverage = keyof typeof COVERAGES;
 const COVERAGE_OPTIONS = Object.entries(COVERAGES) as [Coverage, string][];
@@ -81,13 +83,14 @@ export function ArticleDetail({ id, onBack }: { id: string; onBack?: () => void 
     </div>
     <h1 className="m-0 mt-3 font-display text-[1.9rem] font-normal leading-[1.12] tracking-tight sm:text-[2.2rem]">{a.title}</h1>
     <div className="my-4 flex flex-wrap gap-2">
-      <Button onClick={() => setPreparing(true)} disabled={noText}><Sparkles className="size-4" />{a.contentId ? 'Préparer une autre version' : 'Préparer en anglais'}</Button>
+      {(a.sourceId !== 'discover-research' || a.contentId) && <Button onClick={() => setPreparing(true)} disabled={noText}><Sparkles className="size-4" />{a.contentId ? 'Préparer une autre version' : 'Préparer en anglais'}</Button>}
       <Button variant="outline" disabled={toNote.isPending || noText} onClick={() => toNote.mutate(undefined, { onSuccess: (r) => navigate(`/mind?n=${r.noteId}`) })}>
         <NotebookPen className="size-4 text-primary" />{a.reflectionId ? 'Ouvrir dans My Mind' : 'Enregistrer dans My Mind'}
       </Button>
-      <Button asChild variant="ghost"><a href={a.url} target="_blank" rel="noopener noreferrer" className="no-underline">Lire sur le site<ExternalLink className="size-4" /></a></Button>
+      {a.sourceId !== 'discover-research' && <Button asChild variant="ghost"><a href={a.url} target="_blank" rel="noopener noreferrer" className="no-underline">Lire sur le site<ExternalLink className="size-4" /></a></Button>}
     </div>
     {toNote.isError && <Notice tone="error" className="mb-3">{toNote.error.message}</Notice>}
+    <ArticlePreparationStatus reflectionId={a.reflectionId} ready={!!a.contentId} />
     {a.contentId && <div className="mb-6"><PreparedEpisode contentId={a.contentId} about={null} /></div>}
 
     {a.contentStatus === 'pending' && <div className="mb-4" role="status">
@@ -98,10 +101,10 @@ export function ArticleDetail({ id, onBack }: { id: string; onBack?: () => void 
     {a.contentStatus === 'unavailable' && !a.contentText && <Notice tone="warning" className="mb-4"
       action={<Button size="sm" variant="ghost" onClick={() => fetchText.mutate()}>Réessayer</Button>}>Texte complet inaccessible depuis le site. Le résumé est affiché.</Notice>}
 
-    <div className="font-reading text-[1.08rem] leading-[1.8]" lang={a.language}>
+    {a.research ? <ResearchArticleBody article={a.research} /> : <div className="font-reading text-[1.08rem] leading-[1.8]" lang={a.language}>
       {paragraphs.length ? paragraphs.map((p, i) => <p key={i} className="m-0 mb-4 whitespace-pre-line">{p}</p>)
         : a.summary && <p className="m-0 text-muted-foreground">{a.summary}</p>}
-    </div>
+    </div>}
     <div className="mt-8"><RelatedList type="article" id={a.id} /></div>
     {preparing && <PrepareArticleDialog article={a} onClose={() => setPreparing(false)} />}
   </motion.article>;

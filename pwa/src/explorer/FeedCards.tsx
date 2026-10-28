@@ -13,6 +13,7 @@ import { ExecutorChip } from '../queue/PreparationProgress';
 import { STAGES } from '../queue/options';
 import { useActivePreparation } from '../queue/usePreparation';
 import { SelectableCard } from '../selection/SelectableCard';
+import { ArticlePreparationStatus } from '../articles/ArticlePreparationStatus';
 import { readingTime } from '../articles/readingTime';
 
 /** Petit égaliseur animé : « en cours de lecture ». */
@@ -119,6 +120,7 @@ export function ArticleFeedCard({ article, selected, onOpen, index, shared = fal
         </span>
         <span className="mt-0.5 line-clamp-2 text-[15px] font-semibold leading-snug text-foreground">{article.title}</span>
         <span className="mt-1 block text-xs text-muted-foreground">{[formatWhen(article.publishedAt), time, 'article', article.language.toUpperCase()].filter(Boolean).join(' · ')}</span>
+        <ArticlePreparationStatus reflectionId={article.reflectionId} ready={!!article.contentId} />
         {article.contentId && <span className="mt-1.5 inline-block rounded-full bg-primary-soft px-2 py-0.5 text-xs font-semibold text-primary">Version anglaise prête</span>}
       </span>
     </button>

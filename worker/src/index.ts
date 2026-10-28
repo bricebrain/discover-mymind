@@ -33,6 +33,9 @@ import { getSession } from './security/session';
 import { cloudRoute, protectCloudQueue } from './cloud/routes';
 import { recoverCloud } from './cloud/dispatch';
 export { CloudPreparation } from './cloud/workflow';
+export { ResearchPreparation } from './research/workflow';
+import { researchRoute } from './research/routes';
+import { scheduleResearch } from './research/store';
 
 async function handleApi(req: Request, env: Env, path: string): Promise<Response> {
   assertSameOriginWrite(req);
@@ -70,6 +73,11 @@ async function handleApi(req: Request, env: Env, path: string): Promise<Response
 
 /** Routes de données (émissions, épisodes, progression) : la session est vérifiée avant. */
 async function handleData(req: Request, env: Env, path: string, m: string): Promise<Response> {
+  if (path.startsWith('/api/research/')) return researchRoute(req,env,path);
+  if (path === '/api/settings/content-reset' && m === 'GET') {
+    const reset = await env.DB.prepare("SELECT value FROM app_settings WHERE key='content_reset_at'").first<{value:string}>();
+    return json({ resetAt: reset?.value ?? null });
+  }
   if (path.startsWith('/api/vocabulary/')) { const r = await vocabularyRoute(req,env,path); if (r) return r; }
   if (path==='/api/dossier-sources' && m==='GET') return candidates(req,env);
   if (path.startsWith('/api/dossiers')) { const response=await dossierRoute(req,env,path); if(response) return response; }
@@ -183,6 +191,9 @@ export default {
 
   /** Cron toutes les minutes : une émission vérifiée par exécution (§ 7.1). */
   async scheduled(_controller: ScheduledController, env: Env): Promise<void> {
+    // Indépendante des collectes : un flux en erreur ne doit pas empêcher la veille.
+    try { await scheduleResearch(env); }
+    catch { console.error(JSON.stringify({ event: 'research_schedule_failed' })); }
     await expireExhausted(env);
     await recoverCloud(env);
     const r = await collectNext(env);

@@ -5,6 +5,7 @@ import type { FeedItem } from './feedParser';
 import { sha256Hex } from './security/crypto';
 import { parseSafeUrl } from './security/safeUrl';
 import { automaticPreparation } from './queue/automatic';
+import { cleanupCollectedItems, collectionCutoff, isRecentItem } from './retention';
 
 /**
  * Collecte des vidéos (§ 7.1) : une chaîne YouTube par exécution du cron (toutes les minutes),
@@ -21,7 +22,6 @@ export const BACKOFF_INTERVAL_MS = 3 * 3_600_000;
 const BACKOFF_AFTER_FAILURES = 5;
 const REDUCED_MAX_ITEMS = 3;
 const RETENTION_PER_SHOW = 10;
-const RETENTION_MS = 30 * 86_400_000;
 /** Marqueur posé avant la requête : s'il est encore là au passage suivant, l'exécution a été interrompue. */
 const IN_PROGRESS = 'in_progress';
 export const USER_AGENT = 'discover/1.0 (lecteur personnel)';
@@ -89,6 +89,8 @@ export interface CollectResult {
 
 /** Vérifie une chaîne. `showId` force une chaîne précise (tests, ajout manuel). */
 export async function collectNext(env: Env, now = Date.now(), fetcher: typeof fetch = fetch, showId?: string): Promise<CollectResult> {
+  await cleanupCollectedItems(env, now);
+  const cutoff = await collectionCutoff(env, now);
   const show = await (showId
     ? env.DB.prepare("SELECT * FROM shows WHERE id = ? AND source_type = 'youtube'").bind(showId)
     : env.DB.prepare("SELECT * FROM shows WHERE enabled = 1 AND source_type = 'youtube' AND next_check_at <= ? ORDER BY next_check_at LIMIT 1").bind(iso(now))
@@ -126,7 +128,7 @@ export async function collectNext(env: Env, now = Date.now(), fetcher: typeof fe
     const { results: known } = await env.DB.prepare(
       'SELECT guid FROM episodes WHERE show_id = ? ORDER BY published_at DESC LIMIT 30',
     ).bind(show.id).all<{ guid: string }>();
-    const parsed = await parseYoutubeFeed(res.body, { maxItems, knownGuids: new Set(known.map((k) => k.guid)) });
+    const parsed = await parseYoutubeFeed(res.body, { maxItems, knownGuids: new Set(known.map((k) => k.guid)), acceptItem: (it) => isRecentItem(it.publishedAt, now) && Date.parse(it.publishedAt!) >= cutoff });
     if (!parsed.channel && parsed.items.length === 0 && known.length === 0) throw new Error('Flux illisible (aucune vidéo)');
 
     const fresh = parsed.items.filter((it) => matchesTitleFilter(it.title, show.title_filter_json));
@@ -140,13 +142,12 @@ export async function collectNext(env: Env, now = Date.now(), fetcher: typeof fe
         `UPDATE shows SET etag = ?, last_modified = ?, last_success_at = ?, last_error = NULL, consecutive_failures = 0,
            image_url = COALESCE(image_url, ?) WHERE id = ?`,
       ).bind(res.headers.get('ETag'), res.headers.get('Last-Modified'), iso(now), imageUrl(parsed.channel?.imageUrl ?? null), show.id),
-      // Les histoires, anecdotes et leçons restent écoutables en archive ; les autres catégories expirent après 30 jours.
+      // Plafond de volume supplémentaire à la rétention de 24 heures.
       env.DB.prepare(
         `DELETE FROM episodes WHERE show_id = ? AND state <> 'saved' AND content_id IS NULL
            AND NOT EXISTS (SELECT 1 FROM prepare_queue q WHERE q.kind='youtube' AND q.ref=episodes.video_id AND q.status IN ('pending','leased'))
-           AND ((? NOT IN ('stories', 'humour', 'study') AND COALESCE(published_at, created_at) < ?)
-                OR id NOT IN (SELECT id FROM episodes WHERE show_id = ? ORDER BY COALESCE(published_at, created_at) DESC LIMIT ?))`,
-      ).bind(show.id, show.category, iso(now - RETENTION_MS), show.id, RETENTION_PER_SHOW),
+           AND id NOT IN (SELECT id FROM episodes WHERE show_id = ? ORDER BY COALESCE(published_at, created_at) DESC LIMIT ?)`,
+      ).bind(show.id, show.id, RETENTION_PER_SHOW),
     );
     if (show.auto_prepare) statements.push(automaticPreparation(env,show.id,now));
     await env.DB.batch(statements);

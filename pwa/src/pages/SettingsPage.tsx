@@ -7,6 +7,8 @@ import { cn } from '@/lib/utils';
 import { useLogout, useRevokeOthers, useRevokeSession, useSession, useSessions } from '../api/auth';
 import { NotificationSettings } from '../notifications/NotificationSettings';
 import { ExportSection } from '../settings/ExportSection';
+import { Button as MuiButton } from '@mui/material';
+import { AppUpdateSection } from '../settings/AppUpdateSection';
 
 const dateFmt = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
 const formatDate = (iso: string) => dateFmt.format(new Date(iso));
@@ -15,6 +17,7 @@ export function SettingsPage() {
   const auth = useSession();
   return <div className="mx-auto max-w-[720px] px-4 pb-8 pt-1">
     <h1 className="sr-only">Réglages</h1>
+    <MuiButton component={Link} to="/research" variant="outlined" fullWidth sx={{ mt: 2 }}>Recherches Discover · Veille et articles</MuiButton>
     <SectionTitle className="mt-4">Apparence</SectionTitle>
     <ThemePicker />
     <p className="mb-0 mt-2 text-xs text-muted-foreground">Enregistré sur cet appareil. Le bouton soleil / lune de la barre du haut bascule aussi en un geste.</p>
@@ -32,6 +35,7 @@ export function SettingsPage() {
     </> : <DevicesSettings />}
     <NotificationSettings />
     <ExportSection />
+    <AppUpdateSection />
   </div>;
 }
 

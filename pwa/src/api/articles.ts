@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
 import type { PrepareOptions } from '../queue/types';
+import type { ResearchArticle } from './research';
 
 export type ArticleContentStatus = 'none' | 'feed' | 'pending' | 'complete' | 'partial' | 'unavailable';
 export interface ArticleSummary {
@@ -8,7 +9,7 @@ export interface ArticleSummary {
   contentStatus: ArticleContentStatus; reflectionId: string | null; contentLength: number | null;
   sourceId: string; publisher: string; language: 'fr' | 'en'; contentId: string | null;
 }
-export interface Article extends Omit<ArticleSummary, 'contentLength'> { contentText: string | null }
+export interface Article extends Omit<ArticleSummary, 'contentLength'> { contentText: string | null; research?: ResearchArticle | null }
 export interface ArticleSource { id: string; title: string; publisher: string; language: 'fr' | 'en' }
 export interface ArticleFilters { source?: string; lang?: 'fr' | 'en' }
 
@@ -46,7 +47,8 @@ export function useArticle(id: string | null) {
       return undefined;
     },
     queryFn: async () => (await api<{ article: Article }>(`/api/articles/${id}`)).article,
-    refetchInterval: (q) => (q.state.data?.contentStatus === 'pending' ? 4000 : false),
+    refetchInterval: (q) => (q.state.data?.contentStatus === 'pending' ||
+      (q.state.data?.sourceId === 'discover-research' && !q.state.data.contentId) ? 4000 : false),
   });
 }
 

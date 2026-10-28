@@ -11,7 +11,7 @@ let cookie:string;
 beforeEach(async () => {
   cookie=await login();
   await env.DB.prepare('DELETE FROM prepare_queue').run();
-  await env.DB.prepare("INSERT OR IGNORE INTO episodes (id,show_id,guid,title,audio_url,created_at) SELECT ?,id,'q-pub','Episode','https://example.com/audio.mp3','2026-10-17' FROM shows LIMIT 1").bind(ep).run();
+  await env.DB.prepare("INSERT OR IGNORE INTO episodes (id,show_id,guid,title,audio_url,created_at) SELECT ?,id,'q-pub','Episode','https://example.com/audio.mp3',? FROM shows LIMIT 1").bind(ep,new Date().toISOString()).run();
 });
 
 it('refuse l’ancienne instance au commit et à l’envoi, y compris après rattachement au nouveau bail',async () => {

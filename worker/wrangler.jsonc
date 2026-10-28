@@ -23,7 +23,10 @@
   // Connexion désactivée pour l'instant (choix du 2026-10-17). Remettre "false" pour l'exiger à nouveau :
   // APP_PASSPHRASE reste enregistrée dans les secrets.
   "vars": { "AUTH_DISABLED": "true", "CLOUD_ATELIER_ENABLED": "true", "CLOUD_MONTHLY_USD": "10" },
-  "workflows": [{ "binding": "CLOUD_PREPARATION", "name": "discover-cloud-preparation", "class_name": "CloudPreparation" }],
+  "workflows": [
+    { "binding": "CLOUD_PREPARATION", "name": "discover-cloud-preparation", "class_name": "CloudPreparation" },
+    { "binding": "RESEARCH", "name": "discover-research", "class_name": "ResearchPreparation" }
+  ],
 
   // Secrets (wrangler secret put) : APP_PASSPHRASE, SESSION_EPOCH, ATELIER_TOKEN.
   // En local : .dev.vars (voir .dev.vars.example).

@@ -5,6 +5,7 @@ import { idbStore } from './db';
 import { downloadKey } from './logic';
 import { createOfflineService, type OfflineSnapshot } from './service';
 import type { ProgressBody } from './types';
+import { applyContentReset } from './reset';
 
 export { downloadable, downloadKey, isNetworkFailure, OfflineError } from './logic';
 export type { DownloadRecord, DownloadStatus } from './types';
@@ -31,8 +32,15 @@ export function initOffline() {
     async (body) => (await api<{ progress: { updatedAt?: string; audioRef?: string } | null }>(
       `/api/progress/${body.targetType}/${encodeURIComponent(body.targetId)}`)).progress,
   );
-  if (typeof window !== 'undefined') window.addEventListener('online', flush);
-  return offline.init().then(() => { if (typeof navigator === 'undefined' || navigator.onLine) flush(); });
+  const reconnect = async () => {
+    try {
+      const { resetAt } = await api<{ resetAt: string | null }>('/api/settings/content-reset');
+      if (typeof localStorage !== 'undefined') await applyContentReset(resetAt, () => offline.purge(), localStorage);
+    } catch { return; /* Hors ligne : garder les téléchargements jusqu'au retour du serveur. */ }
+    flush();
+  };
+  if (typeof window !== 'undefined') window.addEventListener('online', () => { void reconnect(); });
+  return offline.init().then(async () => { if (typeof navigator === 'undefined' || navigator.onLine) await reconnect(); });
 }
 
 export function useOffline(): OfflineSnapshot {

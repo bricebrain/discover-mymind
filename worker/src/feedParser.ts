@@ -37,6 +37,7 @@ export interface ParseOptions {
   maxItems: number;
   knownGuids?: ReadonlySet<string>;
   maxBytes?: number;
+  acceptItem?: (item: FeedItem) => boolean;
   atom: { parseItem: (xml: string) => FeedItem | null; parseChannel: (xml: string) => ChannelInfo };
 }
 
@@ -161,6 +162,7 @@ export async function parseFeedStream(body: ReadableStream<Uint8Array>, opts: Pa
             stoppedAt = 'known_guid';
             break outer;
           }
+          if (opts.acceptItem && !opts.acceptItem(item)) continue;
           items.push(item);
           if (items.length >= opts.maxItems) {
             stoppedAt = 'max_items';

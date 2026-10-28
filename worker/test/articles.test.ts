@@ -65,7 +65,7 @@ describe('flux d’articles', () => {
     const fetcher = (async () => new Response(RSS, { headers: { 'Content-Type': 'application/rss+xml' } })) as unknown as typeof fetch;
     expect(await collectArticles(env, Date.parse('2026-10-18T09:00:00Z'), fetcher)).toMatchObject({ status: 'ok', sourceId: 'guardian-world', items: 1 });
     const list = await (await call('/api/articles', { cookie })).json<{ articles: { id: string; contentStatus: string; publisher: string }[]; sources: unknown[] }>();
-    expect(list.sources.length).toBe(6);
+    expect(list.sources.length).toBe(7);
     const a = list.articles[0]!;
     expect(a).toMatchObject({ contentStatus: 'none', publisher: 'The Guardian' });
     expect((await call(`/api/articles/${a.id}/fetch`, { method: 'POST', cookie, body: {} })).status).toBe(202);

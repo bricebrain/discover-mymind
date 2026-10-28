@@ -3,10 +3,10 @@ import { USER_AGENT } from '../collector';
 import { sha256Hex } from '../security/crypto';
 import { safeFetch } from '../security/safeUrl';
 import { parseArticleFeed } from './feed';
+import { ARTICLE_WAITING_FOR_DOSSIER, cleanupCollectedItems, collectionCutoff } from '../retention';
 
 const CHECK_EVERY_MS = 60 * 60_000;
 const MAX_BYTES = 1_500_000;
-const RETENTION_MS = 14 * 86_400_000;
 const KEEP_PER_SOURCE = 60;
 const NEW_PER_RUN = 6;
 
@@ -29,8 +29,10 @@ async function readCapped(res: Response): Promise<string> {
 
 /** Vérifie la source d'articles la plus en retard (une par appel), à intégrer au cron. */
 export async function collectArticles(env: Env, now = Date.now(), fetcher: typeof fetch = fetch) {
+  await cleanupCollectedItems(env, now);
+  const cutoff = await collectionCutoff(env, now);
   const iso = new Date(now).toISOString();
-  const source = await env.DB.prepare('SELECT id, feed_url FROM article_sources WHERE enabled=1 AND next_check_at<=? ORDER BY next_check_at LIMIT 1')
+  const source = await env.DB.prepare("SELECT id, feed_url FROM article_sources WHERE enabled=1 AND feed_url<>'' AND next_check_at<=? ORDER BY next_check_at LIMIT 1")
     .bind(iso).first<{ id: string; feed_url: string }>();
   if (!source) return { status: 'idle' as const };
   await env.DB.prepare('UPDATE article_sources SET next_check_at=? WHERE id=?').bind(new Date(now + CHECK_EVERY_MS).toISOString(), source.id).run();
@@ -40,7 +42,8 @@ export async function collectArticles(env: Env, now = Date.now(), fetcher: typeo
     const res = await safeFetch(source.feed_url, { allowHttp, headers: { 'User-Agent': USER_AGENT, Accept: 'application/rss+xml, application/atom+xml, application/xml;q=0.9' } }, fetcher);
     if (!res.ok || !res.body) { await res.body?.cancel(); throw new Error(`HTTP ${res.status}`); }
     const { results: known } = await env.DB.prepare('SELECT guid FROM articles WHERE source_id=? ORDER BY published_at DESC LIMIT 80').bind(source.id).all<{ guid: string }>();
-    const items = parseArticleFeed(await readCapped(res), NEW_PER_RUN, new Set(known.map((k) => k.guid)));
+    const items = parseArticleFeed(await readCapped(res), NEW_PER_RUN, new Set(known.map((k) => k.guid)), now)
+      .filter(item => Date.parse(item.publishedAt!) >= cutoff);
     const statements = [];
     for (const it of items) {
       const id = (await sha256Hex(`${source.id}|${it.guid}`)).slice(0, 20);
@@ -49,8 +52,8 @@ export async function collectArticles(env: Env, now = Date.now(), fetcher: typeo
         .bind(id, source.id, it.guid, it.url, it.title, it.summary, it.author, it.publishedAt ?? iso, it.content, it.content ? 'feed' : 'none', iso));
     }
     statements.push(
-      env.DB.prepare(`DELETE FROM articles WHERE source_id=? AND reflection_id IS NULL AND (published_at<? OR id NOT IN
-        (SELECT id FROM articles WHERE source_id=? ORDER BY published_at DESC LIMIT ?))`).bind(source.id, new Date(now - RETENTION_MS).toISOString(), source.id, KEEP_PER_SOURCE),
+      env.DB.prepare(`DELETE FROM articles WHERE source_id=? AND reflection_id IS NULL AND NOT ${ARTICLE_WAITING_FOR_DOSSIER} AND id NOT IN
+        (SELECT id FROM articles WHERE source_id=? ORDER BY published_at DESC LIMIT ?)`).bind(source.id, source.id, KEEP_PER_SOURCE),
       env.DB.prepare('UPDATE article_sources SET last_success_at=?, last_error=NULL WHERE id=?').bind(iso, source.id),
     );
     await env.DB.batch(statements);

@@ -5,6 +5,8 @@ import { useShows } from '../api/shows';
 import { categoryColor } from '../app/theme';
 import { ExplorerFeed } from '../explorer/ExplorerFeed';
 import { cn } from '@/lib/utils';
+import { Button } from '@mui/material';
+import { Link } from 'react-router-dom';
 
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as Category[];
 type Source = 'all' | 'youtube' | 'article';
@@ -55,6 +57,7 @@ export function ExplorerPage() {
   // Titre et accès aux abonnements sont dans la barre du haut : le fil commence directement par les filtres.
   const header = <div className="mb-2">
     <h1 className="sr-only">Explorer</h1>
+    <Button component={Link} to="/research" size="small" sx={{ mb: 1 }}>Recherches · Articles Gemini</Button>
     <Segmented value={source} onChange={(s) => setParam('source', s === 'all' ? undefined : s)} />
     {source === 'youtube' && <select value={show ?? ''} onChange={(e) => setParam('show', e.target.value || undefined)} aria-label="Chaîne YouTube"
       className="mt-3 h-11 w-full rounded-xl border border-border bg-card px-3 text-sm text-foreground">

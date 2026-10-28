@@ -9,6 +9,7 @@ import { registerSW } from 'virtual:pwa-register';
 import { ApiError } from './api/client';
 import { App } from './app/App';
 import { clearLibraryCache, startLibraryPersistence } from './cache/libraryPersistence';
+import { watchAppUpdates } from './pwa/updates';
 
 const queryClient: QueryClient = new QueryClient({
   // Une session expirée ou révoquée ailleurs renvoie l'utilisateur vers l'écran de connexion.
@@ -23,7 +24,9 @@ const queryClient: QueryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: true } },
 });
 
-registerSW({ immediate: true });
+registerSW({ immediate: true, onRegisteredSW: (_url, registration) => {
+  if (registration) watchAppUpdates(registration);
+} });
 
 const root = createRoot(document.getElementById('root')!);
 const render = () => root.render(

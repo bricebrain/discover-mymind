@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:workers';
-import { beforeEach,expect,it } from 'vitest';
+import { beforeEach,expect,it, afterEach, vi } from 'vitest';
 import { automaticPreparation } from '../src/queue/automatic';
 import { assertPrepared } from '../src/publications/preparation';
 import type { Manifest,Publication } from '../src/publications/types';
@@ -7,7 +7,10 @@ import { ATELIER_TOKEN,call,login } from './helpers';
 
 const now=Date.parse('2026-10-17T12:00:00Z');
 const ep='c'.repeat(20),older='d'.repeat(20),video='latestVideo',olderVideo='olderVideo_';
+afterEach(() => vi.useRealTimers());
 beforeEach(async()=>{
+ vi.useFakeTimers({toFake:['Date']});
+ vi.setSystemTime(now);
  await env.DB.prepare('DELETE FROM prepare_queue').run();
  await env.DB.prepare("INSERT OR IGNORE INTO shows (id,title,feed_url,language,category,auto_prepare,next_check_at,created_at,source_type) VALUES ('auto-test','Édito','https://example.com/feed','fr','economy',1,'2026-01-01','2026-01-01','youtube')").run();
  await env.DB.prepare("INSERT OR REPLACE INTO episodes (id,show_id,guid,title,audio_url,duration_sec,published_at,created_at,video_id) VALUES (?,'auto-test','latest','Édito','https://www.youtube.com/watch?v=latestVideo',120,'2026-10-17','2026-10-17',?),(?,'auto-test','older','Ancien','https://www.youtube.com/watch?v=olderVideo_',100,'2026-10-16','2026-10-16',?)").bind(ep,video,older,olderVideo).run();

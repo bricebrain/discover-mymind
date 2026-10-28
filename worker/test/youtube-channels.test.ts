@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:workers';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, afterEach, vi } from 'vitest';
 import { collectNext } from '../src/collector';
 import { resolve } from '../src/routes/shows';
 import { channelInput, resolveChannel } from '../src/youtube/channels';
@@ -34,7 +34,10 @@ async function subscribe(cookie: string) {
   return (await res.json<{ show: { id: string } }>()).show.id;
 }
 
+afterEach(() => vi.useRealTimers());
 beforeEach(async () => {
+  vi.useFakeTimers({toFake:['Date']});
+  vi.setSystemTime(NOW);
   await env.DB.batch([env.DB.prepare('DELETE FROM prepare_queue'), env.DB.prepare('DELETE FROM episodes'), env.DB.prepare('DELETE FROM shows')]);
 });
 

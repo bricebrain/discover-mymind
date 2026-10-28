@@ -17,6 +17,7 @@ import * as articles from '../articles/routes';
 import { manifest } from '../publications/store';
 import type { Publication } from '../publications/types';
 import { atelierIdentity } from '../events/identity';
+import { resetPublications } from '../maintenance/reset';
 
 /**
  * /atelier/* : uniquement le jeton Bearer de l'Atelier ; les cookies sont ignorés (§ 5.2).
@@ -41,6 +42,7 @@ export async function handleAtelier(req: Request, env: Env, path: string): Promi
   if (path === '/atelier/related' && req.method === 'POST') return publishRelated(req,env);
   if (path.startsWith('/atelier/vocabulary/')) { const r = await vocabularyRoute(req,env,path,true); if (r) return r; }
   if (path === '/atelier/ping' && req.method === 'GET') return json({ ok: true });
+  if (path === '/atelier/maintenance/reset-publications' && req.method === 'POST') return resetPublications(req,env);
   const content = path.match(/^\/atelier\/contents\/([a-z0-9-]{3,96})\/manifest$/);
   if (content?.[1] && req.method==='GET') {
     const p = await env.DB.prepare(`SELECT p.* FROM contents c JOIN publications p ON p.id=c.current_publication_id

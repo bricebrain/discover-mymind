@@ -14,7 +14,7 @@ describe('schéma', () => {
     ).all<{ name: string }>();
     expect(results.map((r) => r.name).sort()).toEqual([
       'app_settings', 'article_sources', 'articles', 'cloud_guards', 'cloud_operations', 'cloud_quotes', 'cloud_runs', 'contents', 'dictation_attempts', 'dossier_runs', 'dossiers', 'episodes', 'level_feedback', 'listening_progress', 'listening_reviews', 'login_attempts', 'prepare_queue', 'publication_files', 'publication_gc', 'publication_guards',
-      'publications', 'push_deliveries', 'push_subscriptions', 'queue_events', 'queue_stage_log', 'quiz_answers', 'reflection_links', 'reflections', 'related_changes', 'related_groups', 'related_links', 'related_members', 'search_index', 'sessions', 'shows', 'variants', 'vocabulary_picks',
+      'publications', 'push_deliveries', 'push_subscriptions', 'queue_events', 'queue_stage_log', 'quiz_answers', 'reflection_links', 'reflections', 'related_changes', 'related_groups', 'related_links', 'related_members', 'research_drafts', 'research_operations', 'research_runs', 'search_index', 'sessions', 'shows', 'variants', 'vocabulary_picks',
       'weekly_articles', 'weekly_links', 'weekly_listening', 'weekly_notes', 'weekly_publications',
     ]);
   });

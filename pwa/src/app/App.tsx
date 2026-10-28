@@ -26,6 +26,7 @@ const router = createBrowserRouter([
       { path: '/library/:id', element: <ContentPage /> },
       { path: '/mind', element: <MindPage /> },
       { path: '/settings', element: <SettingsPage /> },
+      { path: '/research', lazy: async () => ({ Component: (await import('../pages/ResearchPage')).ResearchPage }) },
       { path: '/week', lazy: async () => ({ Component: (await import('../pages/WeekPage')).WeekPage }) },
       { path: '/vocabulary', lazy: async () => ({ Component: (await import('../pages/WordPicksPage')).WordPicksPage }) },
       { path: '/share', element: <SharePage /> },

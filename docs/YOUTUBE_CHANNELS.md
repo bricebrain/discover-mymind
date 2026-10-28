@@ -15,7 +15,11 @@ Le suivi seul ne déclenche aucune préparation ni appel à une IA. La préparat
 - Flux Atom publics YouTube ; aucune clé Data API et aucun accès au compte YouTube personnel.
 - Cron existant : une source par minute, toutes sources confondues. À 38–50 abonnements, le tour prend environ 38–50 minutes ; les erreurs répétées sont espacées comme pour les podcasts.
 - Limite actuelle de **50 sources actives**, podcasts et chaînes confondus.
-- Dix éléments récents conservés par source ; rétention existante de 30 jours hors histoires et humour. Les éléments sauvegardés, préparés ou en préparation sont protégés.
+- Seules les publications des **24 dernières heures** sont collectées, toutes catégories confondues ; une date absente, invalide ou future est ignorée. Le plafond de dix vidéos par chaîne reste applicable.
+- La préparation automatique se limite à la dernière vidéo publiée dans cette fenêtre de 24 heures.
+- Le cron purge les anciennes vidéos et les articles, même sans nouveauté ou si le flux échoue. Les demandes en attente ou à bail expiré sont annulées avant suppression de leur source.
+- Les vidéos sauvegardées, les contenus déjà préparés, les articles transformés en notes et les baux encore actifs sont conservés. Un article dont un dossier attend encore le texte complet reste disponible jusqu’à sa capture.
+- Les articles suivent la même fenêtre de 24 heures, avec un plafond supplémentaire de 60 articles par source. Aucune migration de schéma n’est nécessaire ; le nettoyage débute au premier cron après déploiement.
 - Pas d’import de tout l’historique d’une chaîne. Le flux ne contient qu’une sélection récente, peut contenir des Shorts et ne donne pas la durée des vidéos.
 - Pas de lecture directe du lien YouTube dans le lecteur audio : **Voir sur YouTube** ouvre l’original ; les versions préparées utilisent le lecteur existant.
 

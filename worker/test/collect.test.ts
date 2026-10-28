@@ -18,7 +18,7 @@ function item(i: FakeItem): string {
   return `<entry>
     <id>yt:video:${vid(i.guid)}</id><yt:videoId>${vid(i.guid)}</yt:videoId>
     <title>${i.title}</title>
-    <published>${new Date(i.date ?? 'Fri, 16 Oct 2026 06:00:00 GMT').toISOString()}</published>
+    <published>${new Date(i.date ?? 'Sat, 17 Oct 2026 06:00:00 GMT').toISOString()}</published>
     <media:group><media:title>${i.title}</media:title>
       <media:thumbnail url="http://i.ytimg.com/vi/${vid(i.guid)}/hqdefault.jpg" width="480" height="360"/>
       <media:description>${i.description ?? '&lt;p&gt;Résumé &amp; contexte&lt;/p&gt;'}</media:description></media:group>
@@ -46,7 +46,7 @@ function stream(text: string, chunk = 37): ReadableStream<Uint8Array> {
 }
 
 const items = (n: number, prefix = 'ep'): FakeItem[] =>
-  Array.from({ length: n }, (_, k) => ({ guid: `${prefix}-${n - k}`, title: `Épisode ${n - k}`, date: new Date(Date.UTC(2026, 9, 16, 12) - k * 3_600_000).toUTCString() }));
+  Array.from({ length: n }, (_, k) => ({ guid: `${prefix}-${n - k}`, title: `Épisode ${n - k}`, date: new Date(Date.UTC(2026, 9, 17, 10) - k * 60_000).toUTCString() }));
 
 function fakeFetch(handler: (url: string, init?: RequestInit) => Response): typeof fetch {
   return (async (input: RequestInfo | URL, init?: RequestInit) => handler(String(input), init)) as typeof fetch;
@@ -60,7 +60,7 @@ describe('lecture en flux', () => {
     expect(r.channel).toMatchObject({ title: 'Émission test', author: 'Chaîne Test' });
     expect(r.items[0]).toMatchObject({
       guid: guid('a'), videoId: vid('a'), title: 'Le "grand" débat', audioUrl: `https://www.youtube.com/watch?v=${vid('a')}`,
-      publishedAt: '2026-10-16T06:00:00.000Z',
+      publishedAt: '2026-10-17T06:00:00.000Z',
     });
     expect(r.items[0]!.description!.length).toBe(2000);
     expect(r.stoppedAt).toBe('eof');
@@ -223,13 +223,13 @@ describe('collecte', () => {
     await collectNext(env, NOW, f1, 'a');
     expect(await count('SELECT COUNT(*) AS n FROM episodes')).toBe(10);
     await env.DB.prepare('UPDATE episodes SET state = \'saved\' WHERE guid = ?').bind(guid('old-3')).run();
-    const newer = items(12, 'new').map((it) => ({ ...it, date: new Date(Date.parse(it.date!) + 86_400_000).toUTCString() }));
+    const newer = items(12, 'new').map((it) => ({ ...it, date: new Date(Date.parse(it.date!) + 3_600_000).toUTCString() }));
     await collectNext(env, NOW + 3_600_000, fakeFetch(() => new Response(feed(newer))), 'a');
     expect(await count('SELECT COUNT(*) AS n FROM episodes WHERE guid = ?', guid('old-3'))).toBe(1);
     expect(await count("SELECT COUNT(*) AS n FROM episodes WHERE state <> 'saved'")).toBe(10);
   });
 
-  it.each(['stories', 'humour'])('garde dix épisodes anciens de %s, mais fait expirer les actualités après trente jours', async (category) => {
+  it.each(['stories', 'humour'])('ignore les publications de plus de 24 heures, y compris pour %s', async (category) => {
     await addShow('stories', { category, max_items: 15 });
     await addShow('news', { category: 'news', max_items: 15 });
     const archived = items(12, 'archive').map((it) => ({
@@ -238,7 +238,7 @@ describe('collecte', () => {
     const fetcher = fakeFetch(() => new Response(feed(archived)));
     expect(await collectNext(env, NOW, fetcher, 'stories')).toMatchObject({ status: 'ok' });
     expect(await collectNext(env, NOW, fetcher, 'news')).toMatchObject({ status: 'ok' });
-    expect(await count("SELECT COUNT(*) AS n FROM episodes WHERE show_id = 'stories'")).toBe(10);
+    expect(await count("SELECT COUNT(*) AS n FROM episodes WHERE show_id = 'stories'")).toBe(0);
     expect(await count("SELECT COUNT(*) AS n FROM episodes WHERE show_id = 'news'")).toBe(0);
     expect(await count('SELECT COUNT(*) AS n FROM episodes WHERE guid = ?', guid('archive-1'))).toBe(0);
   });
@@ -318,14 +318,16 @@ describe('émissions et Explorer (API)', () => {
   });
 });
 
-it('conserve un épisode en file malgré son âge et le désabonnement', async () => {
+it('annule la demande en attente et purge sa source expirée avant la collecte', async () => {
   await addShow('queued');
   const id=await episodeId('queued',guid('old-queued'));
   await env.DB.prepare("INSERT INTO episodes (id,show_id,guid,title,audio_url,published_at,created_at,video_id) VALUES (?,'queued',?,'Archive','https://www.youtube.com/watch?v=old-queued_','2020-01-01','2020-01-01',?)").bind(id,guid('old-queued'),vid('old-queued')).run();
   await env.DB.prepare("INSERT INTO prepare_queue (id,kind,ref,options_json,created_at,updated_at) VALUES ('queued','youtube',?,'{}','2026-10-17','2026-10-17')").bind(vid('old-queued')).run();
   await collectNext(env,NOW,fakeFetch(() => new Response(feed([]))),'queued');
-  expect(await count('SELECT COUNT(*) AS n FROM episodes WHERE id=?',id)).toBe(1);
+  expect(await count('SELECT COUNT(*) AS n FROM episodes WHERE id=?',id)).toBe(0);
+  expect(await env.DB.prepare("SELECT status FROM prepare_queue WHERE id='queued'").first()).toMatchObject({status:'cancelled'});
   const cookie=await login();
   expect((await call('/api/shows/queued',{method:'DELETE',cookie})).status).toBe(204);
-  expect(await count('SELECT COUNT(*) AS n FROM episodes WHERE id=?',id)).toBe(1);
+  expect(await count('SELECT COUNT(*) AS n FROM episodes WHERE id=?',id)).toBe(0);
+  expect(await env.DB.prepare("SELECT status FROM prepare_queue WHERE id='queued'").first()).toMatchObject({status:'cancelled'});
 });

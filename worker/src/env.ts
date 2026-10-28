@@ -14,6 +14,7 @@ export interface Env {
   /** Jeton Bearer de l'Atelier (32 caractères minimum). */
   ATELIER_TOKEN: string;
   CLOUD_PREPARATION: Workflow<{id:string}>;
+  RESEARCH: Workflow<{id:string}>;
   CLOUD_ATELIER_ENABLED?: string;
   CLOUD_MONTHLY_USD?: string;
   GEMINI_API_KEY?: string;
